@@ -255,7 +255,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			}
 		}
 
-		err := cc.ResolveWithError(func(webApp *WebApp, cr *cron.Cron, gf *graceful.Graceful) error {
+		err := cc.ResolveWithError(func(cr *cron.Cron, gf *graceful.Graceful) error {
 			if glacier.cronTaskFunc != nil {
 				if err := glacier.cronTaskFunc(cr, cc); err != nil {
 					return err
@@ -266,8 +266,10 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			cr.Start()
 
 			// start period jobs
-			if err := cc.Resolve(glacier.periodJobFunc); err != nil {
-				return err
+			if glacier.periodJobFunc != nil {
+				if err := cc.Resolve(glacier.periodJobFunc); err != nil {
+					return err
+				}
 			}
 
 			return gf.Start()
