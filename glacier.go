@@ -125,7 +125,7 @@ func (glacier *Glacier) WithHttpServer(listenAddr string) *Glacier {
 }
 
 // AddFlags add flags to app
-func (glacier *Glacier) AddFlags(flags []cli.Flag) *Glacier {
+func (glacier *Glacier) AddFlags(flags ...cli.Flag) *Glacier {
 	glacier.app.Flags = append(glacier.app.Flags, flags...)
 	return glacier
 }
