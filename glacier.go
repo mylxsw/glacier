@@ -34,6 +34,9 @@ type Glacier struct {
 	periodJobFunc     PeriodJobFunc
 
 	httpListenAddr string
+
+	singletons []interface{}
+	prototypes []interface{}
 }
 
 type CronTaskFunc func(cr *cron.Cron, cc *container.Container) error
@@ -102,6 +105,8 @@ func Create(version string, flags ...cli.Flag) *Glacier {
 	glacierInstance.app = app
 	glacierInstance.webAppInitFunc = func() error { return nil }
 	glacierInstance.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
+	glacierInstance.singletons = make([]interface{}, 0)
+	glacierInstance.prototypes = make([]interface{}, 0)
 
 	app.Action = createServer(glacierInstance)
 
@@ -167,6 +172,18 @@ func (glacier *Glacier) PeriodJob(f PeriodJobFunc) *Glacier {
 	return glacier
 }
 
+// Singleton add a singleton instance to container
+func (glacier *Glacier) Singleton(ins interface{}) *Glacier {
+	glacier.singletons = append(glacier.singletons, ins)
+	return glacier
+}
+
+// Prototype add a prototype to container
+func (glacier *Glacier) Prototype(ins interface{}) *Glacier {
+	glacier.prototypes = append(glacier.prototypes, ins)
+	return glacier
+}
+
 // Container return container instance
 func (glacier *Glacier) Container() *container.Container {
 	return glacier.container
@@ -212,6 +229,14 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 
 		cc.MustSingleton(cron.New)
 		cc.MustSingleton(period_job.NewManager)
+
+		for _, i := range glacier.singletons {
+			cc.MustSingleton(i)
+		}
+
+		for _, i := range glacier.prototypes {
+			cc.MustPrototype(i)
+		}
 
 		defer cc.MustResolve(func(cr *cron.Cron, pj *period_job.Manager) {
 			cancel()

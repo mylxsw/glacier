@@ -18,9 +18,17 @@ type testJob struct{}
 
 func (testJob) Handle() {
 	logger.Info("Hello, test job!")
+
+	glacier.Container().MustResolve(func(conf *Config) {
+		logger.Infof("mysql_conn: %s", conf.MySQLURI)
+	})
 }
 
 type CrontabEvent struct{}
+
+type Config struct {
+	MySQLURI string
+}
 
 func main() {
 	g := glacier.Create("1.0")
@@ -29,6 +37,10 @@ func main() {
 
 	g.PeriodJob(func(pj *period_job.Manager, cc *container.Container) {
 		pj.Run("test-job", testJob{}, 5*time.Second)
+
+		for _, k := range cc.Keys() {
+			logger.Debugf("-> %v", k)
+		}
 	})
 
 	g.Crontab(func(cr *cron.Cron, cc *container.Container) error {
@@ -49,6 +61,12 @@ func main() {
 		listener.Listen(func(event CrontabEvent) {
 			logger.Debug("a new cron task executed")
 		})
+	})
+
+	g.Singleton(func() *Config {
+		return &Config{
+			MySQLURI: "xxxxxx",
+		}
 	})
 
 	if err := g.Run(os.Args); err != nil {
