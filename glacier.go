@@ -18,9 +18,10 @@ var logger = log.Module("glacier")
 
 // Glacier is the server
 type Glacier struct {
-	appName string
-	version string
-	app     *cli.App
+	appName   string
+	version   string
+	app       *cli.App
+	container *container.Container
 
 	beforeServerStart func(cc *container.Container) error
 	beforeServerStop  func(cc *container.Container) error
@@ -39,8 +40,28 @@ type CronTaskFunc func(cr *cron.Cron, cc *container.Container) error
 type EventListenerFunc func(listener *events.EventManager, cc *container.Container)
 type PeriodJobFunc func(pj *period_job.Manager, cc *container.Container)
 
+var glacierInstance *Glacier
+
+// App return Glacier instance you created
+func App() *Glacier {
+	if glacierInstance == nil {
+		panic("you should create a Glacier by calling Create function first!")
+	}
+
+	return glacierInstance
+}
+
+// Container return container instance for glacier
+func Container() *container.Container {
+	return App().Container()
+}
+
 // Create a new Glacier server
 func Create(version string, flags ...cli.Flag) *Glacier {
+	if glacierInstance != nil {
+		panic("a glacier instance has been created already")
+	}
+
 	serverFlags := []cli.Flag{
 		cli.StringFlag{
 			Name:  "conf",
@@ -77,14 +98,14 @@ func Create(version string, flags ...cli.Flag) *Glacier {
 	}
 	app.Flags = serverFlags
 
-	glacier := &Glacier{}
-	glacier.app = app
-	glacier.webAppInitFunc = func() error { return nil }
-	glacier.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
+	glacierInstance = &Glacier{}
+	glacierInstance.app = app
+	glacierInstance.webAppInitFunc = func() error { return nil }
+	glacierInstance.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
 
-	app.Action = createServer(glacier)
+	app.Action = createServer(glacierInstance)
 
-	return glacier
+	return glacierInstance
 }
 
 // WithHttpServer with http server support
@@ -146,6 +167,11 @@ func (glacier *Glacier) PeriodJob(f PeriodJobFunc) *Glacier {
 	return glacier
 }
 
+// Container return container instance
+func (glacier *Glacier) Container() *container.Container {
+	return glacier.container
+}
+
 // Run start Glacier server
 func (glacier *Glacier) Run(args []string) error {
 	if glacier.httpListenAddr != "" {
@@ -168,6 +194,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cc := container.NewWithContext(ctx)
+		glacier.container = cc
 
 		cc.MustBindValue("version", glacier.version)
 		cc.MustSingleton(func() *cli.Context {
