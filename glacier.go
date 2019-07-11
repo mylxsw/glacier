@@ -24,6 +24,7 @@ type Glacier struct {
 	container *container.Container
 
 	beforeServerStart func(cc *container.Container) error
+	afterServerStart  func(cc *container.Container) error
 	beforeServerStop  func(cc *container.Container) error
 
 	webAppInitFunc   interface{}
@@ -133,6 +134,12 @@ func (glacier *Glacier) AddFlags(flags ...cli.Flag) *Glacier {
 // BeforeServerStart set a hook func executed before server start
 func (glacier *Glacier) BeforeServerStart(f func(cc *container.Container) error) *Glacier {
 	glacier.beforeServerStart = f
+	return glacier
+}
+
+// AfterServerStart set a hook func executed after server started
+func (glacier *Glacier) AfterServerStart(f func(cc *container.Container) error) *Glacier {
+	glacier.afterServerStart = f
 	return glacier
 }
 
@@ -293,6 +300,12 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			// start period jobs
 			if glacier.periodJobFunc != nil {
 				if err := cc.Resolve(glacier.periodJobFunc); err != nil {
+					return err
+				}
+			}
+
+			if glacier.afterServerStart != nil {
+				if err := glacier.afterServerStart(cc); err != nil {
 					return err
 				}
 			}
