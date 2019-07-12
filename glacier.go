@@ -26,6 +26,7 @@ type Glacier struct {
 	beforeServerStart func(cc *container.Container) error
 	afterServerStart  func(cc *container.Container) error
 	beforeServerStop  func(cc *container.Container) error
+	mainFunc interface{}
 
 	webAppInitFunc   interface{}
 	webAppRouterFunc InitRouterHandler
@@ -196,6 +197,12 @@ func (glacier *Glacier) Container() *container.Container {
 	return glacier.container
 }
 
+// Main execute main business logic
+func (glacier *Glacier) Main(f interface{}) *Glacier {
+	glacier.mainFunc = f
+	return glacier
+}
+
 // Run start Glacier server
 func (glacier *Glacier) Run(args []string) error {
 	if glacier.httpListenAddr != "" {
@@ -308,6 +315,10 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 				if err := glacier.afterServerStart(cc); err != nil {
 					return err
 				}
+			}
+
+			if glacier.mainFunc != nil {
+				go cc.MustResolve(glacier.mainFunc)
 			}
 
 			return gf.Start()

@@ -69,6 +69,11 @@ func main() {
 		}
 	})
 
+
+	g.Main(func(conf *Config) {
+		logger.Errorf("main: %s", conf.MySQLURI)
+	})
+
 	if err := g.Run(os.Args); err != nil {
 		panic(err)
 	}
