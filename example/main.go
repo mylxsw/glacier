@@ -10,6 +10,8 @@ import (
 	"github.com/mylxsw/go-toolkit/log"
 	"github.com/mylxsw/go-toolkit/period_job"
 	"github.com/robfig/cron"
+	"gopkg.in/urfave/cli.v1"
+	"gopkg.in/urfave/cli.v1/altsrc"
 )
 
 var logger = log.Module("example")
@@ -28,12 +30,16 @@ type CrontabEvent struct{}
 
 type Config struct {
 	MySQLURI string
+	Test     string
 }
 
 func main() {
 	g := glacier.Create("1.0")
-
 	g.WithHttpServer(":19945")
+	g.AddFlags(altsrc.NewStringFlag(cli.StringFlag{
+		Name:  "test",
+		Value: "",
+	}))
 
 	g.PeriodJob(func(pj *period_job.Manager, cc *container.Container) {
 		pj.Run("test-job", testJob{}, 5*time.Second)
@@ -63,15 +69,15 @@ func main() {
 		})
 	})
 
-	g.Singleton(func() *Config {
+	g.Singleton(func(c *cli.Context) *Config {
 		return &Config{
 			MySQLURI: "xxxxxx",
+			Test:     c.String("test"),
 		}
 	})
 
-
 	g.Main(func(conf *Config) {
-		logger.Errorf("main: %s", conf.MySQLURI)
+		logger.Errorf("main: %s", conf.Test)
 	})
 
 	if err := g.Run(os.Args); err != nil {

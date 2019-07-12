@@ -99,12 +99,13 @@ func Create(version string, flags ...cli.Flag) *Glacier {
 			return err
 		}
 
-		return altsrc.ApplyInputSourceValues(c, inputSource, serverFlags)
+		return altsrc.ApplyInputSourceValues(c, inputSource, c.App.Flags)
 	}
 	app.Flags = serverFlags
 
 	glacierInstance = &Glacier{}
 	glacierInstance.app = app
+	glacierInstance.version = version
 	glacierInstance.webAppInitFunc = func() error { return nil }
 	glacierInstance.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
 	glacierInstance.singletons = make([]interface{}, 0)
