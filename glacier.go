@@ -3,18 +3,17 @@ package glacier
 import (
 	"context"
 
+	"github.com/mylxsw/asteria/level"
+	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/go-toolkit/container"
 	"github.com/mylxsw/go-toolkit/events"
 	"github.com/mylxsw/go-toolkit/graceful"
-	"github.com/mylxsw/go-toolkit/log"
 	"github.com/mylxsw/go-toolkit/period_job"
 	"github.com/mylxsw/go-toolkit/web"
 	"github.com/robfig/cron"
 	"gopkg.in/urfave/cli.v1"
 	"gopkg.in/urfave/cli.v1/altsrc"
 )
-
-var logger = log.Module("glacier")
 
 // Glacier is the server
 type Glacier struct {
@@ -26,7 +25,7 @@ type Glacier struct {
 	beforeServerStart func(cc *container.Container) error
 	afterServerStart  func(cc *container.Container) error
 	beforeServerStop  func(cc *container.Container) error
-	mainFunc interface{}
+	mainFunc          interface{}
 
 	webAppInitFunc   interface{}
 	webAppRouterFunc InitRouterHandler
@@ -77,10 +76,6 @@ func Create(version string, flags ...cli.Flag) *Glacier {
 			Name:  "log_level",
 			Value: "DEBUG",
 			Usage: "specify log level",
-		}),
-		altsrc.NewBoolTFlag(cli.BoolTFlag{
-			Name:  "log_colorful",
-			Usage: "set true if you want to hav colorful log output",
 		}),
 	}
 
@@ -219,10 +214,9 @@ func (glacier *Glacier) Run(args []string) error {
 
 func createServer(glacier *Glacier) func(c *cli.Context) error {
 	return func(c *cli.Context) error {
-		log.SetDefaultLevel(log.GetLevelByName(c.String("log_level")))
-		log.SetDefaultColorful(c.Bool("log_colorful"))
+		log.DefaultLogLevel(level.GetLevelByName(c.String("log_level")))
 
-		logger.Infof("server starting, version=%s", glacier.version)
+		log.Infof("server starting, version=%s", glacier.version)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cc := container.NewWithContext(ctx)
@@ -262,7 +256,8 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 
 			cr.Stop()
 			pj.Wait()
-			logger.Debugf("all services has been stopped")
+
+			log.Debugf("all services has been stopped")
 		})
 
 		if glacier.beforeServerStart != nil {

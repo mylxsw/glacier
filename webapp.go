@@ -2,11 +2,14 @@ package glacier
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/mylxsw/asteria/log"
+	"github.com/mylxsw/asteria/misc"
 	"github.com/mylxsw/go-toolkit/container"
 	"github.com/mylxsw/go-toolkit/graceful"
 	"github.com/mylxsw/go-toolkit/web"
@@ -51,18 +54,19 @@ func (app *WebApp) Start() error {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			logger.Debugf("prepare to shutdown http server...")
+			log.Debugf("prepare to shutdown http server...")
 			if err := srv.Shutdown(ctx); err != nil {
-				logger.Errorf("shutdown http server failed: %s", err)
+				log.Errorf("shutdown http server failed: %s", err)
 			}
 
-			logger.Warning("http server has been shutdown")
+			log.Warning("http server has been shutdown")
 		})
 
 		go func() {
-			logger.Debugf("http server started, listening on %s", conf.HttpListen)
+			fmt.Println(misc.CallGraph(1))
+			log.Debugf("http server started, listening on %s", conf.HttpListen)
 			if err := srv.Serve(listener); err != nil {
-				logger.Debugf("http server stopped: %s", err)
+				log.Debugf("http server stopped: %s", err)
 				if err != http.ErrServerClosed {
 					gf.Shutdown()
 				}
