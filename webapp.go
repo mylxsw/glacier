@@ -2,14 +2,12 @@ package glacier
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/mylxsw/asteria/log"
-	"github.com/mylxsw/asteria/misc"
 	"github.com/mylxsw/go-toolkit/container"
 	"github.com/mylxsw/go-toolkit/graceful"
 	"github.com/mylxsw/go-toolkit/web"
@@ -63,7 +61,6 @@ func (app *WebApp) Start() error {
 		})
 
 		go func() {
-			fmt.Println(misc.CallGraph(1))
 			log.Debugf("http server started, listening on %s", conf.HttpListen)
 			if err := srv.Serve(listener); err != nil {
 				log.Debugf("http server stopped: %s", err)
