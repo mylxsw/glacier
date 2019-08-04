@@ -3,7 +3,7 @@ package glacier
 import (
 	"time"
 
-	"gopkg.in/urfave/cli.v1"
+	"github.com/urfave/cli"
 )
 
 type Config struct {

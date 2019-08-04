@@ -2,36 +2,19 @@ package main
 
 import (
 	"os"
-	"time"
 
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/glacier"
+	"github.com/mylxsw/glacier/example/config"
+	"github.com/mylxsw/glacier/example/job"
 	"github.com/mylxsw/go-toolkit/container"
 	"github.com/mylxsw/go-toolkit/events"
-	"github.com/mylxsw/go-toolkit/period_job"
 	"github.com/robfig/cron"
-	"gopkg.in/urfave/cli.v1"
-	"gopkg.in/urfave/cli.v1/altsrc"
+	"github.com/urfave/cli"
+	"github.com/urfave/cli/altsrc"
 )
 
-var logger = log.Module("example")
-
-type testJob struct{}
-
-func (testJob) Handle() {
-	logger.Info("Hello, test job!")
-
-	glacier.Container().MustResolve(func(conf *Config) {
-		logger.Infof("mysql_conn: %s", conf.MySQLURI)
-	})
-}
-
 type CrontabEvent struct{}
-
-type Config struct {
-	MySQLURI string
-	Test     string
-}
 
 func main() {
 	g := glacier.Create("1.0")
@@ -41,17 +24,11 @@ func main() {
 		Value: "",
 	}))
 
-	g.PeriodJob(func(pj *period_job.Manager, cc *container.Container) {
-		pj.Run("test-job", testJob{}, 5*time.Second)
-
-		for _, k := range cc.Keys() {
-			logger.Debugf("-> %v", k)
-		}
-	})
+	g.Provider(job.ServiceProvider{})
 
 	g.Crontab(func(cr *cron.Cron, cc *container.Container) error {
 		if err := cr.AddFunc("@every 3s", func() {
-			logger.Infof("hello, example!")
+			log.Infof("hello, example!")
 
 			_ = cc.Resolve(func(manager *events.EventManager) {
 				manager.Publish(CrontabEvent{})
@@ -65,19 +42,19 @@ func main() {
 
 	g.EventListener(func(listener *events.EventManager, cc *container.Container) {
 		listener.Listen(func(event CrontabEvent) {
-			logger.Debug("a new cron task executed")
+			log.Debug("a new cron task executed")
 		})
 	})
 
-	g.Singleton(func(c *cli.Context) *Config {
-		return &Config{
+	g.Singleton(func(c *cli.Context) *config.Config {
+		return &config.Config{
 			MySQLURI: "xxxxxx",
 			Test:     c.String("test"),
 		}
 	})
 
-	g.Main(func(conf *Config) {
-		logger.Errorf("main: %s", conf.Test)
+	g.Main(func(conf *config.Config) {
+		log.Errorf("main: %s", conf.Test)
 	})
 
 	if err := g.Run(os.Args); err != nil {

@@ -11,9 +11,14 @@ import (
 	"github.com/mylxsw/go-toolkit/period_job"
 	"github.com/mylxsw/go-toolkit/web"
 	"github.com/robfig/cron"
-	"gopkg.in/urfave/cli.v1"
-	"gopkg.in/urfave/cli.v1/altsrc"
+	"github.com/urfave/cli"
+	"github.com/urfave/cli/altsrc"
 )
+
+type ServiceProvider interface {
+	Register(app *container.Container)
+	Boot(app *Glacier)
+}
 
 // Glacier is the server
 type Glacier struct {
@@ -21,6 +26,8 @@ type Glacier struct {
 	version   string
 	app       *cli.App
 	container *container.Container
+
+	providers []ServiceProvider
 
 	beforeServerStart func(cc *container.Container) error
 	afterServerStart  func(cc *container.Container) error
@@ -63,7 +70,7 @@ func Container() *container.Container {
 // Create a new Glacier server
 func Create(version string, flags ...cli.Flag) *Glacier {
 	if glacierInstance != nil {
-		panic("a glacier instance has been created already")
+		panic("a glacier instance has been created")
 	}
 
 	serverFlags := []cli.Flag{
@@ -105,10 +112,16 @@ func Create(version string, flags ...cli.Flag) *Glacier {
 	glacierInstance.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
 	glacierInstance.singletons = make([]interface{}, 0)
 	glacierInstance.prototypes = make([]interface{}, 0)
+	glacierInstance.providers = make([]ServiceProvider, 0)
 
 	app.Action = createServer(glacierInstance)
 
 	return glacierInstance
+}
+
+// Provider add a service provider
+func (glacier *Glacier) Provider(provider ServiceProvider) {
+	glacier.providers = append(glacier.providers, provider)
 }
 
 // WithHttpServer with http server support
@@ -260,6 +273,10 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			log.Debugf("all services has been stopped")
 		})
 
+		for _, p := range glacier.providers {
+			p.Register(cc)
+		}
+
 		if glacier.beforeServerStart != nil {
 			if err := glacier.beforeServerStart(cc); err != nil {
 				return err
@@ -270,6 +287,10 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			if err := cc.Resolve(glacier.eventListenerFunc); err != nil {
 				return err
 			}
+		}
+
+		for _, p := range glacier.providers {
+			p.Boot(glacier)
 		}
 
 		if glacier.httpListenAddr != "" {
