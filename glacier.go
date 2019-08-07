@@ -34,8 +34,9 @@ type Glacier struct {
 	beforeServerStop  func(cc *container.Container) error
 	mainFunc          interface{}
 
-	webAppInitFunc   interface{}
-	webAppRouterFunc InitRouterHandler
+	webAppInitFunc      interface{}
+	webAppRouterFunc    InitRouterHandler
+	webAppMuxRouterFunc InitMuxRouterHandler
 
 	cronTaskFunc      CronTaskFunc
 	eventListenerFunc EventListenerFunc
@@ -171,6 +172,11 @@ func (glacier *Glacier) WebAppRouter(handler InitRouterHandler) *Glacier {
 	return glacier
 }
 
+// WebAppMuxRouter add mux routes for http server
+func (glacier *Glacier) WebAppMuxRouter(handler InitMuxRouterHandler) *Glacier {
+	glacier.webAppMuxRouterFunc = handler
+}
+
 // Crontab add cron tasks
 func (glacier *Glacier) Crontab(f CronTaskFunc) *Glacier {
 	glacier.cronTaskFunc = f
@@ -295,6 +301,10 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 
 		if glacier.httpListenAddr != "" {
 			if err := cc.ResolveWithError(func(webApp *WebApp) error {
+				if glacier.webAppMuxRouterFunc != nil {
+					webApp.MuxRouter(glacier.webAppMuxRouterFunc)
+				}
+
 				if glacier.webAppInitFunc != nil {
 					if err := webApp.Init(glacier.webAppInitFunc); err != nil {
 						return err

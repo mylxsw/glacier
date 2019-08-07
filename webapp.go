@@ -14,11 +14,13 @@ import (
 )
 
 type InitRouterHandler func(router *web.Router, mw web.RequestMiddleware)
+type InitMuxRouterHandler func(router *mux.Router)
 
 // WebApp is the web app
 type WebApp struct {
 	cc         *container.Container
 	initRouter InitRouterHandler
+	muxRouter  InitMuxRouterHandler
 }
 
 // NewWebApp create a new WebApp
@@ -27,6 +29,10 @@ func NewWebApp(cc *container.Container, initRouter InitRouterHandler) *WebApp {
 		cc:         cc,
 		initRouter: initRouter,
 	}
+}
+
+func (app *WebApp) MuxRouter(f InitMuxRouterHandler) {
+	app.muxRouter = f
 }
 
 func (app *WebApp) Init(initFunc interface{}) error {
@@ -81,5 +87,9 @@ func (app *WebApp) router() *mux.Router {
 	app.initRouter(router, mw)
 
 	muxRouter := router.Perform()
+	if app.muxRouter != nil {
+		app.muxRouter(muxRouter)
+	}
+
 	return muxRouter
 }
