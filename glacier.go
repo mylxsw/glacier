@@ -175,6 +175,7 @@ func (glacier *Glacier) WebAppRouter(handler InitRouterHandler) *Glacier {
 // WebAppMuxRouter add mux routes for http server
 func (glacier *Glacier) WebAppMuxRouter(handler InitMuxRouterHandler) *Glacier {
 	glacier.webAppMuxRouterFunc = handler
+	return glacier
 }
 
 // Crontab add cron tasks
