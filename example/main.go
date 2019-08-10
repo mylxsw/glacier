@@ -4,10 +4,10 @@ import (
 	"os"
 
 	"github.com/mylxsw/asteria/log"
+	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier"
 	"github.com/mylxsw/glacier/example/config"
 	"github.com/mylxsw/glacier/example/job"
-	"github.com/mylxsw/go-toolkit/container"
 	"github.com/mylxsw/go-toolkit/events"
 	"github.com/robfig/cron"
 	"github.com/urfave/cli"

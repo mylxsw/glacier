@@ -8,12 +8,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/mylxsw/asteria/log"
-	"github.com/mylxsw/go-toolkit/container"
-	"github.com/mylxsw/go-toolkit/graceful"
-	"github.com/mylxsw/go-toolkit/web"
+	"github.com/mylxsw/container"
+	"github.com/mylxsw/graceful"
+	"github.com/mylxsw/hades"
 )
 
-type InitRouterHandler func(router *web.Router, mw web.RequestMiddleware)
+type InitRouterHandler func(router *hades.Router, mw hades.RequestMiddleware)
 type InitMuxRouterHandler func(router *mux.Router)
 
 // WebApp is the web app
@@ -81,8 +81,8 @@ func (app *WebApp) Start() error {
 }
 
 func (app *WebApp) router() *mux.Router {
-	router := web.NewRouterWithContainer(app.cc)
-	mw := web.NewRequestMiddleware()
+	router := hades.NewRouterWithContainer(app.cc)
+	mw := hades.NewRequestMiddleware()
 
 	app.initRouter(router, mw)
 

@@ -5,11 +5,11 @@ import (
 
 	"github.com/mylxsw/asteria/level"
 	"github.com/mylxsw/asteria/log"
-	"github.com/mylxsw/go-toolkit/container"
+	"github.com/mylxsw/container"
 	"github.com/mylxsw/go-toolkit/events"
-	"github.com/mylxsw/go-toolkit/graceful"
 	"github.com/mylxsw/go-toolkit/period_job"
-	"github.com/mylxsw/go-toolkit/web"
+	"github.com/mylxsw/graceful"
+	"github.com/mylxsw/hades"
 	"github.com/robfig/cron"
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
@@ -110,7 +110,7 @@ func Create(version string, flags ...cli.Flag) *Glacier {
 	glacierInstance.app = app
 	glacierInstance.version = version
 	glacierInstance.webAppInitFunc = func() error { return nil }
-	glacierInstance.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
+	glacierInstance.webAppRouterFunc = func(router *hades.Router, mw hades.RequestMiddleware) {}
 	glacierInstance.singletons = make([]interface{}, 0)
 	glacierInstance.prototypes = make([]interface{}, 0)
 	glacierInstance.providers = make([]ServiceProvider, 0)
