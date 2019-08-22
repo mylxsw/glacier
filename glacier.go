@@ -20,8 +20,15 @@ type ServiceProvider interface {
 	// this method is called one by one synchronous
 	Register(app *container.Container)
 	// Boot start the module
-	// this method is called asynchronous and concurrent
+	// this method is called one by one synchronous after all register methods called
 	Boot(app *Glacier)
+}
+
+type DaemonServiceProvider interface {
+	ServiceProvider
+	// Daemon is a async method called after boot
+	// this method is called asynchronous and concurrent
+	Daemon(app *Glacier)
 }
 
 // Glacier is the server
@@ -311,7 +318,10 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 		}
 
 		for _, p := range glacier.providers {
-			go p.Boot(glacier)
+			p.Boot(glacier)
+			if pp, ok := p.(DaemonServiceProvider); ok {
+				go pp.Daemon(glacier)
+			}
 		}
 
 		if glacier.httpListenAddr != "" {
