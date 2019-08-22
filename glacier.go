@@ -2,6 +2,7 @@ package glacier
 
 import (
 	"context"
+	"sync"
 
 	"github.com/mylxsw/asteria/level"
 	"github.com/mylxsw/asteria/log"
@@ -28,7 +29,7 @@ type DaemonServiceProvider interface {
 	ServiceProvider
 	// Daemon is a async method called after boot
 	// this method is called asynchronous and concurrent
-	Daemon(app *Glacier)
+	Daemon(ctx context.Context, app *Glacier)
 }
 
 // Glacier is the server
@@ -317,12 +318,23 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			}
 		}
 
+		var wg sync.WaitGroup
 		for _, p := range glacier.providers {
 			p.Boot(glacier)
 			if pp, ok := p.(DaemonServiceProvider); ok {
-				go pp.Daemon(glacier)
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					pp.Daemon(ctx, glacier)
+				}()
 			}
 		}
+
+		cc.MustResolve(func(gf *graceful.Graceful) {
+			gf.AddShutdownHandler(func() {
+				wg.Done()
+			})
+		})
 
 		if glacier.httpListenAddr != "" {
 			if err := cc.ResolveWithError(func(webApp *WebApp) error {
