@@ -16,7 +16,11 @@ import (
 )
 
 type ServiceProvider interface {
+	// Register add some dependency for current module
+	// this method is called one by one synchronous
 	Register(app *container.Container)
+	// Boot start the module
+	// this method is called asynchronous and concurrent
 	Boot(app *Glacier)
 }
 
@@ -208,6 +212,16 @@ func (glacier *Glacier) Prototype(ins interface{}) *Glacier {
 	return glacier
 }
 
+// ResolveWithError is a proxy to container's ResolveWithError function
+func (glacier *Glacier) ResolveWithError(resolver interface{}) error {
+	return glacier.container.ResolveWithError(resolver)
+}
+
+// MustResolve is a proxy to container's MustResolve function
+func (glacier *Glacier) MustResolve(resolver interface{}) {
+	glacier.container.MustResolve(resolver)
+}
+
 // Container return container instance
 func (glacier *Glacier) Container() *container.Container {
 	return glacier.container
@@ -297,7 +311,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 		}
 
 		for _, p := range glacier.providers {
-			p.Boot(glacier)
+			go p.Boot(glacier)
 		}
 
 		if glacier.httpListenAddr != "" {
