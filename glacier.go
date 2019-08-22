@@ -326,7 +326,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 
 			cr.Stop()
 			pj.Wait()
-			wg.Done()
+			wg.Wait()
 
 			log.Debugf("all services has been stopped")
 		})
