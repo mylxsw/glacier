@@ -289,19 +289,6 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			cc.MustPrototype(i)
 		}
 
-		defer cc.MustResolve(func(cr *cron.Cron, pj *period_job.Manager) {
-			cancel()
-
-			if glacier.beforeServerStop != nil {
-				_ = glacier.beforeServerStop(cc)
-			}
-
-			cr.Stop()
-			pj.Wait()
-
-			log.Debugf("all services has been stopped")
-		})
-
 		for _, p := range glacier.providers {
 			p.Register(cc)
 		}
@@ -330,10 +317,18 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			}
 		}
 
-		cc.MustResolve(func(gf *graceful.Graceful) {
-			gf.AddShutdownHandler(func() {
-				wg.Done()
-			})
+		defer cc.MustResolve(func(cr *cron.Cron, pj *period_job.Manager) {
+			cancel()
+
+			if glacier.beforeServerStop != nil {
+				_ = glacier.beforeServerStop(cc)
+			}
+
+			cr.Stop()
+			pj.Wait()
+			wg.Done()
+
+			log.Debugf("all services has been stopped")
 		})
 
 		if glacier.httpListenAddr != "" {
