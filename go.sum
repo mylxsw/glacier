@@ -53,6 +53,8 @@ github.com/mylxsw/hades v0.0.0-20190829023434-92825df54bd6 h1:dp1keqjkp1GvE6ibX6
 github.com/mylxsw/hades v0.0.0-20190829023434-92825df54bd6/go.mod h1:FIvnJahZzxBIOySKg2eWhikeGtIHl5H/Dc+9W6MaMlQ=
 github.com/mylxsw/hades v0.0.0-20190829060808-11fb6c20f917 h1:sDtIE3hw3dryz4R67YmajOuyv0mV+jJUYp56ekk8Hto=
 github.com/mylxsw/hades v0.0.0-20190829060808-11fb6c20f917/go.mod h1:FIvnJahZzxBIOySKg2eWhikeGtIHl5H/Dc+9W6MaMlQ=
+github.com/mylxsw/hades v0.0.0-20190831074019-90875457cb99 h1:5rnD6zY52REyDqSCMOlKZoCoDOFcUcePDi0z3IOoFT0=
+github.com/mylxsw/hades v0.0.0-20190831074019-90875457cb99/go.mod h1:FIvnJahZzxBIOySKg2eWhikeGtIHl5H/Dc+9W6MaMlQ=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/robfig/cron v1.2.0 h1:ZjScXvvxeQ63Dbyxy76Fj3AT3Ut0aKsyd2/tl3DTMuQ=
