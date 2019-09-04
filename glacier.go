@@ -41,6 +41,7 @@ type Glacier struct {
 
 	providers []ServiceProvider
 
+	beforeInitialize  func(c *cli.Context) error
 	beforeServerStart func(cc *container.Container) error
 	afterServerStart  func(cc *container.Container) error
 	beforeServerStop  func(cc *container.Container) error
@@ -154,6 +155,13 @@ func (glacier *Glacier) AddFlags(flags ...cli.Flag) *Glacier {
 	return glacier
 }
 
+// BeforeInitialize set a hook func executed before server initialize
+// Usually, we use this method to initialize the log configuration
+func (glacier *Glacier) BeforeInitialize(f func(c *cli.Context) error) *Glacier {
+	glacier.beforeInitialize = f
+	return glacier
+}
+
 // BeforeServerStart set a hook func executed before server start
 func (glacier *Glacier) BeforeServerStart(f func(cc *container.Container) error) *Glacier {
 	glacier.beforeServerStart = f
@@ -257,6 +265,11 @@ func (glacier *Glacier) Run(args []string) error {
 func createServer(glacier *Glacier) func(c *cli.Context) error {
 	return func(c *cli.Context) error {
 		log.DefaultLogLevel(level.GetLevelByName(c.String("log_level")))
+		if glacier.beforeInitialize != nil {
+			if err := glacier.beforeInitialize(c); err != nil {
+				return err
+			}
+		}
 
 		log.Infof("server starting, version=%s", glacier.version)
 
