@@ -9,7 +9,7 @@ require (
 	github.com/mylxsw/container v0.0.0-20190810122756-1fd99a90f7c6
 	github.com/mylxsw/go-toolkit v0.0.0-20190810132703-486dd5ff72a9
 	github.com/mylxsw/graceful v0.0.0-20190810132432-36a0395cf382
-	github.com/mylxsw/hades v0.0.0-20190905030628-f79387ce8a38
+	github.com/mylxsw/hades v0.0.0-20190905045606-cbdbd370f304
 	github.com/robfig/cron v1.2.0
 	github.com/urfave/cli v1.21.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
