@@ -264,6 +264,12 @@ func (glacier *Glacier) Run(args []string) error {
 
 func createServer(glacier *Glacier) func(c *cli.Context) error {
 	return func(c *cli.Context) error {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Criticalf("application initialize failed with a panic: %s", err)
+			}
+		}()
+
 		log.DefaultLogLevel(level.GetLevelByName(c.String("log_level")))
 		if glacier.beforeInitialize != nil {
 			if err := glacier.beforeInitialize(c); err != nil {
@@ -332,7 +338,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 
 		defer cc.MustResolve(func(cr *cron.Cron, pj *period_job.Manager) {
 			if err := recover(); err != nil {
-				log.Criticalf("application panic: %s", err)
+				log.Criticalf("application startup panic: %s", err)
 			}
 
 			cancel()
