@@ -331,6 +331,10 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 		}
 
 		defer cc.MustResolve(func(cr *cron.Cron, pj *period_job.Manager) {
+			if err := recover(); err != nil {
+				log.Criticalf("application panic: %s", err)
+			}
+
 			cancel()
 
 			if glacier.beforeServerStop != nil {
