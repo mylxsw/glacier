@@ -2,7 +2,10 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/buger/jsonparser v0.0.0-20181115193947-bf1c66bbce23 h1:D21IyuvjDCshj1/qq+pCNd3VZOAEI9jy6Bi131YlXgI=
 github.com/buger/jsonparser v0.0.0-20181115193947-bf1c66bbce23/go.mod h1:bbYlZJ7hK1yFx9hf58LP0zeX7UjIGs20ufpu3evjr+s=
+github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e h1:oJCXMss/3rg5F6Poy9wG3JQusc58Mzk5B9Z6wSnssNE=
+github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e/go.mod h1:errmMKH8tTB49UR2A8C8DPYkyudelsYJwJFaZHQ6ik8=
 github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7DoTY=
+github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -71,6 +74,16 @@ github.com/mylxsw/hades v0.0.0-20190905045606-cbdbd370f304 h1:USrmT7O4j/kW1V0rXE
 github.com/mylxsw/hades v0.0.0-20190905045606-cbdbd370f304/go.mod h1:J5/uzyrwPH2gLIh/3zUczJz/OYgXNCGSKI2pxqRk1ho=
 github.com/mylxsw/hades v0.0.0-20190908103158-385ba1d43475 h1:RvmNk1D/D6F/Ts+t+210DgOO5bhjWEenegsADnX2ypY=
 github.com/mylxsw/hades v0.0.0-20190908103158-385ba1d43475/go.mod h1:w9ekIRDu0QvS10xbEeJiEkDsNa3OOV33dYBz1Mzx5nU=
+github.com/mylxsw/hades v0.0.0-20191018103043-ad8899d8c56a h1:YVjtcCQq3OCfMafM4cGr+l6xgp7idOfgxtpkMA4m1QI=
+github.com/mylxsw/hades v0.0.0-20191018103043-ad8899d8c56a/go.mod h1:w9ekIRDu0QvS10xbEeJiEkDsNa3OOV33dYBz1Mzx5nU=
+github.com/mylxsw/hades v0.0.0-20191019095019-38ee07b5acf2 h1:GJgXIoMDqtvt90Tpw+WsHp3bdVHzvhywfj95AVqcGw8=
+github.com/mylxsw/hades v0.0.0-20191019095019-38ee07b5acf2/go.mod h1:TskAjfW50Ds2aHyia6+iZA9e8IuuU8k7x+B12l7J88Y=
+github.com/mylxsw/hades v0.0.0-20191019095300-1afc5f9458ab h1:XwPMU81GuT4XGnM7+PT4qSP5VLRto7+qs+/pzFfm3OM=
+github.com/mylxsw/hades v0.0.0-20191019095300-1afc5f9458ab/go.mod h1:TskAjfW50Ds2aHyia6+iZA9e8IuuU8k7x+B12l7J88Y=
+github.com/mylxsw/hades v0.0.0-20191019095554-47b009a1e7ad h1:ODmZgXjkwUMsgFNK/fYJS8BPnrVI6JJZFg9Pzvre6K0=
+github.com/mylxsw/hades v0.0.0-20191019095554-47b009a1e7ad/go.mod h1:TskAjfW50Ds2aHyia6+iZA9e8IuuU8k7x+B12l7J88Y=
+github.com/mylxsw/hades v0.0.0-20191019095919-60ca1975eca2 h1:Q8ssppXaY5xm28OSI92pAVT2wuS++oW/PtDIqJHFi88=
+github.com/mylxsw/hades v0.0.0-20191019095919-60ca1975eca2/go.mod h1:TskAjfW50Ds2aHyia6+iZA9e8IuuU8k7x+B12l7J88Y=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/robfig/cron v1.2.0 h1:ZjScXvvxeQ63Dbyxy76Fj3AT3Ut0aKsyd2/tl3DTMuQ=
@@ -108,3 +121,5 @@ gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15/go.mod h1:Co6ibVJAznAaIkqp8
 gopkg.in/ini.v1 v1.44.2/go.mod h1:M3Cogqpuv0QCi3ExAY5V4uOt4qb/R3xZubo9m8lK5wg=
 gopkg.in/yaml.v2 v2.2.2 h1:ZCJp+EgiOT7lHqUV2J862kp8Qj64Jo6az82+3Td9dZw=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
+gopkg.in/yaml.v2 v2.2.4 h1:/eiJrUcujPVeJ3xlSWaiNi3uSVmDGBK1pDHUHAnao1I=
+gopkg.in/yaml.v2 v2.2.4/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=

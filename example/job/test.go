@@ -16,6 +16,6 @@ func (TestJob) Handle() {
 	log.Info("Hello, test job!")
 
 	glacier.Container().MustResolve(func(conf *config.Config) {
-		log.Infof("mysql_conn: %s", conf.MySQLURI)
+		log.Infof("mysql_conn: %s", conf.DB)
 	})
 }

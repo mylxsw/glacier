@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier"
+	"github.com/mylxsw/glacier/example/api"
 	"github.com/mylxsw/glacier/example/config"
 	"github.com/mylxsw/glacier/example/job"
 	"github.com/mylxsw/go-toolkit/events"
@@ -14,10 +16,13 @@ import (
 	"github.com/urfave/cli/altsrc"
 )
 
-type CrontabEvent struct{}
+var Version string
+var GitCommit string
+
+type CronEvent struct{}
 
 func main() {
-	g := glacier.Create("1.0")
+	g := glacier.Create(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]))
 	g.WithHttpServer(":19945")
 	g.AddFlags(altsrc.NewStringFlag(cli.StringFlag{
 		Name:  "test",
@@ -25,13 +30,14 @@ func main() {
 	}))
 
 	g.Provider(job.ServiceProvider{})
+	g.Provider(api.ServiceProvider{})
 
 	g.Crontab(func(cr *cron.Cron, cc *container.Container) error {
 		if err := cr.AddFunc("@every 3s", func() {
 			log.Infof("hello, example!")
 
 			_ = cc.Resolve(func(manager *events.EventManager) {
-				manager.Publish(CrontabEvent{})
+				manager.Publish(CronEvent{})
 			})
 		}); err != nil {
 			return err
@@ -41,20 +47,20 @@ func main() {
 	})
 
 	g.EventListener(func(listener *events.EventManager, cc *container.Container) {
-		listener.Listen(func(event CrontabEvent) {
+		listener.Listen(func(event CronEvent) {
 			log.Debug("a new cron task executed")
 		})
 	})
 
 	g.Singleton(func(c *cli.Context) *config.Config {
 		return &config.Config{
-			MySQLURI: "xxxxxx",
-			Test:     c.String("test"),
+			DB:   "xxxxxx",
+			Test: c.String("test"),
 		}
 	})
 
 	g.Main(func(conf *config.Config) {
-		log.Errorf("main: %s", conf.Test)
+		log.Debugf("main: %s", conf.Test)
 	})
 
 	if err := g.Run(os.Args); err != nil {

@@ -15,19 +15,22 @@ import (
 
 type InitRouterHandler func(router *hades.Router, mw hades.RequestMiddleware)
 type InitMuxRouterHandler func(router *mux.Router)
+type InitServerHandler func(server *http.Server, listener net.Listener)
 
 // WebApp is the web app
 type WebApp struct {
-	cc         *container.Container
-	initRouter InitRouterHandler
-	muxRouter  InitMuxRouterHandler
+	cc                 *container.Container
+	initRouter         InitRouterHandler
+	initServerListener InitServerHandler
+	muxRouter          InitMuxRouterHandler
 }
 
 // NewWebApp create a new WebApp
-func NewWebApp(cc *container.Container, initRouter InitRouterHandler) *WebApp {
+func NewWebApp(cc *container.Container, initRouter InitRouterHandler, initServerListener InitServerHandler) *WebApp {
 	return &WebApp{
-		cc:         cc,
-		initRouter: initRouter,
+		cc:                 cc,
+		initRouter:         initRouter,
+		initServerListener: initServerListener,
 	}
 }
 
@@ -52,6 +55,10 @@ func (app *WebApp) Start() error {
 			WriteTimeout: conf.HttpWriteTimeout,
 			ReadTimeout:  conf.HttpReadTimeout,
 			IdleTimeout:  conf.HttpIdleTimeout,
+		}
+
+		if app.initServerListener != nil {
+			app.initServerListener(srv, listener)
 		}
 
 		gf.AddShutdownHandler(func() {
@@ -90,6 +97,10 @@ func (app *WebApp) router() *mux.Router {
 	if app.muxRouter != nil {
 		app.muxRouter(muxRouter)
 	}
+
+	app.cc.MustSingleton(func() *mux.Router {
+		return muxRouter
+	})
 
 	return muxRouter
 }

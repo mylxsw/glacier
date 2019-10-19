@@ -4,8 +4,10 @@ import (
 	"context"
 	"sync"
 
+	"github.com/mylxsw/asteria/formatter"
 	"github.com/mylxsw/asteria/level"
 	"github.com/mylxsw/asteria/log"
+	"github.com/mylxsw/asteria/writer"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/go-toolkit/events"
 	"github.com/mylxsw/go-toolkit/period_job"
@@ -47,9 +49,13 @@ type Glacier struct {
 	beforeServerStop  func(cc *container.Container) error
 	mainFunc          interface{}
 
+	useStackLogger      func(stackWriter *writer.StackWriter)
+	defaultLogFormatter formatter.Formatter
+
 	webAppInitFunc      interface{}
 	webAppRouterFunc    InitRouterHandler
 	webAppMuxRouterFunc InitMuxRouterHandler
+	webAppServerFunc    InitServerHandler
 
 	cronTaskFunc      CronTaskFunc
 	eventListenerFunc EventListenerFunc
@@ -96,7 +102,11 @@ func Create(version string, flags ...cli.Flag) *Glacier {
 		altsrc.NewStringFlag(cli.StringFlag{
 			Name:  "log_level",
 			Value: "DEBUG",
-			Usage: "specify log level",
+			Usage: "set default log level",
+		}),
+		altsrc.NewBoolTFlag(cli.BoolTFlag{
+			Name:  "log_color",
+			Usage: "log with colorful support",
 		}),
 	}
 
@@ -155,6 +165,27 @@ func (glacier *Glacier) AddFlags(flags ...cli.Flag) *Glacier {
 	return glacier
 }
 
+// DefaultLogFormatter set default log formatter
+// if not set, will use default formatter: formatter.DefaultFormatter
+func (glacier *Glacier) DefaultLogFormatter(f formatter.Formatter) *Glacier {
+	glacier.defaultLogFormatter = f
+	return glacier
+}
+
+// UseStackLogger set logger to use stack log writer
+func (glacier *Glacier) UseStackLogger(f func(stackWriter *writer.StackWriter)) *Glacier {
+	glacier.useStackLogger = f
+	return glacier
+}
+
+// UseDefaultStackLogger use default stack logger as logger
+// all logs will be sent to stdout
+func (glacier *Glacier) UseDefaultStackLogger() *Glacier {
+	return glacier.UseStackLogger(func(stackWriter *writer.StackWriter) {
+		stackWriter.PushWithLevels(writer.NewStdoutWriter())
+	})
+}
+
 // BeforeInitialize set a hook func executed before server initialize
 // Usually, we use this method to initialize the log configuration
 func (glacier *Glacier) BeforeInitialize(f func(c *cli.Context) error) *Glacier {
@@ -183,6 +214,12 @@ func (glacier *Glacier) BeforeServerStop(f func(cc *container.Container) error) 
 // WebAppInit set a hook func for app init
 func (glacier *Glacier) WebAppInit(initFunc interface{}) *Glacier {
 	glacier.webAppInitFunc = initFunc
+	return glacier
+}
+
+// WebAppServerInit is a function for initialize http server
+func (glacier *Glacier) WebAppServerInit(handler InitServerHandler) *Glacier {
+	glacier.webAppServerFunc = handler
 	return glacier
 }
 
@@ -270,7 +307,19 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			}
 		}()
 
+		log.DefaultDynamicModuleName(true)
 		log.DefaultLogLevel(level.GetLevelByName(c.String("log_level")))
+		if glacier.defaultLogFormatter == nil {
+			glacier.defaultLogFormatter = formatter.NewDefaultFormatter(c.Bool("log_color"))
+		}
+		log.DefaultLogFormatter(glacier.defaultLogFormatter)
+
+		if glacier.useStackLogger != nil {
+			stackWriter := writer.NewStackWriter()
+			glacier.useStackLogger(stackWriter)
+			log.All().LogWriter(stackWriter)
+		}
+
 		if glacier.beforeInitialize != nil {
 			if err := glacier.beforeInitialize(c); err != nil {
 				return err
@@ -294,7 +343,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 		cc.MustSingleton(events.NewEventManager)
 		cc.MustSingleton(graceful.NewWithDefault)
 		cc.MustSingleton(func() *WebApp {
-			return NewWebApp(cc, glacier.webAppRouterFunc)
+			return NewWebApp(cc, glacier.webAppRouterFunc, glacier.webAppServerFunc)
 		})
 
 		cc.MustSingleton(cron.New)
