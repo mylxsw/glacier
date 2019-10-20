@@ -17,8 +17,8 @@ func NewWelcomeController(cc *container.Container) hades.Controller {
 
 func (w *WelcomeController) Register(router *hades.Router) {
 	router.Group("/welcome", func(router *hades.Router) {
-		router.Get("/", w.Hello)
-		router.Get("/{name}/", w.Hello2)
+		router.Get("/", w.Hello).Name("welcome:hello")
+		router.Get("/{name}/", w.Hello2).Name("welcome:hello2")
 	})
 }
 

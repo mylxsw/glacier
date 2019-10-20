@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/gorilla/mux"
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier"
@@ -11,6 +12,7 @@ import (
 	"github.com/mylxsw/glacier/example/config"
 	"github.com/mylxsw/glacier/example/job"
 	"github.com/mylxsw/go-toolkit/events"
+	"github.com/mylxsw/hades"
 	"github.com/robfig/cron"
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
@@ -59,8 +61,11 @@ func main() {
 		}
 	})
 
-	g.Main(func(conf *config.Config) {
-		log.Debugf("main: %s", conf.Test)
+	g.Main(func(conf *config.Config, router *mux.Router) {
+		log.Debugf("config: %s", conf.Serialize())
+		for _, r := range hades.GetAllRoutes(router) {
+			log.Debugf("route: %s -> %s | %s | %s", r.Name, r.Methods, r.PathTemplate, r.PathRegexp)
+		}
 	})
 
 	if err := g.Run(os.Args); err != nil {

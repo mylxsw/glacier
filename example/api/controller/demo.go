@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -28,29 +27,8 @@ func (d *DemoController) Register(router *hades.Router) {
 }
 
 func (d *DemoController) Get(ctx *hades.WebContext, router *mux.Router) hades.HTTPResponse {
-	var routes = make([]string, 0)
-	if err := router.Walk(func(route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
-		pathTemplate, err := route.GetPathTemplate()
-		if err != nil {
-			return err
-		}
-		pathRegexp, err := route.GetPathRegexp()
-		if err != nil {
-			return err
-		}
-		methods, err := route.GetMethods()
-		if err != nil {
-			return err
-		}
-
-		routes = append(routes, fmt.Sprintf("%s -> %s | %s | %s", route.GetName(), strings.Join(methods, "/"), pathTemplate, pathRegexp))
-
-		return nil
-	}); err != nil {
-		return ctx.Error(err.Error(), http.StatusInternalServerError)
-	}
-
 	rr, _ := router.Get("demo:create").GetPathRegexp()
+	routes := hades.GetAllRoutes(router)
 
 	return ctx.JSON(hades.M{
 		"routes":                routes,
