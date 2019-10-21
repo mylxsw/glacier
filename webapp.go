@@ -23,6 +23,7 @@ type WebApp struct {
 	initRouter         InitRouterHandler
 	initServerListener InitServerHandler
 	muxRouter          InitMuxRouterHandler
+	exceptionHandler   hades.ExceptionHandler
 }
 
 // NewWebApp create a new WebApp
@@ -34,11 +35,20 @@ func NewWebApp(cc *container.Container, initRouter InitRouterHandler, initServer
 	}
 }
 
+// ExceptionHandler set exception handler
+func (app *WebApp) ExceptionHandler(handler hades.ExceptionHandler) {
+	app.exceptionHandler = handler
+}
+
 func (app *WebApp) MuxRouter(f InitMuxRouterHandler) {
 	app.muxRouter = f
 }
 
 func (app *WebApp) Init(initFunc interface{}) error {
+	if initFunc == nil {
+		return nil
+	}
+
 	return app.cc.ResolveWithError(initFunc)
 }
 
@@ -93,7 +103,7 @@ func (app *WebApp) router() *mux.Router {
 
 	app.initRouter(router, mw)
 
-	muxRouter := router.Perform()
+	muxRouter := router.Perform(app.exceptionHandler)
 	if app.muxRouter != nil {
 		app.muxRouter(muxRouter)
 	}

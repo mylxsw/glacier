@@ -21,7 +21,7 @@ func (j ServiceProvider) Boot(app *glacier.Glacier) {
 			for _, k := range cc.Keys() {
 				log.Debugf("-> %v", k)
 			}
-			pj.Run("test-job", testJob, 5*time.Second)
+			pj.Run("test-job", testJob, 30*time.Second)
 		})
 	})
 }

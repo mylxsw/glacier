@@ -52,10 +52,11 @@ type Glacier struct {
 	useStackLogger      func(stackWriter *writer.StackWriter)
 	defaultLogFormatter formatter.Formatter
 
-	webAppInitFunc      interface{}
-	webAppRouterFunc    InitRouterHandler
-	webAppMuxRouterFunc InitMuxRouterHandler
-	webAppServerFunc    InitServerHandler
+	webAppInitFunc         interface{}
+	webAppRouterFunc       InitRouterHandler
+	webAppMuxRouterFunc    InitMuxRouterHandler
+	webAppServerFunc       InitServerHandler
+	webAppExceptionHandler hades.ExceptionHandler
 
 	cronTaskFunc      CronTaskFunc
 	eventListenerFunc EventListenerFunc
@@ -235,8 +236,14 @@ func (glacier *Glacier) WebAppMuxRouter(handler InitMuxRouterHandler) *Glacier {
 	return glacier
 }
 
-// Crontab add cron tasks
-func (glacier *Glacier) Crontab(f CronTaskFunc) *Glacier {
+// WebAppExceptionHandler set exception handler for web app
+func (glacier *Glacier) WebAppExceptionHandler(handler hades.ExceptionHandler) *Glacier {
+	glacier.webAppExceptionHandler = handler
+	return glacier
+}
+
+// Cron add cron tasks
+func (glacier *Glacier) Cron(f CronTaskFunc) *Glacier {
 	glacier.cronTaskFunc = f
 	return glacier
 }
@@ -405,14 +412,10 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 
 		if glacier.httpListenAddr != "" {
 			if err := cc.ResolveWithError(func(webApp *WebApp) error {
-				if glacier.webAppMuxRouterFunc != nil {
-					webApp.MuxRouter(glacier.webAppMuxRouterFunc)
-				}
-
-				if glacier.webAppInitFunc != nil {
-					if err := webApp.Init(glacier.webAppInitFunc); err != nil {
-						return err
-					}
+				webApp.MuxRouter(glacier.webAppMuxRouterFunc)
+				webApp.ExceptionHandler(glacier.webAppExceptionHandler)
+				if err := webApp.Init(glacier.webAppInitFunc); err != nil {
+					return err
 				}
 
 				if err := webApp.Start(); err != nil {

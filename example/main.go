@@ -34,8 +34,8 @@ func main() {
 	g.Provider(job.ServiceProvider{})
 	g.Provider(api.ServiceProvider{})
 
-	g.Crontab(func(cr *cron.Cron, cc *container.Container) error {
-		if err := cr.AddFunc("@every 3s", func() {
+	g.Cron(func(cr *cron.Cron, cc *container.Container) error {
+		if err := cr.AddFunc("@every 15s", func() {
 			log.Infof("hello, example!")
 
 			_ = cc.Resolve(func(manager *events.EventManager) {

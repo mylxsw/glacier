@@ -15,7 +15,7 @@ func (s ServiceProvider) Register(app *container.Container) {
 
 func (s ServiceProvider) Boot(app *glacier.Glacier) {
 	app.WebAppRouter(func(router *hades.Router, mw hades.RequestMiddleware) {
-		router.Controllers("/api",
+		router.WithMiddleware(mw.AccessLog()).Controllers("/api",
 			controller.NewWelcomeController(app.Container()),
 			controller.NewDemoController(),
 		)
