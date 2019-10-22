@@ -22,12 +22,12 @@ func (w *WelcomeController) Register(router *hades.Router) {
 	})
 }
 
-func (w *WelcomeController) Hello(ctx *hades.WebContext) hades.HTTPResponse {
-	return ctx.JSON(hades.M{
+func (w *WelcomeController) Hello(ctx hades.Context) hades.M {
+	return hades.M{
 		"message": fmt.Sprintf("Hello, %s", ctx.Input("name")),
-	})
+	}
 }
 
-func (w *WelcomeController) Hello2(req *hades.HttpRequest) string {
+func (w *WelcomeController) Hello2(req hades.Request) string {
 	return fmt.Sprintf("Hello, %s", req.PathVar("name"))
 }

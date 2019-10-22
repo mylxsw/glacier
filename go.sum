@@ -18,6 +18,10 @@ github.com/gorilla/context v1.1.1 h1:AWwleXJkX/nhcU9bZSnZoi3h/qGYqQAGhq6zZe/aQW8
 github.com/gorilla/context v1.1.1/go.mod h1:kBGZzfjB9CEq2AlWe17Uuf7NDRt0dE0s8S51q0aT7Yg=
 github.com/gorilla/mux v1.7.3 h1:gnP5JzjVOuiZD07fKKToCAOjS0yOpj/qPETTXCCS6hw=
 github.com/gorilla/mux v1.7.3/go.mod h1:1lud6UwP+6orDFRuTfBEV8e9/aOM/c4fVVCaMa2zaAs=
+github.com/gorilla/securecookie v1.1.1 h1:miw7JPhV+b/lAHSXz4qd/nN9jRiAFV5FwjeKyCS8BvQ=
+github.com/gorilla/securecookie v1.1.1/go.mod h1:ra0sb63/xPlUeL+yeDciTfxMRAA+MP+HVt/4epWDjd4=
+github.com/gorilla/sessions v1.2.0 h1:S7P+1Hm5V/AT9cjEcUD5uDaQSX0OE577aCXgoaKpYbQ=
+github.com/gorilla/sessions v1.2.0/go.mod h1:dk2InVEVJ0sfLlnXv9EAgkf6ecYs/i80K/zI+bUmuGM=
 github.com/gorilla/websocket v1.4.1 h1:q7AeDBpnBk8AogcD4DSag/Ukw/KV+YhzLj2bP5HvKCM=
 github.com/gorilla/websocket v1.4.1/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/json-iterator/go v1.1.7 h1:KfgG9LzI+pYjr4xvmz/5H4FXjokeP+rlHLhv3iH62Fo=
@@ -42,6 +46,8 @@ github.com/mylxsw/asteria v0.0.0-20190818103215-f64f703d8999/go.mod h1:v0FN8lOpt
 github.com/mylxsw/coll v0.0.0-20190810120926-a7a6f0f4bae8/go.mod h1:Ugpjgv7bOSn1NXiPNHl92DdCGP2siWk50irFSyI+Hf8=
 github.com/mylxsw/container v0.0.0-20190810122756-1fd99a90f7c6 h1:wA8rXGj4ajvUHOPY3LHp1MQlB1v46J24PyaPG7MmxE8=
 github.com/mylxsw/container v0.0.0-20190810122756-1fd99a90f7c6/go.mod h1:v2QwNL+V2nI1o7naopTXXalpa1Y6b5E8lCwwANiYfyc=
+github.com/mylxsw/container v0.0.0-20191022071657-dd26369c6bb9 h1:a00y7s3xNnSS4xGBOOum/iqDFrIeNNH28sWbaRBfIKU=
+github.com/mylxsw/container v0.0.0-20191022071657-dd26369c6bb9/go.mod h1:v2QwNL+V2nI1o7naopTXXalpa1Y6b5E8lCwwANiYfyc=
 github.com/mylxsw/go-toolkit v0.0.0-20190810132703-486dd5ff72a9 h1:RgHkiDyU7XDmZqk0Cpqnfn2NmYpginMI69RX0BOzKis=
 github.com/mylxsw/go-toolkit v0.0.0-20190810132703-486dd5ff72a9/go.mod h1:s2TWTsAxqwsOr1+r19Fv7bVyLlsTZokRhNFOegKpLrE=
 github.com/mylxsw/graceful v0.0.0-20190810132432-36a0395cf382 h1:zybIHlDUFp83gs1lgdOVjUJ4Bteb2wSX3zXla9RnMBQ=
@@ -90,6 +96,14 @@ github.com/mylxsw/hades v0.0.0-20191020073037-33f2b84de118 h1:WFSHj3LtEJMCYADXL9
 github.com/mylxsw/hades v0.0.0-20191020073037-33f2b84de118/go.mod h1:TskAjfW50Ds2aHyia6+iZA9e8IuuU8k7x+B12l7J88Y=
 github.com/mylxsw/hades v0.0.0-20191021061901-c25ec2c1ff67 h1:4V3skODLV0Cs4u4rRj38OIn8Djogb7eB/IKqXa1T3J0=
 github.com/mylxsw/hades v0.0.0-20191021061901-c25ec2c1ff67/go.mod h1:TskAjfW50Ds2aHyia6+iZA9e8IuuU8k7x+B12l7J88Y=
+github.com/mylxsw/hades v0.0.0-20191022072144-99c9237fe13f h1:1buB4YuYgTGxf1+OU4/c4WUMXDUXKgsuKPPBlssLyuE=
+github.com/mylxsw/hades v0.0.0-20191022072144-99c9237fe13f/go.mod h1:6TygtgT3bdS62vC1yX3h/NHBWyhVYPkxgRwQPNQBSIo=
+github.com/mylxsw/hades v0.0.0-20191022072635-d511b0452e8f h1:r3cT87rBhAbH+9oLi6gSnzp+BDTAOw+AcKJWuPH3CMU=
+github.com/mylxsw/hades v0.0.0-20191022072635-d511b0452e8f/go.mod h1:6TygtgT3bdS62vC1yX3h/NHBWyhVYPkxgRwQPNQBSIo=
+github.com/mylxsw/hades v0.0.0-20191022073553-7c7fca36c161 h1:hwBBtGvUMwNH8b2aUoCosVfIAhJIDIb2wBzW37m97LI=
+github.com/mylxsw/hades v0.0.0-20191022073553-7c7fca36c161/go.mod h1:6TygtgT3bdS62vC1yX3h/NHBWyhVYPkxgRwQPNQBSIo=
+github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
+github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/robfig/cron v1.2.0 h1:ZjScXvvxeQ63Dbyxy76Fj3AT3Ut0aKsyd2/tl3DTMuQ=

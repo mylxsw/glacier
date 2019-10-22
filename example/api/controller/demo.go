@@ -26,7 +26,7 @@ func (d *DemoController) Register(router *hades.Router) {
 	})
 }
 
-func (d *DemoController) Get(ctx *hades.WebContext, router *mux.Router) hades.HTTPResponse {
+func (d *DemoController) Get(ctx hades.Context, router *mux.Router) hades.Response {
 	rr, _ := router.Get("demo:create").GetPathRegexp()
 	routes := hades.GetAllRoutes(router)
 
@@ -36,7 +36,7 @@ func (d *DemoController) Get(ctx *hades.WebContext, router *mux.Router) hades.HT
 	})
 }
 
-func (d *DemoController) Create(ctx *hades.WebContext) hades.HTTPResponse {
+func (d *DemoController) Create(ctx hades.Context) hades.Response {
 	name := ctx.InputWithDefault("name", "Tom")
 	if len(name) < 2 {
 		return ctx.JSONError("invalid name", http.StatusUnprocessableEntity)
