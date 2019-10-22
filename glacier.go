@@ -296,11 +296,23 @@ func (glacier *Glacier) Main(f interface{}) *Glacier {
 // Run start Glacier server
 func (glacier *Glacier) Run(args []string) error {
 	if glacier.httpListenAddr != "" {
-		glacier.app.Flags = append(glacier.app.Flags, altsrc.NewStringFlag(cli.StringFlag{
-			Name:  "listen",
-			Value: glacier.httpListenAddr,
-			Usage: "http server listen address",
-		}))
+		glacier.app.Flags = append(
+			glacier.app.Flags,
+			altsrc.NewStringFlag(cli.StringFlag{
+				Name:  "listen",
+				Value: glacier.httpListenAddr,
+				Usage: "http server listen address",
+			}),
+			altsrc.NewStringFlag(cli.StringFlag{
+				Name:  "web_template_prefix",
+				Usage: "web template path prefix",
+				Value: "",
+			}),
+			altsrc.NewInt64Flag(cli.Int64Flag{
+				Name:  "web_multipart_form_max_memory",
+				Usage: "multipart form max memory size in bytes",
+				Value: int64(10 << 20),
+			}))
 	}
 
 	return glacier.app.Run(args)
@@ -412,6 +424,10 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 
 		if glacier.httpListenAddr != "" {
 			if err := cc.ResolveWithError(func(webApp *WebApp) error {
+				webApp.UpdateConfig(func(conf *hades.Config) {
+					conf.ViewTemplatePathPrefix = c.String("web_template_prefix")
+					conf.MultipartFormMaxMemory = c.Int64("web_multipart_form_max_memory")
+				})
 				webApp.MuxRouter(glacier.webAppMuxRouterFunc)
 				webApp.ExceptionHandler(glacier.webAppExceptionHandler)
 				if err := webApp.Init(glacier.webAppInitFunc); err != nil {

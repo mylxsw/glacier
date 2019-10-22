@@ -24,6 +24,8 @@ type WebApp struct {
 	initServerListener InitServerHandler
 	muxRouter          InitMuxRouterHandler
 	exceptionHandler   hades.ExceptionHandler
+
+	conf *hades.Config
 }
 
 // NewWebApp create a new WebApp
@@ -32,7 +34,13 @@ func NewWebApp(cc *container.Container, initRouter InitRouterHandler, initServer
 		cc:                 cc,
 		initRouter:         initRouter,
 		initServerListener: initServerListener,
+		conf:               hades.DefaultConfig(),
 	}
+}
+
+// UpdateConfig update WebAPP configurations
+func (app *WebApp) UpdateConfig(cb func(conf *hades.Config)) {
+	cb(app.conf)
 }
 
 // ExceptionHandler set exception handler
@@ -98,7 +106,7 @@ func (app *WebApp) Start() error {
 }
 
 func (app *WebApp) router() *mux.Router {
-	router := hades.NewRouterWithContainer(app.cc)
+	router := hades.NewRouterWithContainer(app.cc, app.conf)
 	mw := hades.NewRequestMiddleware()
 
 	app.initRouter(router, mw)
