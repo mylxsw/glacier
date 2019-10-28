@@ -8,10 +8,10 @@ import (
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier"
+	"github.com/mylxsw/glacier/event"
 	"github.com/mylxsw/glacier/example/api"
 	"github.com/mylxsw/glacier/example/config"
 	"github.com/mylxsw/glacier/example/job"
-	"github.com/mylxsw/go-toolkit/events"
 	"github.com/mylxsw/hades"
 	"github.com/robfig/cron"
 	"github.com/urfave/cli"
@@ -38,7 +38,7 @@ func main() {
 		if err := cr.AddFunc("@every 15s", func() {
 			log.Infof("hello, example!")
 
-			_ = cc.Resolve(func(manager *events.EventManager) {
+			_ = cc.Resolve(func(manager event.Manager) {
 				manager.Publish(CronEvent{})
 			})
 		}); err != nil {
@@ -48,7 +48,7 @@ func main() {
 		return nil
 	})
 
-	g.EventListener(func(listener *events.EventManager, cc *container.Container) {
+	g.EventListener(func(listener event.Manager, cc *container.Container) {
 		listener.Listen(func(event CronEvent) {
 			log.Debug("a new cron task executed")
 		})

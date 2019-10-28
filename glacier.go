@@ -9,8 +9,8 @@ import (
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/asteria/writer"
 	"github.com/mylxsw/container"
-	"github.com/mylxsw/go-toolkit/events"
-	"github.com/mylxsw/go-toolkit/period_job"
+	"github.com/mylxsw/glacier/event"
+	"github.com/mylxsw/glacier/period_job"
 	"github.com/mylxsw/graceful"
 	"github.com/mylxsw/hades"
 	"github.com/robfig/cron"
@@ -69,8 +69,8 @@ type Glacier struct {
 }
 
 type CronTaskFunc func(cr *cron.Cron, cc *container.Container) error
-type EventListenerFunc func(listener *events.EventManager, cc *container.Container)
-type PeriodJobFunc func(pj *period_job.Manager, cc *container.Container)
+type EventListenerFunc func(listener event.Manager, cc *container.Container)
+type PeriodJobFunc func(pj period_job.Manager, cc *container.Container)
 
 var glacierInstance *Glacier
 
@@ -356,10 +356,10 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			return c
 		})
 		cc.MustSingleton(ConfigLoader)
-		cc.MustSingleton(func() events.EventStore {
-			return events.NewMemoryEventStore(false)
+		cc.MustSingleton(func() event.Store {
+			return event.NewMemoryEventStore(false)
 		})
-		cc.MustSingleton(events.NewEventManager)
+		cc.MustSingleton(event.NewEventManager)
 		cc.MustSingleton(graceful.NewWithDefault)
 		cc.MustSingleton(func() *WebApp {
 			return NewWebApp(cc, glacier.webAppRouterFunc, glacier.webAppServerFunc)
@@ -404,7 +404,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			}
 		}
 
-		defer cc.MustResolve(func(cr *cron.Cron, pj *period_job.Manager) {
+		defer cc.MustResolve(func(cr *cron.Cron, pj period_job.Manager) {
 			if err := recover(); err != nil {
 				log.Criticalf("application startup panic: %s", err)
 			}
