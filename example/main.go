@@ -8,12 +8,12 @@ import (
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier"
+	"github.com/mylxsw/glacier/cron"
 	"github.com/mylxsw/glacier/event"
 	"github.com/mylxsw/glacier/example/api"
 	"github.com/mylxsw/glacier/example/config"
 	"github.com/mylxsw/glacier/example/job"
 	"github.com/mylxsw/hades"
-	"github.com/robfig/cron"
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
 )
@@ -34,13 +34,10 @@ func main() {
 	g.Provider(job.ServiceProvider{})
 	g.Provider(api.ServiceProvider{})
 
-	g.Cron(func(cr *cron.Cron, cc *container.Container) error {
-		if err := cr.AddFunc("@every 15s", func() {
+	g.Cron(func(cr cron.Manager, cc *container.Container) error {
+		if err := cr.Add("hello", "@every 15s", func(manager event.Manager) {
 			log.Infof("hello, example!")
-
-			_ = cc.Resolve(func(manager event.Manager) {
-				manager.Publish(CronEvent{})
-			})
+			manager.Publish(CronEvent{})
 		}); err != nil {
 			return err
 		}

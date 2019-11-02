@@ -9,13 +9,15 @@ import (
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/asteria/writer"
 	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/cron"
 	"github.com/mylxsw/glacier/event"
-	"github.com/mylxsw/glacier/period_job"
+	"github.com/mylxsw/go-toolkit/period_job"
 	"github.com/mylxsw/graceful"
 	"github.com/mylxsw/hades"
-	"github.com/robfig/cron"
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
+
+	cronV3 "github.com/robfig/cron/v3"
 )
 
 type ServiceProvider interface {
@@ -60,7 +62,6 @@ type Glacier struct {
 
 	cronTaskFunc      CronTaskFunc
 	eventListenerFunc EventListenerFunc
-	periodJobFunc     PeriodJobFunc
 
 	httpListenAddr string
 
@@ -68,9 +69,8 @@ type Glacier struct {
 	prototypes []interface{}
 }
 
-type CronTaskFunc func(cr *cron.Cron, cc *container.Container) error
+type CronTaskFunc func(cr cron.Manager, cc *container.Container) error
 type EventListenerFunc func(listener event.Manager, cc *container.Container)
-type PeriodJobFunc func(pj period_job.Manager, cc *container.Container)
 
 var glacierInstance *Glacier
 
@@ -173,13 +173,13 @@ func (glacier *Glacier) DefaultLogFormatter(f formatter.Formatter) *Glacier {
 	return glacier
 }
 
-// UseStackLogger set logger to use stack log writer
+// UseStackLogger set cronLogger to use stack log writer
 func (glacier *Glacier) UseStackLogger(f func(stackWriter *writer.StackWriter)) *Glacier {
 	glacier.useStackLogger = f
 	return glacier
 }
 
-// UseDefaultStackLogger use default stack logger as logger
+// UseDefaultStackLogger use default stack cronLogger as cronLogger
 // all logs will be sent to stdout
 func (glacier *Glacier) UseDefaultStackLogger() *Glacier {
 	return glacier.UseStackLogger(func(stackWriter *writer.StackWriter) {
@@ -251,12 +251,6 @@ func (glacier *Glacier) Cron(f CronTaskFunc) *Glacier {
 // EventListener add event listeners
 func (glacier *Glacier) EventListener(f EventListenerFunc) *Glacier {
 	glacier.eventListenerFunc = f
-	return glacier
-}
-
-// PeriodJob add period jobs
-func (glacier *Glacier) PeriodJob(f PeriodJobFunc) *Glacier {
-	glacier.periodJobFunc = f
 	return glacier
 }
 
@@ -365,7 +359,10 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			return NewWebApp(cc, glacier.webAppRouterFunc, glacier.webAppServerFunc)
 		})
 
-		cc.MustSingleton(cron.New)
+		cc.MustSingleton(func() *cronV3.Cron {
+			return cronV3.New(cronV3.WithSeconds(), cronV3.WithLogger(cronLogger{}))
+		})
+		cc.MustSingleton(cron.NewManager)
 		cc.MustSingleton(period_job.NewManager)
 
 		for _, i := range glacier.singletons {
@@ -404,7 +401,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			}
 		}
 
-		defer cc.MustResolve(func(cr *cron.Cron, pj period_job.Manager) {
+		defer cc.MustResolve(func(cr cron.Manager) {
 			if err := recover(); err != nil {
 				log.Criticalf("application startup panic: %s", err)
 			}
@@ -416,7 +413,6 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			}
 
 			cr.Stop()
-			pj.Wait()
 			wg.Wait()
 
 			log.Debugf("all services has been stopped")
@@ -444,7 +440,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			}
 		}
 
-		err := cc.ResolveWithError(func(cr *cron.Cron, gf *graceful.Graceful) error {
+		err := cc.ResolveWithError(func(cr cron.Manager, gf *graceful.Graceful) error {
 			if glacier.cronTaskFunc != nil {
 				if err := glacier.cronTaskFunc(cr, cc); err != nil {
 					return err
@@ -453,13 +449,6 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 
 			// start cron task server
 			cr.Start()
-
-			// start period jobs
-			if glacier.periodJobFunc != nil {
-				if err := cc.Resolve(glacier.periodJobFunc); err != nil {
-					return err
-				}
-			}
 
 			if glacier.afterServerStart != nil {
 				if err := glacier.afterServerStart(cc); err != nil {
@@ -480,4 +469,18 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 
 		return nil
 	}
+}
+
+type cronLogger struct{}
+
+func (l cronLogger) Info(msg string, keysAndValues ...interface{}) {
+	log.WithFields(log.Fields{
+		"arguments": keysAndValues,
+	}).Debugf(msg)
+}
+
+func (l cronLogger) Error(err error, msg string, keysAndValues ...interface{}) {
+	log.WithFields(log.Fields{
+		"arguments": keysAndValues,
+	}).Errorf("%s: %v", msg, err)
 }

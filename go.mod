@@ -11,6 +11,7 @@ require (
 	github.com/mylxsw/go-toolkit v0.0.0-20190810132703-486dd5ff72a9
 	github.com/mylxsw/graceful v0.0.0-20190810132432-36a0395cf382
 	github.com/mylxsw/hades v0.0.0-20191022102414-c812ba19d1d3
-	github.com/robfig/cron v1.2.0
+	github.com/pkg/errors v0.8.1
+	github.com/robfig/cron/v3 v3.0.0
 	github.com/urfave/cli v1.21.0
 )
