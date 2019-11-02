@@ -474,9 +474,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 type cronLogger struct{}
 
 func (l cronLogger) Info(msg string, keysAndValues ...interface{}) {
-	log.WithFields(log.Fields{
-		"arguments": keysAndValues,
-	}).Debugf(msg)
+	// Just drop it, we don't care
 }
 
 func (l cronLogger) Error(err error, msg string, keysAndValues ...interface{}) {

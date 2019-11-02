@@ -47,6 +47,24 @@ type Job struct {
 	Paused  bool
 }
 
+// Next get execute plan for job
+func (job Job) Next(nextNum int) ([]time.Time, error) {
+	parser := cron.NewParser(cron.Second | cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow | cron.Descriptor)
+	sc, err := parser.Parse(job.Plan)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]time.Time, nextNum)
+	lastTs := time.Now()
+	for i := 0; i < nextNum; i++ {
+		lastTs = sc.Next(lastTs)
+		results[i] = lastTs
+	}
+
+	return results, nil
+}
+
 // NewManager create a new Manager
 func NewManager(cc *container.Container) Manager {
 	m := cronManager{cc: cc, jobs: make(map[string]*Job)}
