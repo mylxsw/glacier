@@ -51,7 +51,7 @@ type Glacier struct {
 	beforeServerStop  func(cc *container.Container) error
 	mainFunc          interface{}
 
-	useStackLogger      func(stackWriter *writer.StackWriter)
+	useStackLogger      func(cc *container.Container, stackWriter *writer.StackWriter)
 	defaultLogFormatter formatter.Formatter
 
 	webAppInitFunc         interface{}
@@ -174,7 +174,7 @@ func (glacier *Glacier) DefaultLogFormatter(f formatter.Formatter) *Glacier {
 }
 
 // UseStackLogger set cronLogger to use stack log writer
-func (glacier *Glacier) UseStackLogger(f func(stackWriter *writer.StackWriter)) *Glacier {
+func (glacier *Glacier) UseStackLogger(f func(cc *container.Container, stackWriter *writer.StackWriter)) *Glacier {
 	glacier.useStackLogger = f
 	return glacier
 }
@@ -182,7 +182,7 @@ func (glacier *Glacier) UseStackLogger(f func(stackWriter *writer.StackWriter)) 
 // UseDefaultStackLogger use default stack cronLogger as cronLogger
 // all logs will be sent to stdout
 func (glacier *Glacier) UseDefaultStackLogger() *Glacier {
-	return glacier.UseStackLogger(func(stackWriter *writer.StackWriter) {
+	return glacier.UseStackLogger(func(cc *container.Container, stackWriter *writer.StackWriter) {
 		stackWriter.PushWithLevels(writer.NewStdoutWriter())
 	})
 }
@@ -327,18 +327,6 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 		}
 		log.DefaultLogFormatter(glacier.defaultLogFormatter)
 
-		if glacier.useStackLogger != nil {
-			stackWriter := writer.NewStackWriter()
-			glacier.useStackLogger(stackWriter)
-			log.All().LogWriter(stackWriter)
-		}
-
-		if glacier.beforeInitialize != nil {
-			if err := glacier.beforeInitialize(c); err != nil {
-				return err
-			}
-		}
-
 		log.Infof("server starting, version=%s", glacier.version)
 
 		ctx, cancel := context.WithCancel(context.Background())
@@ -375,6 +363,18 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 
 		for _, p := range glacier.providers {
 			p.Register(cc)
+		}
+
+		if glacier.useStackLogger != nil {
+			stackWriter := writer.NewStackWriter()
+			glacier.useStackLogger(cc, stackWriter)
+			log.All().LogWriter(stackWriter)
+		}
+
+		if glacier.beforeInitialize != nil {
+			if err := glacier.beforeInitialize(c); err != nil {
+				return err
+			}
 		}
 
 		if glacier.beforeServerStart != nil {
