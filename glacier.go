@@ -327,8 +327,6 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 		}
 		log.DefaultLogFormatter(glacier.defaultLogFormatter)
 
-		log.Infof("server starting, version=%s", glacier.version)
-
 		ctx, cancel := context.WithCancel(context.Background())
 		cc := container.NewWithContext(ctx)
 		glacier.container = cc
@@ -370,6 +368,8 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			glacier.useStackLogger(cc, stackWriter)
 			log.All().LogWriter(stackWriter)
 		}
+
+		log.Debugf("server starting, version=%s", glacier.version)
 
 		if glacier.beforeInitialize != nil {
 			if err := glacier.beforeInitialize(c); err != nil {
