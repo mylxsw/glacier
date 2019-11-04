@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/mylxsw/container"
@@ -18,7 +19,8 @@ func NewWelcomeController(cc *container.Container) web.Controller {
 func (w *WelcomeController) Register(router *web.Router) {
 	router.Group("/welcome", func(router *web.Router) {
 		router.Get("/", w.Hello).Name("welcome:hello")
-		router.Get("/{name}/", w.Hello2).Name("welcome:hello2")
+		router.Get("/hello/{name}/", w.Hello2).Name("welcome:hello2")
+		router.Get("/panic/", w.Hello3).Name("welcome:panic")
 	})
 }
 
@@ -30,4 +32,8 @@ func (w *WelcomeController) Hello(ctx web.Context) web.M {
 
 func (w *WelcomeController) Hello2(req web.Request) string {
 	return fmt.Sprintf("Hello, %s", req.PathVar("name"))
+}
+
+func (w *WelcomeController) Hello3(req web.Request) {
+	panic(errors.New("hello"))
 }

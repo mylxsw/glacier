@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"runtime/debug"
 
 	"github.com/gorilla/mux"
 	"github.com/mylxsw/asteria/log"
@@ -30,6 +31,11 @@ func main() {
 		Name:  "test",
 		Value: "",
 	}))
+
+	g.WebAppExceptionHandler(func(ctx web.Context, err interface{}) web.Response {
+		log.Errorf("stack: %s", debug.Stack())
+		return nil
+	})
 
 	g.Provider(job.ServiceProvider{})
 	g.Provider(api.ServiceProvider{})
