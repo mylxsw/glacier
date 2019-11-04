@@ -6,19 +6,21 @@ import (
 
 	"github.com/mylxsw/asteria/formatter"
 	"github.com/mylxsw/asteria/level"
-	"github.com/mylxsw/asteria/log"
+	logger "github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/asteria/writer"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/cron"
 	"github.com/mylxsw/glacier/event"
+	"github.com/mylxsw/glacier/web"
 	"github.com/mylxsw/go-toolkit/period_job"
 	"github.com/mylxsw/graceful"
-	"github.com/mylxsw/hades"
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
 
 	cronV3 "github.com/robfig/cron/v3"
 )
+
+var log = logger.Module("glacier")
 
 type ServiceProvider interface {
 	// Register add some dependency for current module
@@ -58,7 +60,7 @@ type Glacier struct {
 	webAppRouterFunc       InitRouterHandler
 	webAppMuxRouterFunc    InitMuxRouterHandler
 	webAppServerFunc       InitServerHandler
-	webAppExceptionHandler hades.ExceptionHandler
+	webAppExceptionHandler web.ExceptionHandler
 
 	cronTaskFunc      CronTaskFunc
 	eventListenerFunc EventListenerFunc
@@ -134,7 +136,7 @@ func Create(version string, flags ...cli.Flag) *Glacier {
 	glacierInstance.app = app
 	glacierInstance.version = version
 	glacierInstance.webAppInitFunc = func() error { return nil }
-	glacierInstance.webAppRouterFunc = func(router *hades.Router, mw hades.RequestMiddleware) {}
+	glacierInstance.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
 	glacierInstance.singletons = make([]interface{}, 0)
 	glacierInstance.prototypes = make([]interface{}, 0)
 	glacierInstance.providers = make([]ServiceProvider, 0)
@@ -237,7 +239,7 @@ func (glacier *Glacier) WebAppMuxRouter(handler InitMuxRouterHandler) *Glacier {
 }
 
 // WebAppExceptionHandler set exception handler for web app
-func (glacier *Glacier) WebAppExceptionHandler(handler hades.ExceptionHandler) *Glacier {
+func (glacier *Glacier) WebAppExceptionHandler(handler web.ExceptionHandler) *Glacier {
 	glacier.webAppExceptionHandler = handler
 	return glacier
 }
@@ -320,12 +322,12 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			}
 		}()
 
-		log.DefaultDynamicModuleName(true)
-		log.DefaultLogLevel(level.GetLevelByName(c.String("log_level")))
+		logger.DefaultDynamicModuleName(true)
+		logger.DefaultLogLevel(level.GetLevelByName(c.String("log_level")))
 		if glacier.defaultLogFormatter == nil {
 			glacier.defaultLogFormatter = formatter.NewDefaultFormatter(c.Bool("log_color"))
 		}
-		log.DefaultLogFormatter(glacier.defaultLogFormatter)
+		logger.DefaultLogFormatter(glacier.defaultLogFormatter)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cc := container.NewWithContext(ctx)
@@ -366,7 +368,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 		if glacier.useStackLogger != nil {
 			stackWriter := writer.NewStackWriter()
 			glacier.useStackLogger(cc, stackWriter)
-			log.All().LogWriter(stackWriter)
+			logger.All().LogWriter(stackWriter)
 		}
 
 		log.Debugf("server starting, version=%s", glacier.version)
@@ -420,7 +422,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 
 		if glacier.httpListenAddr != "" {
 			if err := cc.ResolveWithError(func(webApp *WebApp) error {
-				webApp.UpdateConfig(func(conf *hades.Config) {
+				webApp.UpdateConfig(func(conf *web.Config) {
 					conf.ViewTemplatePathPrefix = c.String("web_template_prefix")
 					conf.MultipartFormMaxMemory = c.Int64("web_multipart_form_max_memory")
 				})
@@ -478,7 +480,7 @@ func (l cronLogger) Info(msg string, keysAndValues ...interface{}) {
 }
 
 func (l cronLogger) Error(err error, msg string, keysAndValues ...interface{}) {
-	log.WithFields(log.Fields{
+	log.WithFields(logger.Fields{
 		"arguments": keysAndValues,
 	}).Errorf("%s: %v", msg, err)
 }

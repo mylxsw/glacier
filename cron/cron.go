@@ -11,6 +11,8 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
+var logger = log.Module("glacier.cron")
+
 // Manager is a manager object to manage cron jobs
 type Manager interface {
 	// Add add a cron job
@@ -82,13 +84,13 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 	}
 
 	jobHandler := func() {
-		log.Debugf("cron job [%s] running", name)
+		logger.Debugf("cron job [%s] running", name)
 		startTs := time.Now()
 		defer func() {
-			log.Debugf("cron job [%s] stopped, elapse %s", name, time.Now().Sub(startTs))
+			logger.Debugf("cron job [%s] stopped, elapse %s", name, time.Now().Sub(startTs))
 		}()
 		if err := c.cc.ResolveWithError(handler); err != nil {
-			log.Errorf("cron job [%s] failed: %v", err)
+			logger.Errorf("cron job [%s] failed: %v", err)
 		}
 	}
 	id, err := c.cr.AddFunc(plan, jobHandler)
@@ -105,7 +107,7 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 		Paused:  false,
 	}
 
-	log.Debugf("add job [%s] to cron manager with plan %s", name, plan)
+	logger.Debugf("add job [%s] to cron manager with plan %s", name, plan)
 
 	return nil
 }
@@ -124,7 +126,7 @@ func (c *cronManager) Remove(name string) error {
 		c.cr.Remove(reg.ID)
 	}
 
-	log.Debugf("remove job [%s] from cron manager", name)
+	logger.Debugf("remove job [%s] from cron manager", name)
 
 	return nil
 }
@@ -145,7 +147,7 @@ func (c *cronManager) Pause(name string) error {
 	c.cr.Remove(reg.ID)
 	reg.Paused = true
 
-	log.Debugf("change job [%s] to paused", name)
+	logger.Debugf("change job [%s] to paused", name)
 
 	return nil
 }
@@ -171,7 +173,7 @@ func (c *cronManager) Continue(name string) error {
 	reg.Paused = false
 	reg.ID = id
 
-	log.Debugf("change job [%s] to continue", name)
+	logger.Debugf("change job [%s] to continue", name)
 
 	return nil
 }

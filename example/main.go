@@ -13,7 +13,7 @@ import (
 	"github.com/mylxsw/glacier/example/api"
 	"github.com/mylxsw/glacier/example/config"
 	"github.com/mylxsw/glacier/example/job"
-	"github.com/mylxsw/hades"
+	"github.com/mylxsw/glacier/web"
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
 )
@@ -60,7 +60,7 @@ func main() {
 
 	g.Main(func(conf *config.Config, router *mux.Router) {
 		log.Debugf("config: %s", conf.Serialize())
-		for _, r := range hades.GetAllRoutes(router) {
+		for _, r := range web.GetAllRoutes(router) {
 			log.Debugf("route: %s -> %s | %s | %s", r.Name, r.Methods, r.PathTemplate, r.PathRegexp)
 		}
 	})

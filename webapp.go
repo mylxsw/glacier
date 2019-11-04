@@ -7,13 +7,12 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/web"
 	"github.com/mylxsw/graceful"
-	"github.com/mylxsw/hades"
 )
 
-type InitRouterHandler func(router *hades.Router, mw hades.RequestMiddleware)
+type InitRouterHandler func(router *web.Router, mw web.RequestMiddleware)
 type InitMuxRouterHandler func(router *mux.Router)
 type InitServerHandler func(server *http.Server, listener net.Listener)
 
@@ -23,9 +22,9 @@ type WebApp struct {
 	initRouter         InitRouterHandler
 	initServerListener InitServerHandler
 	muxRouter          InitMuxRouterHandler
-	exceptionHandler   hades.ExceptionHandler
+	exceptionHandler   web.ExceptionHandler
 
-	conf *hades.Config
+	conf *web.Config
 }
 
 // NewWebApp create a new WebApp
@@ -34,17 +33,17 @@ func NewWebApp(cc *container.Container, initRouter InitRouterHandler, initServer
 		cc:                 cc,
 		initRouter:         initRouter,
 		initServerListener: initServerListener,
-		conf:               hades.DefaultConfig(),
+		conf:               web.DefaultConfig(),
 	}
 }
 
 // UpdateConfig update WebAPP configurations
-func (app *WebApp) UpdateConfig(cb func(conf *hades.Config)) {
+func (app *WebApp) UpdateConfig(cb func(conf *web.Config)) {
 	cb(app.conf)
 }
 
 // ExceptionHandler set exception handler
-func (app *WebApp) ExceptionHandler(handler hades.ExceptionHandler) {
+func (app *WebApp) ExceptionHandler(handler web.ExceptionHandler) {
 	app.exceptionHandler = handler
 }
 
@@ -106,8 +105,8 @@ func (app *WebApp) Start() error {
 }
 
 func (app *WebApp) router() *mux.Router {
-	router := hades.NewRouterWithContainer(app.cc, app.conf)
-	mw := hades.NewRequestMiddleware()
+	router := web.NewRouterWithContainer(app.cc, app.conf)
+	mw := web.NewRequestMiddleware()
 
 	app.initRouter(router, mw)
 
