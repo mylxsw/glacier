@@ -9,10 +9,11 @@ require (
 	github.com/gorilla/schema v1.1.0
 	github.com/gorilla/sessions v1.2.0
 	github.com/gorilla/websocket v1.4.1
+	github.com/json-iterator/go v1.1.8 // indirect
 	github.com/mylxsw/asteria v0.0.0-20190818103215-f64f703d8999
 	github.com/mylxsw/container v0.0.0-20191022090726-425f1756accf
 	github.com/mylxsw/go-toolkit v0.0.0-20190810132703-486dd5ff72a9
-	github.com/mylxsw/graceful v0.0.0-20190810132432-36a0395cf382
+	github.com/mylxsw/graceful v0.0.0-20191128055330-290857a79dcc
 	github.com/pkg/errors v0.8.1
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/urfave/cli v1.21.0

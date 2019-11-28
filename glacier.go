@@ -2,7 +2,9 @@ package glacier
 
 import (
 	"context"
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/mylxsw/asteria/formatter"
 	"github.com/mylxsw/asteria/level"
@@ -46,6 +48,7 @@ type Glacier struct {
 	container *container.Container
 
 	providers []ServiceProvider
+	services  []Service
 
 	beforeInitialize  func(c *cli.Context) error
 	beforeServerStart func(cc *container.Container) error
@@ -74,15 +77,15 @@ type Glacier struct {
 type CronTaskFunc func(cr cron.Manager, cc *container.Container) error
 type EventListenerFunc func(listener event.Manager, cc *container.Container)
 
-var glacierInstance *Glacier
+var glacierIns *Glacier
 
 // App return Glacier instance you created
 func App() *Glacier {
-	if glacierInstance == nil {
-		panic("you should create a Glacier by calling Create function first!")
+	if glacierIns == nil {
+		panic("you should create a Glacier application by call Create function first!")
 	}
 
-	return glacierInstance
+	return glacierIns
 }
 
 // Container return container instance for glacier
@@ -92,7 +95,7 @@ func Container() *container.Container {
 
 // Create a new Glacier server
 func Create(version string, flags ...cli.Flag) *Glacier {
-	if glacierInstance != nil {
+	if glacierIns != nil {
 		panic("a glacier instance has been created")
 	}
 
@@ -110,6 +113,12 @@ func Create(version string, flags ...cli.Flag) *Glacier {
 		altsrc.NewBoolTFlag(cli.BoolTFlag{
 			Name:  "log_color",
 			Usage: "log with colorful support",
+		}),
+		altsrc.NewDurationFlag(cli.DurationFlag{
+			Name:   "shutdown_timeout",
+			Usage:  "set a shutdown timeout for each service",
+			EnvVar: "GLACIER_SHUTDOWN_TIMOUT",
+			Value:  5 * time.Second,
 		}),
 	}
 
@@ -132,23 +141,29 @@ func Create(version string, flags ...cli.Flag) *Glacier {
 	}
 	app.Flags = serverFlags
 
-	glacierInstance = &Glacier{}
-	glacierInstance.app = app
-	glacierInstance.version = version
-	glacierInstance.webAppInitFunc = func() error { return nil }
-	glacierInstance.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
-	glacierInstance.singletons = make([]interface{}, 0)
-	glacierInstance.prototypes = make([]interface{}, 0)
-	glacierInstance.providers = make([]ServiceProvider, 0)
+	glacierIns = &Glacier{}
+	glacierIns.app = app
+	glacierIns.version = version
+	glacierIns.webAppInitFunc = func() error { return nil }
+	glacierIns.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
+	glacierIns.singletons = make([]interface{}, 0)
+	glacierIns.prototypes = make([]interface{}, 0)
+	glacierIns.providers = make([]ServiceProvider, 0)
+	glacierIns.services = make([]Service, 0)
 
-	app.Action = createServer(glacierInstance)
+	app.Action = createServer(glacierIns)
 
-	return glacierInstance
+	return glacierIns
 }
 
 // Provider add a service provider
 func (glacier *Glacier) Provider(provider ServiceProvider) {
 	glacier.providers = append(glacier.providers, provider)
+}
+
+// Service add a service
+func (glacier *Glacier) Service(service Service) {
+	glacier.services = append(glacier.services, service)
 }
 
 // WithHttpServer with http server support
@@ -315,6 +330,7 @@ func (glacier *Glacier) Run(args []string) error {
 }
 
 func createServer(glacier *Glacier) func(c *cli.Context) error {
+	startupTs := time.Now()
 	return func(c *cli.Context) error {
 		defer func() {
 			if err := recover(); err != nil {
@@ -332,17 +348,22 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 		ctx, cancel := context.WithCancel(context.Background())
 		cc := container.NewWithContext(ctx)
 		glacier.container = cc
+		cc.MustSingleton(func() *cli.Context { return c })
 
 		cc.MustBindValue("version", glacier.version)
-		cc.MustSingleton(func() *cli.Context {
-			return c
-		})
+		cc.MustBindValue("startup_time", startupTs)
 		cc.MustSingleton(ConfigLoader)
-		cc.MustSingleton(func() event.Store {
-			return event.NewMemoryEventStore(false)
+
+		cc.MustSingleton(func(conf *Config) *graceful.Graceful {
+			return graceful.NewWithDefault(conf.ShutdownTimeout)
 		})
+		cc.MustResolve(func(gf *graceful.Graceful) {
+			gf.AddShutdownHandler(cancel)
+		})
+
+		cc.MustSingleton(func() event.Store { return event.NewMemoryEventStore(false) })
 		cc.MustSingleton(event.NewEventManager)
-		cc.MustSingleton(graceful.NewWithDefault)
+
 		cc.MustSingleton(func() *WebApp {
 			return NewWebApp(cc, glacier.webAppRouterFunc, glacier.webAppServerFunc)
 		})
@@ -371,7 +392,10 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			logger.All().LogWriter(stackWriter)
 		}
 
-		log.Debugf("server starting, version=%s", glacier.version)
+		log.WithFields(logger.Fields{
+			"count":   len(glacier.providers),
+			"version": glacier.version,
+		}).Debugf("service providers has been registered, starting ...")
 
 		if glacier.beforeInitialize != nil {
 			if err := glacier.beforeInitialize(c); err != nil {
@@ -392,32 +416,69 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 		}
 
 		var wg sync.WaitGroup
+		var daemonServiceProviderCount int
 		for _, p := range glacier.providers {
 			p.Boot(glacier)
 			if pp, ok := p.(DaemonServiceProvider); ok {
 				wg.Add(1)
-				go func() {
+				daemonServiceProviderCount++
+				go func(pp DaemonServiceProvider) {
 					defer wg.Done()
 					pp.Daemon(ctx, glacier)
-				}()
+				}(pp)
 			}
 		}
 
-		defer cc.MustResolve(func(cr cron.Manager) {
+		log.WithFields(logger.Fields{
+			"boot_count":   len(glacier.providers),
+			"daemon_count": daemonServiceProviderCount,
+		}).Debugf("service providers has been started")
+
+		// start services
+		for i, s := range glacier.services {
+			if err := s.Init(cc); err != nil {
+				return fmt.Errorf("service %d initialize failed: %v", i, err)
+			}
+
+			wg.Add(1)
+			go func(s Service) {
+				defer wg.Done()
+
+				cc.MustResolve(func(gf *graceful.Graceful) {
+					gf.AddShutdownHandler(s.Stop)
+					gf.AddReloadHandler(s.Reload)
+					if err := s.Start(); err != nil {
+						log.Errorf("service %s has stopped: %v", s.Name(), err)
+					}
+				})
+			}(s)
+		}
+
+		log.WithFields(logger.Fields{
+			"count": len(glacier.services),
+		}).Debugf("services has been started")
+
+		defer cc.MustResolve(func(conf *Config) {
 			if err := recover(); err != nil {
-				log.Criticalf("application startup panic: %s", err)
+				log.Criticalf("application startup failed: %v", err)
 			}
 
-			cancel()
-
-			if glacier.beforeServerStop != nil {
-				_ = glacier.beforeServerStop(cc)
+			if conf.ShutdownTimeout > 0 {
+				ok := make(chan interface{}, 0)
+				go func() {
+					wg.Wait()
+					ok <- struct{}{}
+				}()
+				select {
+				case <-ok:
+					log.Debugf("all services has been stopped")
+				case <-time.After(conf.ShutdownTimeout):
+					log.Errorf("shutdown timeout, exit directly")
+				}
+			} else {
+				wg.Wait()
+				log.Debugf("all services has been stopped")
 			}
-
-			cr.Stop()
-			wg.Wait()
-
-			log.Debugf("all services has been stopped")
 		})
 
 		if glacier.httpListenAddr != "" {
@@ -450,7 +511,10 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 			}
 
 			// start cron task server
+			gf.AddShutdownHandler(cr.Stop)
 			cr.Start()
+
+			log.Debugf("cron task server has been started")
 
 			if glacier.afterServerStart != nil {
 				if err := glacier.afterServerStart(cc); err != nil {
@@ -458,9 +522,17 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 				}
 			}
 
+			if glacier.beforeServerStop != nil {
+				gf.AddShutdownHandler(func() {
+					_ = glacier.beforeServerStop(cc)
+				})
+			}
+
 			if glacier.mainFunc != nil {
 				go cc.MustResolve(glacier.mainFunc)
 			}
+
+			log.Debugf("started glacier application in %v", time.Now().Sub(startupTs))
 
 			return gf.Start()
 		})

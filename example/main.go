@@ -14,6 +14,7 @@ import (
 	"github.com/mylxsw/glacier/example/api"
 	"github.com/mylxsw/glacier/example/config"
 	"github.com/mylxsw/glacier/example/job"
+	"github.com/mylxsw/glacier/example/service"
 	"github.com/mylxsw/glacier/web"
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
@@ -39,6 +40,9 @@ func main() {
 
 	g.Provider(job.ServiceProvider{})
 	g.Provider(api.ServiceProvider{})
+
+	g.Service(&service.DemoService{})
+	g.Service(&service.Demo2Service{})
 
 	g.Cron(func(cr cron.Manager, cc *container.Container) error {
 		if err := cr.Add("hello", "@every 15s", func(manager event.Manager) {
