@@ -390,3 +390,4 @@ func (req *HttpRequest) Validate(validator Validator, jsonResponse bool) {
 		}
 	}
 }
+

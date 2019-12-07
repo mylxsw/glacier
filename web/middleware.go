@@ -26,7 +26,6 @@ func (rm RequestMiddleware) AccessLog() HandlerDecorator {
 	return func(handler WebHandler) WebHandler {
 		return func(ctx Context) Response {
 			startTs := time.Now()
-
 			resp := handler(ctx)
 
 			logger.Debugf(
@@ -38,6 +37,56 @@ func (rm RequestMiddleware) AccessLog() HandlerDecorator {
 			)
 
 			return resp
+		}
+	}
+}
+
+type CustomAccessLog struct {
+	Context      Context       `json:"-"`
+	Method       string        `json:"method"`
+	URL          string        `json:"url"`
+	ResponseCode int           `json:"response_code"`
+	Elapse       time.Duration `json:"elapse"`
+}
+
+// CustomAccessLog create a custom access log handler middleware
+func (rm RequestMiddleware) CustomAccessLog(fn func(cal CustomAccessLog)) HandlerDecorator {
+	return func(handler WebHandler) WebHandler {
+		return func(ctx Context) Response {
+			startTs := time.Now()
+			resp := handler(ctx)
+
+			go fn(CustomAccessLog{
+				Context:      ctx,
+				Method:       ctx.Method(),
+				URL:          ctx.Request().Raw().URL.String(),
+				ResponseCode: resp.Code(),
+				Elapse:       time.Now().Sub(startTs),
+			})
+
+			return resp
+		}
+	}
+}
+
+// BeforeInterceptor is a interceptor intercept a request before processing
+func (rm RequestMiddleware) BeforeInterceptor(fn func(ctx Context) Response) HandlerDecorator {
+	return func(handler WebHandler) WebHandler {
+		return func(ctx Context) Response {
+			if resp := fn(ctx); resp != nil {
+				return resp
+			}
+
+			return handler(ctx)
+		}
+	}
+}
+
+// AfterInterceptor is a interceptor intercept a response before it's been sent to user
+func (rm RequestMiddleware) AfterInterceptor(fn func(ctx Context, resp Response) Response) HandlerDecorator {
+	return func(handler WebHandler) WebHandler {
+		return func(ctx Context) Response {
+			return fn(ctx, handler(ctx))
 		}
 	}
 }
@@ -63,7 +112,7 @@ func (rm RequestMiddleware) CORS(origin string) HandlerDecorator {
 // HOBA (see RFC 7486, Section 3, HTTP Origin-Bound Authentication, digital-signature-based),
 // Mutual (see RFC 8120),
 // AWS4-HMAC-SHA256 (see AWS docs).
-func (rm RequestMiddleware) AuthHandler(cb func(typ string, credential string) error) HandlerDecorator {
+func (rm RequestMiddleware) AuthHandler(cb func(ctx Context, typ string, credential string) error) HandlerDecorator {
 	return func(handler WebHandler) WebHandler {
 		return func(ctx Context) (resp Response) {
 			segs := strings.SplitN(ctx.Header("Authorization"), " ", 2)
@@ -75,7 +124,7 @@ func (rm RequestMiddleware) AuthHandler(cb func(typ string, credential string) e
 				return ctx.JSONError("auth failed: invalid auth type", http.StatusUnauthorized)
 			}
 
-			if err := cb(segs[0], segs[1]); err != nil {
+			if err := cb(ctx, segs[0], segs[1]); err != nil {
 				return ctx.JSONError(fmt.Sprintf("auth failed: %s", err), http.StatusUnauthorized)
 			}
 

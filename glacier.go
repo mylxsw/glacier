@@ -331,7 +331,7 @@ func (glacier *Glacier) Run(args []string) error {
 
 func createServer(glacier *Glacier) func(c *cli.Context) error {
 	startupTs := time.Now()
-	return func(c *cli.Context) error {
+	return func(cliCtx *cli.Context) error {
 		defer func() {
 			if err := recover(); err != nil {
 				log.Criticalf("application initialize failed with a panic: %s", err)
@@ -339,16 +339,16 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 		}()
 
 		logger.DefaultDynamicModuleName(true)
-		logger.DefaultLogLevel(level.GetLevelByName(c.String("log_level")))
+		logger.DefaultLogLevel(level.GetLevelByName(cliCtx.String("log_level")))
 		if glacier.defaultLogFormatter == nil {
-			glacier.defaultLogFormatter = formatter.NewDefaultFormatter(c.Bool("log_color"))
+			glacier.defaultLogFormatter = formatter.NewDefaultFormatter(cliCtx.Bool("log_color"))
 		}
 		logger.DefaultLogFormatter(glacier.defaultLogFormatter)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cc := container.NewWithContext(ctx)
 		glacier.container = cc
-		cc.MustSingleton(func() *cli.Context { return c })
+		cc.MustSingleton(func() *cli.Context { return cliCtx })
 
 		cc.MustBindValue("version", glacier.version)
 		cc.MustBindValue("startup_time", startupTs)
@@ -398,7 +398,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 		}).Debugf("service providers has been registered, starting ...")
 
 		if glacier.beforeInitialize != nil {
-			if err := glacier.beforeInitialize(c); err != nil {
+			if err := glacier.beforeInitialize(cliCtx); err != nil {
 				return err
 			}
 		}
@@ -484,8 +484,8 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 		if glacier.httpListenAddr != "" {
 			if err := cc.ResolveWithError(func(webApp *WebApp) error {
 				webApp.UpdateConfig(func(conf *web.Config) {
-					conf.ViewTemplatePathPrefix = c.String("web_template_prefix")
-					conf.MultipartFormMaxMemory = c.Int64("web_multipart_form_max_memory")
+					conf.ViewTemplatePathPrefix = cliCtx.String("web_template_prefix")
+					conf.MultipartFormMaxMemory = cliCtx.Int64("web_multipart_form_max_memory")
 				})
 				webApp.MuxRouter(glacier.webAppMuxRouterFunc)
 				webApp.ExceptionHandler(glacier.webAppExceptionHandler)
