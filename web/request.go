@@ -377,12 +377,12 @@ func (req *HttpRequest) Body() []byte {
 
 // Validator is an interface for validator
 type Validator interface {
-	Validate() error
+	Validate(request *HttpRequest) error
 }
 
 // Validate execute a validator, if there has an error, panic error to framework
 func (req *HttpRequest) Validate(validator Validator, jsonResponse bool) {
-	if err := validator.Validate(); err != nil {
+	if err := validator.Validate(req); err != nil {
 		if jsonResponse {
 			panic(WrapJSONError(fmt.Errorf("invalid request: %v", err), http.StatusUnprocessableEntity))
 		} else {
