@@ -1,6 +1,8 @@
 package glacier
 
 import (
+	"context"
+
 	"github.com/mylxsw/container"
 )
 
@@ -16,4 +18,31 @@ type Service interface {
 	Stop()
 	// Reload reload service
 	Reload()
+}
+
+
+type ServiceProvider interface {
+	// Register add some dependency for current module
+	// this method is called one by one synchronous
+	Register(app *container.Container)
+	// Boot start the module
+	// this method is called one by one synchronous after all register methods called
+	Boot(app *Glacier)
+}
+
+type DaemonServiceProvider interface {
+	ServiceProvider
+	// Daemon is a async method called after boot
+	// this method is called asynchronous and concurrent
+	Daemon(ctx context.Context, app *Glacier)
+}
+
+// Provider add a service provider
+func (glacier *Glacier) Provider(provider ServiceProvider) {
+	glacier.providers = append(glacier.providers, provider)
+}
+
+// Service add a service
+func (glacier *Glacier) Service(service Service) {
+	glacier.services = append(glacier.services, service)
 }

@@ -4,7 +4,13 @@ import (
 	"time"
 
 	"github.com/mylxsw/glacier/web"
-	"github.com/urfave/cli"
+)
+
+const (
+	HttpListenOption          = "listen"
+	ShutdownTimeoutOption     = "shutdown_timeout"
+	WebTemplatePrefixOption   = "web_template_prefix"
+	WebMultipartFormMaxMemory = "web_multipart_form_max_memory"
 )
 
 type Config struct {
@@ -12,16 +18,15 @@ type Config struct {
 	HttpWriteTimeout time.Duration
 	HttpReadTimeout  time.Duration
 	HttpIdleTimeout  time.Duration
-
-	ShutdownTimeout time.Duration
+	ShutdownTimeout  time.Duration
 
 	WebConfig *web.Config
 }
 
-func ConfigLoader(c *cli.Context) *Config {
+func ConfigLoader(c FlagContext) *Config {
 	config := &Config{}
-	config.HttpListen = c.String("listen")
-	config.ShutdownTimeout = c.Duration("shutdown_timeout")
+	config.HttpListen = c.String(HttpListenOption)
+	config.ShutdownTimeout = c.Duration(ShutdownTimeoutOption)
 
 	config.HttpWriteTimeout = time.Second * 15
 	config.HttpReadTimeout = time.Second * 15

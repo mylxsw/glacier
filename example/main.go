@@ -15,6 +15,7 @@ import (
 	"github.com/mylxsw/glacier/example/config"
 	"github.com/mylxsw/glacier/example/job"
 	"github.com/mylxsw/glacier/example/service"
+	"github.com/mylxsw/glacier/starter/application"
 	"github.com/mylxsw/glacier/web"
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
@@ -26,12 +27,16 @@ var GitCommit string
 type CronEvent struct{}
 
 func main() {
-	g := glacier.Create(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]))
-	g.WithHttpServer(":19945")
-	g.AddFlags(altsrc.NewStringFlag(cli.StringFlag{
+
+	app := application.Create(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]))
+
+	app.AddFlags(altsrc.NewStringFlag(cli.StringFlag{
 		Name:  "test",
 		Value: "",
 	}))
+
+	g := app.Glacier()
+	g.WithHttpServer(":19945")
 
 	g.WebAppExceptionHandler(func(ctx web.Context, err interface{}) web.Response {
 		log.Errorf("stack: %s", debug.Stack())
@@ -61,7 +66,7 @@ func main() {
 		})
 	})
 
-	g.Singleton(func(c *cli.Context) *config.Config {
+	g.Singleton(func(c glacier.FlagContext) *config.Config {
 		return &config.Config{
 			DB:   "xxxxxx",
 			Test: c.String("test"),
@@ -75,7 +80,7 @@ func main() {
 		}
 	})
 
-	if err := g.Run(os.Args); err != nil {
+	if err := app.Run(os.Args); err != nil {
 		panic(err)
 	}
 }

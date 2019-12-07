@@ -16,41 +16,23 @@ import (
 	"github.com/mylxsw/glacier/web"
 	"github.com/mylxsw/go-toolkit/period_job"
 	"github.com/mylxsw/graceful"
-	"github.com/urfave/cli"
-	"github.com/urfave/cli/altsrc"
-
 	cronV3 "github.com/robfig/cron/v3"
 )
 
 var log = logger.Module("glacier")
 
-type ServiceProvider interface {
-	// Register add some dependency for current module
-	// this method is called one by one synchronous
-	Register(app *container.Container)
-	// Boot start the module
-	// this method is called one by one synchronous after all register methods called
-	Boot(app *Glacier)
-}
-
-type DaemonServiceProvider interface {
-	ServiceProvider
-	// Daemon is a async method called after boot
-	// this method is called asynchronous and concurrent
-	Daemon(ctx context.Context, app *Glacier)
-}
-
 // Glacier is the server
 type Glacier struct {
 	appName   string
 	version   string
-	app       *cli.App
 	container *container.Container
+
+	handler func(cliCtx FlagContext) error
 
 	providers []ServiceProvider
 	services  []Service
 
-	beforeInitialize  func(c *cli.Context) error
+	beforeInitialize  func(c FlagContext) error
 	beforeServerStart func(cc *container.Container) error
 	afterServerStart  func(cc *container.Container) error
 	beforeServerStop  func(cc *container.Container) error
@@ -74,113 +56,31 @@ type Glacier struct {
 	prototypes []interface{}
 }
 
+func (glacier *Glacier) HttpListenAddr() string {
+	return glacier.httpListenAddr
+}
+
 type CronTaskFunc func(cr cron.Manager, cc *container.Container) error
 type EventListenerFunc func(listener event.Manager, cc *container.Container)
 
-var glacierIns *Glacier
 
-// App return Glacier instance you created
-func App() *Glacier {
-	if glacierIns == nil {
-		panic("you should create a Glacier application by call Create function first!")
-	}
-
-	return glacierIns
-}
-
-// Container return container instance for glacier
-func Container() *container.Container {
-	return App().Container()
-}
-
-// Create a new Glacier server
-func Create(version string, flags ...cli.Flag) *Glacier {
-	if glacierIns != nil {
-		panic("a glacier instance has been created")
-	}
-
-	serverFlags := []cli.Flag{
-		cli.StringFlag{
-			Name:  "conf",
-			Value: "",
-			Usage: "configuration file path",
-		},
-		altsrc.NewStringFlag(cli.StringFlag{
-			Name:  "log_level",
-			Value: "DEBUG",
-			Usage: "set default log level",
-		}),
-		altsrc.NewBoolTFlag(cli.BoolTFlag{
-			Name:  "log_color",
-			Usage: "log with colorful support",
-		}),
-		altsrc.NewDurationFlag(cli.DurationFlag{
-			Name:   "shutdown_timeout",
-			Usage:  "set a shutdown timeout for each service",
-			EnvVar: "GLACIER_SHUTDOWN_TIMOUT",
-			Value:  5 * time.Second,
-		}),
-	}
-
-	serverFlags = append(serverFlags, flags...)
-
-	app := cli.NewApp()
-	app.Version = version
-	app.Before = func(c *cli.Context) error {
-		conf := c.String("conf")
-		if conf == "" {
-			return nil
-		}
-
-		inputSource, err := altsrc.NewYamlSourceFromFile(conf)
-		if err != nil {
-			return err
-		}
-
-		return altsrc.ApplyInputSourceValues(c, inputSource, c.App.Flags)
-	}
-	app.Flags = serverFlags
-
-	glacierIns = &Glacier{}
-	glacierIns.app = app
-	glacierIns.version = version
-	glacierIns.webAppInitFunc = func() error { return nil }
-	glacierIns.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
-	glacierIns.singletons = make([]interface{}, 0)
-	glacierIns.prototypes = make([]interface{}, 0)
-	glacierIns.providers = make([]ServiceProvider, 0)
-	glacierIns.services = make([]Service, 0)
-
-	app.Action = createServer(glacierIns)
-
-	return glacierIns
-}
-
-// Provider add a service provider
-func (glacier *Glacier) Provider(provider ServiceProvider) {
-	glacier.providers = append(glacier.providers, provider)
-}
-
-// Service add a service
-func (glacier *Glacier) Service(service Service) {
-	glacier.services = append(glacier.services, service)
-}
-
-// WithHttpServer with http server support
-func (glacier *Glacier) WithHttpServer(listenAddr string) *Glacier {
-	if listenAddr == "" {
-		listenAddr = ":19950"
-	}
-
-	glacier.httpListenAddr = listenAddr
+// CreateGlacier a new Glacier server
+func CreateGlacier(version string) *Glacier {
+	glacier := &Glacier{}
+	glacier.version = version
+	glacier.webAppInitFunc = func() error { return nil }
+	glacier.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
+	glacier.singletons = make([]interface{}, 0)
+	glacier.prototypes = make([]interface{}, 0)
+	glacier.providers = make([]ServiceProvider, 0)
+	glacier.services = make([]Service, 0)
+	glacier.handler = glacier.createServer()
 
 	return glacier
 }
 
-// AddFlags add flags to app
-func (glacier *Glacier) AddFlags(flags ...cli.Flag) *Glacier {
-	glacier.app.Flags = append(glacier.app.Flags, flags...)
-	return glacier
+func (glacier *Glacier) Handler() func(cliContext FlagContext) error {
+	return glacier.handler
 }
 
 // DefaultLogFormatter set default log formatter
@@ -206,7 +106,7 @@ func (glacier *Glacier) UseDefaultStackLogger() *Glacier {
 
 // BeforeInitialize set a hook func executed before server initialize
 // Usually, we use this method to initialize the log configuration
-func (glacier *Glacier) BeforeInitialize(f func(c *cli.Context) error) *Glacier {
+func (glacier *Glacier) BeforeInitialize(f func(c FlagContext) error) *Glacier {
 	glacier.beforeInitialize = f
 	return glacier
 }
@@ -226,36 +126,6 @@ func (glacier *Glacier) AfterServerStart(f func(cc *container.Container) error) 
 // BeforeServerStop set a hook func executed before server stop
 func (glacier *Glacier) BeforeServerStop(f func(cc *container.Container) error) *Glacier {
 	glacier.beforeServerStop = f
-	return glacier
-}
-
-// WebAppInit set a hook func for app init
-func (glacier *Glacier) WebAppInit(initFunc interface{}) *Glacier {
-	glacier.webAppInitFunc = initFunc
-	return glacier
-}
-
-// WebAppServerInit is a function for initialize http server
-func (glacier *Glacier) WebAppServerInit(handler InitServerHandler) *Glacier {
-	glacier.webAppServerFunc = handler
-	return glacier
-}
-
-// WebAppRouter add routes for http server
-func (glacier *Glacier) WebAppRouter(handler InitRouterHandler) *Glacier {
-	glacier.webAppRouterFunc = handler
-	return glacier
-}
-
-// WebAppMuxRouter add mux routes for http server
-func (glacier *Glacier) WebAppMuxRouter(handler InitMuxRouterHandler) *Glacier {
-	glacier.webAppMuxRouterFunc = handler
-	return glacier
-}
-
-// WebAppExceptionHandler set exception handler for web app
-func (glacier *Glacier) WebAppExceptionHandler(handler web.ExceptionHandler) *Glacier {
-	glacier.webAppExceptionHandler = handler
 	return glacier
 }
 
@@ -304,34 +174,9 @@ func (glacier *Glacier) Main(f interface{}) *Glacier {
 	return glacier
 }
 
-// Run start Glacier server
-func (glacier *Glacier) Run(args []string) error {
-	if glacier.httpListenAddr != "" {
-		glacier.app.Flags = append(
-			glacier.app.Flags,
-			altsrc.NewStringFlag(cli.StringFlag{
-				Name:  "listen",
-				Value: glacier.httpListenAddr,
-				Usage: "http server listen address",
-			}),
-			altsrc.NewStringFlag(cli.StringFlag{
-				Name:  "web_template_prefix",
-				Usage: "web template path prefix",
-				Value: "",
-			}),
-			altsrc.NewInt64Flag(cli.Int64Flag{
-				Name:  "web_multipart_form_max_memory",
-				Usage: "multipart form max memory size in bytes",
-				Value: int64(10 << 20),
-			}))
-	}
-
-	return glacier.app.Run(args)
-}
-
-func createServer(glacier *Glacier) func(c *cli.Context) error {
+func (glacier *Glacier) createServer() func(c FlagContext) error {
 	startupTs := time.Now()
-	return func(cliCtx *cli.Context) error {
+	return func(cliCtx FlagContext) error {
 		defer func() {
 			if err := recover(); err != nil {
 				log.Criticalf("application initialize failed with a panic: %s", err)
@@ -348,7 +193,7 @@ func createServer(glacier *Glacier) func(c *cli.Context) error {
 		ctx, cancel := context.WithCancel(context.Background())
 		cc := container.NewWithContext(ctx)
 		glacier.container = cc
-		cc.MustSingleton(func() *cli.Context { return cliCtx })
+		cc.MustSingleton(func() FlagContext { return cliCtx })
 
 		cc.MustBindValue("version", glacier.version)
 		cc.MustBindValue("startup_time", startupTs)

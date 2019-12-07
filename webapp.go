@@ -16,6 +16,49 @@ type InitRouterHandler func(router *web.Router, mw web.RequestMiddleware)
 type InitMuxRouterHandler func(router *mux.Router)
 type InitServerHandler func(server *http.Server, listener net.Listener)
 
+// WithHttpServer with http server support
+func (glacier *Glacier) WithHttpServer(listenAddr string) *Glacier {
+	if listenAddr == "" {
+		listenAddr = ":19950"
+	}
+
+	glacier.httpListenAddr = listenAddr
+
+	return glacier
+}
+
+
+// WebAppInit set a hook func for app init
+func (glacier *Glacier) WebAppInit(initFunc interface{}) *Glacier {
+	glacier.webAppInitFunc = initFunc
+	return glacier
+}
+
+// WebAppServerInit is a function for initialize http server
+func (glacier *Glacier) WebAppServerInit(handler InitServerHandler) *Glacier {
+	glacier.webAppServerFunc = handler
+	return glacier
+}
+
+// WebAppRouter add routes for http server
+func (glacier *Glacier) WebAppRouter(handler InitRouterHandler) *Glacier {
+	glacier.webAppRouterFunc = handler
+	return glacier
+}
+
+// WebAppMuxRouter add mux routes for http server
+func (glacier *Glacier) WebAppMuxRouter(handler InitMuxRouterHandler) *Glacier {
+	glacier.webAppMuxRouterFunc = handler
+	return glacier
+}
+
+// WebAppExceptionHandler set exception handler for web app
+func (glacier *Glacier) WebAppExceptionHandler(handler web.ExceptionHandler) *Glacier {
+	glacier.webAppExceptionHandler = handler
+	return glacier
+}
+
+
 // WebApp is the web app
 type WebApp struct {
 	cc                 *container.Container
