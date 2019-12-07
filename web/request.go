@@ -377,7 +377,7 @@ func (req *HttpRequest) Body() []byte {
 
 // Validator is an interface for validator
 type Validator interface {
-	Validate(request *HttpRequest) error
+	Validate(request Request) error
 }
 
 // Validate execute a validator, if there has an error, panic error to framework
