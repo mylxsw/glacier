@@ -18,13 +18,13 @@ import (
 type WebContext struct {
 	response *HttpResponse
 	request  *HttpRequest
-	cc       *container.Container
+	cc       container.Container
 	conf     Config
 }
 
 type webHandler struct {
 	handle    WebHandler
-	container *container.Container
+	container container.Container
 	conf      *Config
 }
 
@@ -32,7 +32,7 @@ type webHandler struct {
 type WebHandler func(context Context) Response
 
 // newWebHandler 创建一个WebHandler，用于传递给Router
-func newWebHandler(cc *container.Container, handler WebHandler, decors ...HandlerDecorator) webHandler {
+func newWebHandler(cc container.Container, handler WebHandler, decors ...HandlerDecorator) webHandler {
 	for i := range decors {
 		d := decors[len(decors)-i-1]
 		handler = d(handler)
@@ -78,7 +78,7 @@ func (ctx *WebContext) Response() ResponseCreator {
 }
 
 // Container return underlying container.Container
-func (ctx *WebContext) Container() *container.Container {
+func (ctx *WebContext) Container() container.Container {
 	return ctx.cc
 }
 

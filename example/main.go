@@ -49,7 +49,7 @@ func main() {
 	g.Service(&service.DemoService{})
 	g.Service(&service.Demo2Service{})
 
-	g.Cron(func(cr cron.Manager, cc *container.Container) error {
+	g.Cron(func(cr cron.Manager, cc container.Container) error {
 		if err := cr.Add("hello", "@every 15s", func(manager event.Manager) {
 			log.Infof("hello, example!")
 			manager.Publish(CronEvent{})
@@ -60,7 +60,7 @@ func main() {
 		return nil
 	})
 
-	g.EventListener(func(listener event.Manager, cc *container.Container) {
+	g.EventListener(func(listener event.Manager, cc container.Container) {
 		listener.Listen(func(event CronEvent) {
 			log.Debug("a new cron task executed")
 		})

@@ -9,11 +9,11 @@ import (
 
 type ServiceProvider struct{}
 
-func (s ServiceProvider) Register(app *container.Container) {
+func (s ServiceProvider) Register(app container.Container) {
 
 }
 
-func (s ServiceProvider) Boot(app *glacier.Glacier) {
+func (s ServiceProvider) Boot(app glacier.Glacier) {
 	app.WebAppRouter(func(router *web.Router, mw web.RequestMiddleware) {
 		router.WithMiddleware(mw.AccessLog()).Controllers("/api",
 			controller.NewWelcomeController(app.Container()),

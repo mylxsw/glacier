@@ -11,8 +11,8 @@ require (
 	github.com/gorilla/websocket v1.4.1
 	github.com/json-iterator/go v1.1.8 // indirect
 	github.com/mylxsw/asteria v0.0.0-20190818103215-f64f703d8999
-	github.com/mylxsw/container v0.0.0-20191022090726-425f1756accf
-	github.com/mylxsw/go-toolkit v0.0.0-20190810132703-486dd5ff72a9
+	github.com/mylxsw/container v0.0.0-20191208075953-c8ee6e3238cc
+	github.com/mylxsw/go-toolkit v0.0.0-20191028015837-dd709ecbee89
 	github.com/mylxsw/graceful v0.0.0-20191128055330-290857a79dcc
 	github.com/pkg/errors v0.8.1
 	github.com/robfig/cron/v3 v3.0.0

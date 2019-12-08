@@ -2,6 +2,11 @@ package glacier
 
 import (
 	"time"
+
+	"github.com/mylxsw/asteria/formatter"
+	"github.com/mylxsw/asteria/writer"
+	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/web"
 )
 
 type FlagContext interface {
@@ -39,4 +44,31 @@ type FlagContext interface {
 
 	FlagNames() (names []string)
 	GlobalFlagNames() (names []string)
+}
+type Glacier interface {
+	Provider(provider ServiceProvider)
+	Service(service Service)
+	WithHttpServer(listenAddr string) Glacier
+	WebAppInit(initFunc interface{}) Glacier
+	WebAppServerInit(handler InitServerHandler) Glacier
+	WebAppRouter(handler InitRouterHandler) Glacier
+	WebAppMuxRouter(handler InitMuxRouterHandler) Glacier
+	WebAppExceptionHandler(handler web.ExceptionHandler) Glacier
+	HttpListenAddr() string
+	Handler() func(cliContext FlagContext) error
+	DefaultLogFormatter(f formatter.Formatter) Glacier
+	UseStackLogger(f func(cc container.Container, stackWriter *writer.StackWriter)) Glacier
+	UseDefaultStackLogger() Glacier
+	BeforeInitialize(f func(c FlagContext) error) Glacier
+	BeforeServerStart(f func(cc container.Container) error) Glacier
+	AfterServerStart(f func(cc container.Container) error) Glacier
+	BeforeServerStop(f func(cc container.Container) error) Glacier
+	Cron(f CronTaskFunc) Glacier
+	EventListener(f EventListenerFunc) Glacier
+	Singleton(ins interface{}) Glacier
+	Prototype(ins interface{}) Glacier
+	ResolveWithError(resolver interface{}) error
+	MustResolve(resolver interface{})
+	Container() container.Container
+	Main(f interface{}) Glacier
 }

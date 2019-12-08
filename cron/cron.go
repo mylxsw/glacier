@@ -34,7 +34,7 @@ type Manager interface {
 
 type cronManager struct {
 	lock sync.RWMutex
-	cc   *container.Container
+	cc   container.Container
 	cr   *cron.Cron
 
 	jobs map[string]*Job
@@ -68,7 +68,7 @@ func (job Job) Next(nextNum int) ([]time.Time, error) {
 }
 
 // NewManager create a new Manager
-func NewManager(cc *container.Container) Manager {
+func NewManager(cc container.Container) Manager {
 	m := cronManager{cc: cc, jobs: make(map[string]*Job)}
 	cc.MustResolve(func(cr *cron.Cron) { m.cr = cr })
 

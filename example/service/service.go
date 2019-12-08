@@ -8,11 +8,11 @@ import (
 )
 
 type DemoService struct {
-	cc      *container.Container
+	cc      container.Container
 	stopped chan interface{}
 }
 
-func (d *DemoService) Init(cc *container.Container) error {
+func (d *DemoService) Init(cc container.Container) error {
 	d.cc = cc
 	d.stopped = make(chan interface{}, 0)
 	return nil

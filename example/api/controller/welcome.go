@@ -9,10 +9,10 @@ import (
 )
 
 type WelcomeController struct {
-	cc *container.Container
+	cc container.Container
 }
 
-func NewWelcomeController(cc *container.Container) web.Controller {
+func NewWelcomeController(cc container.Container) web.Controller {
 	return &WelcomeController{cc: cc}
 }
 

@@ -71,7 +71,7 @@ type Context interface {
 	Session() *sessions.Session
 	Request() Request
 	Response() ResponseCreator
-	Container() *container.Container
+	Container() container.Container
 	View(tplPath string, data interface{}) *HTMLResponse
 	Validate(validator Validator, jsonResponse bool)
 }

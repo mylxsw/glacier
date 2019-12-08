@@ -14,18 +14,17 @@ import (
 	"github.com/mylxsw/glacier/cron"
 	"github.com/mylxsw/glacier/event"
 	"github.com/mylxsw/glacier/web"
-	"github.com/mylxsw/go-toolkit/period_job"
 	"github.com/mylxsw/graceful"
 	cronV3 "github.com/robfig/cron/v3"
 )
 
 var log = logger.Module("glacier")
 
-// Glacier is the server
-type Glacier struct {
+// glacierImpl is the server
+type glacierImpl struct {
 	appName   string
 	version   string
-	container *container.Container
+	container container.Container
 
 	handler func(cliCtx FlagContext) error
 
@@ -33,12 +32,12 @@ type Glacier struct {
 	services  []Service
 
 	beforeInitialize  func(c FlagContext) error
-	beforeServerStart func(cc *container.Container) error
-	afterServerStart  func(cc *container.Container) error
-	beforeServerStop  func(cc *container.Container) error
+	beforeServerStart func(cc container.Container) error
+	afterServerStart  func(cc container.Container) error
+	beforeServerStop  func(cc container.Container) error
 	mainFunc          interface{}
 
-	useStackLogger      func(cc *container.Container, stackWriter *writer.StackWriter)
+	useStackLogger      func(cc container.Container, stackWriter *writer.StackWriter)
 	defaultLogFormatter formatter.Formatter
 
 	webAppInitFunc         interface{}
@@ -56,17 +55,16 @@ type Glacier struct {
 	prototypes []interface{}
 }
 
-func (glacier *Glacier) HttpListenAddr() string {
+func (glacier *glacierImpl) HttpListenAddr() string {
 	return glacier.httpListenAddr
 }
 
-type CronTaskFunc func(cr cron.Manager, cc *container.Container) error
-type EventListenerFunc func(listener event.Manager, cc *container.Container)
+type CronTaskFunc func(cr cron.Manager, cc container.Container) error
+type EventListenerFunc func(listener event.Manager, cc container.Container)
 
-
-// CreateGlacier a new Glacier server
-func CreateGlacier(version string) *Glacier {
-	glacier := &Glacier{}
+// CreateGlacier a new glacierImpl server
+func CreateGlacier(version string) Glacier {
+	glacier := &glacierImpl{}
 	glacier.version = version
 	glacier.webAppInitFunc = func() error { return nil }
 	glacier.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
@@ -79,102 +77,102 @@ func CreateGlacier(version string) *Glacier {
 	return glacier
 }
 
-func (glacier *Glacier) Handler() func(cliContext FlagContext) error {
+func (glacier *glacierImpl) Handler() func(cliContext FlagContext) error {
 	return glacier.handler
 }
 
 // DefaultLogFormatter set default log formatter
 // if not set, will use default formatter: formatter.DefaultFormatter
-func (glacier *Glacier) DefaultLogFormatter(f formatter.Formatter) *Glacier {
+func (glacier *glacierImpl) DefaultLogFormatter(f formatter.Formatter) Glacier {
 	glacier.defaultLogFormatter = f
 	return glacier
 }
 
 // UseStackLogger set cronLogger to use stack log writer
-func (glacier *Glacier) UseStackLogger(f func(cc *container.Container, stackWriter *writer.StackWriter)) *Glacier {
+func (glacier *glacierImpl) UseStackLogger(f func(cc container.Container, stackWriter *writer.StackWriter)) Glacier {
 	glacier.useStackLogger = f
 	return glacier
 }
 
 // UseDefaultStackLogger use default stack cronLogger as cronLogger
 // all logs will be sent to stdout
-func (glacier *Glacier) UseDefaultStackLogger() *Glacier {
-	return glacier.UseStackLogger(func(cc *container.Container, stackWriter *writer.StackWriter) {
+func (glacier *glacierImpl) UseDefaultStackLogger() Glacier {
+	return glacier.UseStackLogger(func(cc container.Container, stackWriter *writer.StackWriter) {
 		stackWriter.PushWithLevels(writer.NewStdoutWriter())
 	})
 }
 
 // BeforeInitialize set a hook func executed before server initialize
 // Usually, we use this method to initialize the log configuration
-func (glacier *Glacier) BeforeInitialize(f func(c FlagContext) error) *Glacier {
+func (glacier *glacierImpl) BeforeInitialize(f func(c FlagContext) error) Glacier {
 	glacier.beforeInitialize = f
 	return glacier
 }
 
 // BeforeServerStart set a hook func executed before server start
-func (glacier *Glacier) BeforeServerStart(f func(cc *container.Container) error) *Glacier {
+func (glacier *glacierImpl) BeforeServerStart(f func(cc container.Container) error) Glacier {
 	glacier.beforeServerStart = f
 	return glacier
 }
 
 // AfterServerStart set a hook func executed after server started
-func (glacier *Glacier) AfterServerStart(f func(cc *container.Container) error) *Glacier {
+func (glacier *glacierImpl) AfterServerStart(f func(cc container.Container) error) Glacier {
 	glacier.afterServerStart = f
 	return glacier
 }
 
 // BeforeServerStop set a hook func executed before server stop
-func (glacier *Glacier) BeforeServerStop(f func(cc *container.Container) error) *Glacier {
+func (glacier *glacierImpl) BeforeServerStop(f func(cc container.Container) error) Glacier {
 	glacier.beforeServerStop = f
 	return glacier
 }
 
 // Cron add cron tasks
-func (glacier *Glacier) Cron(f CronTaskFunc) *Glacier {
+func (glacier *glacierImpl) Cron(f CronTaskFunc) Glacier {
 	glacier.cronTaskFunc = f
 	return glacier
 }
 
 // EventListener add event listeners
-func (glacier *Glacier) EventListener(f EventListenerFunc) *Glacier {
+func (glacier *glacierImpl) EventListener(f EventListenerFunc) Glacier {
 	glacier.eventListenerFunc = f
 	return glacier
 }
 
 // Singleton add a singleton instance to container
-func (glacier *Glacier) Singleton(ins interface{}) *Glacier {
+func (glacier *glacierImpl) Singleton(ins interface{}) Glacier {
 	glacier.singletons = append(glacier.singletons, ins)
 	return glacier
 }
 
 // Prototype add a prototype to container
-func (glacier *Glacier) Prototype(ins interface{}) *Glacier {
+func (glacier *glacierImpl) Prototype(ins interface{}) Glacier {
 	glacier.prototypes = append(glacier.prototypes, ins)
 	return glacier
 }
 
 // ResolveWithError is a proxy to container's ResolveWithError function
-func (glacier *Glacier) ResolveWithError(resolver interface{}) error {
+func (glacier *glacierImpl) ResolveWithError(resolver interface{}) error {
 	return glacier.container.ResolveWithError(resolver)
 }
 
 // MustResolve is a proxy to container's MustResolve function
-func (glacier *Glacier) MustResolve(resolver interface{}) {
+func (glacier *glacierImpl) MustResolve(resolver interface{}) {
 	glacier.container.MustResolve(resolver)
 }
 
 // Container return container instance
-func (glacier *Glacier) Container() *container.Container {
+func (glacier *glacierImpl) Container() container.Container {
 	return glacier.container
 }
 
 // Main execute main business logic
-func (glacier *Glacier) Main(f interface{}) *Glacier {
+func (glacier *glacierImpl) Main(f interface{}) Glacier {
 	glacier.mainFunc = f
 	return glacier
 }
 
-func (glacier *Glacier) createServer() func(c FlagContext) error {
+func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 	startupTs := time.Now()
 	return func(cliCtx FlagContext) error {
 		defer func() {
@@ -217,7 +215,6 @@ func (glacier *Glacier) createServer() func(c FlagContext) error {
 			return cronV3.New(cronV3.WithSeconds(), cronV3.WithLogger(cronLogger{}))
 		})
 		cc.MustSingleton(cron.NewManager)
-		cc.MustSingleton(period_job.NewManager)
 
 		for _, i := range glacier.singletons {
 			cc.MustSingleton(i)

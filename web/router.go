@@ -13,7 +13,7 @@ import (
 // Router 定制的路由
 type Router struct {
 	router     *mux.Router
-	container  *container.Container
+	container  container.Container
 	routes     []*RouteRule
 	decorators []HandlerDecorator
 	prefix     string
@@ -115,7 +115,7 @@ func NewRouter(conf *Config, decorators ...HandlerDecorator) *Router {
 }
 
 // NewRouterWithContainer 创建一个路由器，带有依赖注入容器支持
-func NewRouterWithContainer(c *container.Container, conf *Config, decorators ...HandlerDecorator) *Router {
+func NewRouterWithContainer(c container.Container, conf *Config, decorators ...HandlerDecorator) *Router {
 	cc := container.Extend(c)
 	cc.MustSingleton(func() *schema.Decoder {
 		decoder := schema.NewDecoder()
@@ -130,7 +130,7 @@ func NewRouterWithContainer(c *container.Container, conf *Config, decorators ...
 }
 
 // create 创建定制路由器
-func create(c *container.Container, router *mux.Router, decorators ...HandlerDecorator) *Router {
+func create(c container.Container, router *mux.Router, decorators ...HandlerDecorator) *Router {
 	return &Router{
 		router:     router,
 		routes:     []*RouteRule{},

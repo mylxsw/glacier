@@ -25,7 +25,7 @@ type HttpRequest struct {
 	r       *http.Request
 	body    []byte
 	session *sessions.Session
-	cc      *container.Container
+	cc      container.Container
 	conf    Config
 }
 

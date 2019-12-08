@@ -11,22 +11,22 @@ import (
 
 var _app *Application
 
-// App return Glacier instance you created
+// App return glacierImpl instance you created
 func App() *Application {
 	if _app == nil {
-		panic("you should create a Glacier application by call CreateGlacier function first!")
+		panic("you should create a glacierImpl application by call CreateGlacier function first!")
 	}
 
 	return _app
 }
 
 // Container return container instance for glacier
-func Container() *container.Container {
+func Container() container.Container {
 	return App().glacier.Container()
 }
 
 type Application struct {
-	glacier *glacier.Glacier
+	glacier glacier.Glacier
 	cli     *cli.App
 }
 
@@ -94,8 +94,8 @@ func Create(version string, flags ...cli.Flag) *Application {
 	return _app
 }
 
-// Glacier return Glacier instance
-func (application *Application) Glacier() *glacier.Glacier {
+// glacierImpl return glacierImpl instance
+func (application *Application) Glacier() glacier.Glacier {
 	return application.glacier
 }
 
@@ -105,7 +105,7 @@ func (application *Application) AddFlags(flags ...cli.Flag) *Application {
 	return application
 }
 
-// Run start Glacier server
+// Run start glacierImpl server
 func (application *Application) Run(args []string) error {
 	if application.glacier.HttpListenAddr() != "" {
 		application.cli.Flags = append(
