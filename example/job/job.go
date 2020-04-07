@@ -14,7 +14,9 @@ func (j ServiceProvider) Register(cc container.Container) {
 
 func (j ServiceProvider) Boot(app glacier.Glacier) {
 	app.Cron(func(cr cron.Manager, cc container.Container) error {
-		_ = cr.Add("test-job", "@every 30s", TestJob)
+		cr.DistributeLockManager(NewDistributeLockManager())
+
+		_ = cr.Add("test-job", "@every 5s", TestJob)
 
 		job, _ := cr.Info("test-job")
 		nextTs, _ := job.Next(5)
@@ -25,3 +27,25 @@ func (j ServiceProvider) Boot(app glacier.Glacier) {
 		return nil
 	})
 }
+
+type DistributeLockManager struct {
+}
+
+func NewDistributeLockManager() *DistributeLockManager {
+	return &DistributeLockManager{}
+}
+
+func (manager *DistributeLockManager) TryLock() error {
+	log.Debug("try lock ...")
+	return nil
+}
+
+func (manager *DistributeLockManager) TryUnLock() error {
+	log.Debug("try unlock ...")
+	return nil
+}
+
+func (manager *DistributeLockManager) HasLock() bool {
+	return false
+}
+

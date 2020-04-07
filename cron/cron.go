@@ -30,12 +30,29 @@ type Manager interface {
 	Start()
 	// Stop stop cron job manager
 	Stop()
+
+	// DistributeLockManager is a setter method for distribute lock manager
+	DistributeLockManager(lockManager DistributeLockManager)
+}
+
+// DistributeLockManager is a distribute lock manager interface
+type DistributeLockManager interface {
+	// TryLock try to get lock
+	// this method will be called every 60s
+	// you should set a ttl for lock since unlock method may be not be called in some case
+	TryLock() error
+	// TryUnlock try to release the lock
+	TryUnLock() error
+	// HasLock return whether manager has lock
+	HasLock() bool
 }
 
 type cronManager struct {
 	lock sync.RWMutex
 	cc   container.Container
 	cr   *cron.Cron
+
+	distributeLockManager DistributeLockManager
 
 	jobs map[string]*Job
 }
@@ -75,6 +92,10 @@ func NewManager(cc container.Container) Manager {
 	return &m
 }
 
+func (c *cronManager) DistributeLockManager(lockManager DistributeLockManager) {
+	c.distributeLockManager = lockManager
+}
+
 func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -84,6 +105,11 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 	}
 
 	jobHandler := func() {
+		if c.distributeLockManager != nil && !c.distributeLockManager.HasLock() {
+			log.Debugf("cron job [%s] can not start because it doesn't get the lock", name)
+			return
+		}
+
 		logger.Debugf("cron job [%s] running", name)
 		startTs := time.Now()
 		defer func() {
@@ -190,9 +216,27 @@ func (c *cronManager) Info(name string) (Job, error) {
 }
 
 func (c *cronManager) Start() {
+	if c.distributeLockManager != nil {
+		getDistributeLock := func() {
+			if err := c.distributeLockManager.TryLock(); err != nil {
+				log.Warningf("try to get distribute lock failed: %v", err)
+			}
+		}
+
+		getDistributeLock()
+		if _, err := c.cr.AddFunc("@every 60s", getDistributeLock); err != nil  {
+			log.Errorf("initialize cron failed: can not create distribute lock task: %v", err)
+		}
+	}
+
 	c.cr.Start()
 }
 
 func (c *cronManager) Stop() {
 	c.cr.Stop()
+	if c.distributeLockManager != nil {
+		if err := c.distributeLockManager.TryUnLock(); err != nil {
+			log.Warningf("try to release distribute lock failed: %v", err)
+		}
+	}
 }
