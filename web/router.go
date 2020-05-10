@@ -163,38 +163,36 @@ func (router *Router) Group(prefix string, f func(rou *Router), decors ...Handle
 
 // Perform 将路由规则添加到路由器
 func (router *Router) Perform(exceptionHandler ExceptionHandler) *mux.Router {
-	for _, r := range router.routes {
-		var handler http.Handler
+	// cors support and exception handler
+	corsHandler := func(rt *RouteRule) WebHandler {
+		return func(ctx Context) (resp Response) {
+			defer func() {
+				if err := recover(); err != nil {
+					if exceptionHandler != nil {
+						resp = exceptionHandler(ctx, err)
+					}
 
-		// cors support and exception handler
-		corsHandler := func(rt *RouteRule) WebHandler {
-			return func(ctx Context) (resp Response) {
-				defer func() {
-					if err := recover(); err != nil {
-						if exceptionHandler != nil {
-							resp = exceptionHandler(ctx, err)
-						}
-
-						if resp == nil {
-							_resp, err := ErrorToResponse(ctx, err)
-							if err != nil {
-								resp = ctx.Error(fmt.Sprintf("Internal Server Error: %v", err), http.StatusInternalServerError)
-							} else {
-								resp = _resp
-							}
+					if resp == nil {
+						_resp, err := ErrorToResponse(ctx, err)
+						if err != nil {
+							resp = ctx.Error(fmt.Sprintf("Internal Server Error: %v", err), http.StatusInternalServerError)
+						} else {
+							resp = _resp
 						}
 					}
-				}()
-
-				if ctx.Method() == http.MethodOptions {
-					return ctx.NewHTMLResponse("")
 				}
+			}()
 
-				return rt.webHandler(ctx)
+			if ctx.Method() == http.MethodOptions {
+				return ctx.NewHTMLResponse("")
 			}
-		}
 
-		handler = newWebHandler(router.container, corsHandler(r), r.decorators...)
+			return rt.webHandler(ctx)
+		}
+	}
+
+	for _, r := range router.routes {
+		var handler http.Handler = newWebHandler(router.container, corsHandler(r), r.decorators...)
 		route := router.router.Handle(r.path, handler)
 		if r.method != "" {
 			route.Methods(r.method, http.MethodOptions)

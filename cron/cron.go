@@ -2,6 +2,7 @@ package cron
 
 import (
 	"fmt"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -116,7 +117,7 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 			logger.Debugf("cron job [%s] stopped, elapse %s", name, time.Now().Sub(startTs))
 		}()
 		if err := c.cc.ResolveWithError(handler); err != nil {
-			logger.Errorf("cron job [%s] failed: %v", err)
+			logger.Errorf("cron job [%s] failed, Err: %v, Stack: %s", err, debug.Stack())
 		}
 	}
 	id, err := c.cr.AddFunc(plan, jobHandler)

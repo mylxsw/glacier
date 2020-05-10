@@ -3,6 +3,7 @@ package glacier
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"sync"
 	"time"
 
@@ -177,7 +178,7 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 	return func(cliCtx FlagContext) error {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Criticalf("application initialize failed with a panic: %s", err)
+				log.Criticalf("application initialize failed with a panic, Err: %s, Stack: %s", err, debug.Stack())
 			}
 		}()
 
@@ -302,7 +303,7 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 
 		defer cc.MustResolve(func(conf *Config) {
 			if err := recover(); err != nil {
-				log.Criticalf("application startup failed: %v", err)
+				log.Criticalf("application startup failed, Err: %v, Stack: %s", err, debug.Stack())
 			}
 
 			if conf.ShutdownTimeout > 0 {
