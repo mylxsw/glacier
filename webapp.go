@@ -27,7 +27,6 @@ func (glacier *glacierImpl) WithHttpServer(listenAddr string) Glacier {
 	return glacier
 }
 
-
 // WebAppInit set a hook func for app init
 func (glacier *glacierImpl) WebAppInit(initFunc interface{}) Glacier {
 	glacier.webAppInitFunc = initFunc
@@ -57,7 +56,6 @@ func (glacier *glacierImpl) WebAppExceptionHandler(handler web.ExceptionHandler)
 	glacier.webAppExceptionHandler = handler
 	return glacier
 }
-
 
 // WebApp is the web app
 type WebApp struct {
@@ -104,12 +102,7 @@ func (app *WebApp) Init(initFunc interface{}) error {
 
 // Start create the http server
 func (app *WebApp) Start() error {
-	return app.cc.ResolveWithError(func(conf *Config, gf *graceful.Graceful) error {
-		listener, err := net.Listen("tcp", conf.HttpListen)
-		if err != nil {
-			return err
-		}
-
+	return app.cc.ResolveWithError(func(conf *Config, listener net.Listener, gf *graceful.Graceful) error {
 		srv := &http.Server{
 			Handler:      app.router(),
 			WriteTimeout: conf.HttpWriteTimeout,
@@ -134,7 +127,7 @@ func (app *WebApp) Start() error {
 		})
 
 		go func() {
-			log.Debugf("http server started, listening on %s", conf.HttpListen)
+			log.Debugf("http server started, listening on %s", listener.Addr())
 			if err := srv.Serve(listener); err != nil {
 				log.Debugf("http server stopped: %s", err)
 				if err != http.ErrServerClosed {

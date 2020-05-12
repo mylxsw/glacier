@@ -3,6 +3,7 @@ package glacier
 import (
 	"context"
 	"fmt"
+	"net"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -178,7 +179,7 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 	return func(cliCtx FlagContext) error {
 		defer func() {
 			if err := recover(); err != nil {
-				log.Criticalf("application initialize failed with a panic, Err: %s, Stack: %s", err, debug.Stack())
+				log.Criticalf("application initialize failed with a panic, Err: %s, Stack: \n%s", err, debug.Stack())
 			}
 		}()
 
@@ -207,6 +208,10 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 
 		cc.MustSingleton(func() event.Store { return event.NewMemoryEventStore(false) })
 		cc.MustSingleton(event.NewEventManager)
+
+		cc.MustSingleton(func(conf *Config) (net.Listener, error) {
+			return net.Listen("tcp", conf.HttpListen)
+		})
 
 		cc.MustSingleton(func() *WebApp {
 			return NewWebApp(cc, glacier.webAppRouterFunc, glacier.webAppServerFunc)
