@@ -5,11 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/sessions"
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 )
-
-var logger = log.Module("glacier.web")
 
 type Context interface {
 	JSON(res interface{}) *JSONResponse

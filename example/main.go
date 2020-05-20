@@ -6,6 +6,7 @@ import (
 	"runtime/debug"
 
 	"github.com/gorilla/mux"
+	"github.com/mylxsw/asteria/formatter"
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier"
@@ -21,12 +22,13 @@ import (
 	"github.com/urfave/cli/altsrc"
 )
 
-var Version string
-var GitCommit string
+var Version = "1.0"
+var GitCommit = "aabbccddeeffgghhiijjkk"
 
 type CronEvent struct{}
 
 func main() {
+	log.All().LogFormatter(formatter.NewJSONFormatter())
 
 	app := application.Create(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]))
 

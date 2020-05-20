@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/gorilla/sessions"
+	"github.com/mylxsw/asteria/log"
 	"github.com/pkg/errors"
 )
 
@@ -22,7 +23,7 @@ func NewRequestMiddleware() RequestMiddleware {
 }
 
 // AccessLog create a access log middleware
-func (rm RequestMiddleware) AccessLog() HandlerDecorator {
+func (rm RequestMiddleware) AccessLog(logger log.Logger) HandlerDecorator {
 	return func(handler WebHandler) WebHandler {
 		return func(ctx Context) Response {
 			startTs := time.Now()

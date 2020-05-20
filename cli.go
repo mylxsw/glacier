@@ -3,8 +3,6 @@ package glacier
 import (
 	"time"
 
-	"github.com/mylxsw/asteria/formatter"
-	"github.com/mylxsw/asteria/writer"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/web"
 )
@@ -56,9 +54,6 @@ type Glacier interface {
 	WebAppExceptionHandler(handler web.ExceptionHandler) Glacier
 	HttpListenAddr() string
 	Handler() func(cliContext FlagContext) error
-	DefaultLogFormatter(f formatter.Formatter) Glacier
-	UseStackLogger(f func(cc container.Container, stackWriter *writer.StackWriter)) Glacier
-	UseDefaultStackLogger() Glacier
 	BeforeInitialize(f func(c FlagContext) error) Glacier
 	BeforeServerStart(f func(cc container.Container) error) Glacier
 	AfterServerStart(f func(cc container.Container) error) Glacier

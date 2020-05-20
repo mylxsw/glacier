@@ -12,8 +12,6 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-var logger = log.Module("glacier.cron")
-
 // Manager is a manager object to manage cron jobs
 type Manager interface {
 	// Add add a cron job
@@ -55,7 +53,8 @@ type cronManager struct {
 
 	distributeLockManager DistributeLockManager
 
-	jobs map[string]*Job
+	jobs   map[string]*Job
+	logger log.Logger
 }
 
 // Job is a job object
@@ -86,8 +85,8 @@ func (job Job) Next(nextNum int) ([]time.Time, error) {
 }
 
 // NewManager create a new Manager
-func NewManager(cc container.Container) Manager {
-	m := cronManager{cc: cc, jobs: make(map[string]*Job)}
+func NewManager(cc container.Container, logger log.Logger) Manager {
+	m := cronManager{cc: cc, jobs: make(map[string]*Job), logger: logger}
 	cc.MustResolve(func(cr *cron.Cron) { m.cr = cr })
 
 	return &m
@@ -111,13 +110,13 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 			return
 		}
 
-		logger.Debugf("cron job [%s] running", name)
+		c.logger.Debugf("cron job [%s] running", name)
 		startTs := time.Now()
 		defer func() {
-			logger.Debugf("cron job [%s] stopped, elapse %s", name, time.Now().Sub(startTs))
+			c.logger.Debugf("cron job [%s] stopped, elapse %s", name, time.Now().Sub(startTs))
 		}()
 		if err := c.cc.ResolveWithError(handler); err != nil {
-			logger.Errorf("cron job [%s] failed, Err: %v, Stack: %s", err, debug.Stack())
+			c.logger.Errorf("cron job [%s] failed, Err: %v, Stack: \n%s", name, err, debug.Stack())
 		}
 	}
 	id, err := c.cr.AddFunc(plan, jobHandler)
@@ -134,7 +133,7 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 		Paused:  false,
 	}
 
-	logger.Debugf("add job [%s] to cron manager with plan %s", name, plan)
+	c.logger.Debugf("add job [%s] to cron manager with plan %s", name, plan)
 
 	return nil
 }
@@ -153,7 +152,7 @@ func (c *cronManager) Remove(name string) error {
 		c.cr.Remove(reg.ID)
 	}
 
-	logger.Debugf("remove job [%s] from cron manager", name)
+	c.logger.Debugf("remove job [%s] from cron manager", name)
 
 	return nil
 }
@@ -174,7 +173,7 @@ func (c *cronManager) Pause(name string) error {
 	c.cr.Remove(reg.ID)
 	reg.Paused = true
 
-	logger.Debugf("change job [%s] to paused", name)
+	c.logger.Debugf("change job [%s] to paused", name)
 
 	return nil
 }
@@ -200,7 +199,7 @@ func (c *cronManager) Continue(name string) error {
 	reg.Paused = false
 	reg.ID = id
 
-	logger.Debugf("change job [%s] to continue", name)
+	c.logger.Debugf("change job [%s] to continue", name)
 
 	return nil
 }
@@ -220,13 +219,13 @@ func (c *cronManager) Start() {
 	if c.distributeLockManager != nil {
 		getDistributeLock := func() {
 			if err := c.distributeLockManager.TryLock(); err != nil {
-				log.Warningf("try to get distribute lock failed: %v", err)
+				c.logger.Warningf("try to get distribute lock failed: %v", err)
 			}
 		}
 
 		getDistributeLock()
-		if _, err := c.cr.AddFunc("@every 60s", getDistributeLock); err != nil  {
-			log.Errorf("initialize cron failed: can not create distribute lock task: %v", err)
+		if _, err := c.cr.AddFunc("@every 60s", getDistributeLock); err != nil {
+			c.logger.Errorf("initialize cron failed: can not create distribute lock task: %v", err)
 		}
 	}
 
@@ -237,7 +236,7 @@ func (c *cronManager) Stop() {
 	c.cr.Stop()
 	if c.distributeLockManager != nil {
 		if err := c.distributeLockManager.TryUnLock(); err != nil {
-			log.Warningf("try to release distribute lock failed: %v", err)
+			c.logger.Warningf("try to release distribute lock failed: %v", err)
 		}
 	}
 }

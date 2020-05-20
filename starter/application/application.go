@@ -45,15 +45,6 @@ func Create(version string, flags ...cli.Flag) *Application {
 			Value: "",
 			Usage: "configuration file path",
 		},
-		altsrc.NewStringFlag(cli.StringFlag{
-			Name:  "log_level",
-			Value: "DEBUG",
-			Usage: "set default log level",
-		}),
-		altsrc.NewBoolTFlag(cli.BoolTFlag{
-			Name:  "log_color",
-			Usage: "log with colorful support",
-		}),
 		altsrc.NewDurationFlag(cli.DurationFlag{
 			Name:   "shutdown_timeout",
 			Usage:  "set a shutdown timeout for each service",

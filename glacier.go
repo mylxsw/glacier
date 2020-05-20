@@ -8,10 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mylxsw/asteria/formatter"
-	"github.com/mylxsw/asteria/level"
-	logger "github.com/mylxsw/asteria/log"
-	"github.com/mylxsw/asteria/writer"
+	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/cron"
 	"github.com/mylxsw/glacier/event"
@@ -20,13 +17,12 @@ import (
 	cronV3 "github.com/robfig/cron/v3"
 )
 
-var log = logger.Module("glacier")
-
 // glacierImpl is the server
 type glacierImpl struct {
 	appName   string
 	version   string
 	container container.Container
+	logger    log.Logger
 
 	handler func(cliCtx FlagContext) error
 
@@ -38,9 +34,6 @@ type glacierImpl struct {
 	afterServerStart  func(cc container.Container) error
 	beforeServerStop  func(cc container.Container) error
 	mainFunc          interface{}
-
-	useStackLogger      func(cc container.Container, stackWriter *writer.StackWriter)
-	defaultLogFormatter formatter.Formatter
 
 	webAppInitFunc         interface{}
 	webAppRouterFunc       InitRouterHandler
@@ -83,27 +76,6 @@ func (glacier *glacierImpl) Handler() func(cliContext FlagContext) error {
 	return glacier.handler
 }
 
-// DefaultLogFormatter set default log formatter
-// if not set, will use default formatter: formatter.DefaultFormatter
-func (glacier *glacierImpl) DefaultLogFormatter(f formatter.Formatter) Glacier {
-	glacier.defaultLogFormatter = f
-	return glacier
-}
-
-// UseStackLogger set cronLogger to use stack log writer
-func (glacier *glacierImpl) UseStackLogger(f func(cc container.Container, stackWriter *writer.StackWriter)) Glacier {
-	glacier.useStackLogger = f
-	return glacier
-}
-
-// UseDefaultStackLogger use default stack cronLogger as cronLogger
-// all logs will be sent to stdout
-func (glacier *glacierImpl) UseDefaultStackLogger() Glacier {
-	return glacier.UseStackLogger(func(cc container.Container, stackWriter *writer.StackWriter) {
-		stackWriter.PushWithLevels(writer.NewStdoutWriter())
-	})
-}
-
 // BeforeInitialize set a hook func executed before server initialize
 // Usually, we use this method to initialize the log configuration
 func (glacier *glacierImpl) BeforeInitialize(f func(c FlagContext) error) Glacier {
@@ -132,6 +104,12 @@ func (glacier *glacierImpl) BeforeServerStop(f func(cc container.Container) erro
 // Cron add cron tasks
 func (glacier *glacierImpl) Cron(f CronTaskFunc) Glacier {
 	glacier.cronTaskFunc = f
+	return glacier
+}
+
+// Logger set a log implements
+func (glacier *glacierImpl) Logger(logger log.Logger) Glacier {
+	glacier.logger = logger
 	return glacier
 }
 
@@ -177,18 +155,16 @@ func (glacier *glacierImpl) Main(f interface{}) Glacier {
 func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 	startupTs := time.Now()
 	return func(cliCtx FlagContext) error {
+
+		if glacier.logger == nil {
+			glacier.logger = log.Module("glacier")
+		}
+
 		defer func() {
 			if err := recover(); err != nil {
-				log.Criticalf("application initialize failed with a panic, Err: %s, Stack: \n%s", err, debug.Stack())
+				glacier.logger.Criticalf("application initialize failed with a panic, Err: %s, Stack: \n%s", err, debug.Stack())
 			}
 		}()
-
-		logger.DefaultDynamicModuleName(true)
-		logger.DefaultLogLevel(level.GetLevelByName(cliCtx.String("log_level")))
-		if glacier.defaultLogFormatter == nil {
-			glacier.defaultLogFormatter = formatter.NewDefaultFormatter(cliCtx.Bool("log_color"))
-		}
-		logger.DefaultLogFormatter(glacier.defaultLogFormatter)
 
 		ctx, cancel := context.WithCancel(context.Background())
 		cc := container.NewWithContext(ctx)
@@ -198,6 +174,7 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 		cc.MustBindValue("version", glacier.version)
 		cc.MustBindValue("startup_time", startupTs)
 		cc.MustSingleton(ConfigLoader)
+		cc.MustSingleton(func() log.Logger { return glacier.logger })
 
 		cc.MustSingleton(func(conf *Config) *graceful.Graceful {
 			return graceful.NewWithDefault(conf.ShutdownTimeout)
@@ -218,7 +195,7 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 		})
 
 		cc.MustSingleton(func() *cronV3.Cron {
-			return cronV3.New(cronV3.WithSeconds(), cronV3.WithLogger(cronLogger{}))
+			return cronV3.New(cronV3.WithSeconds(), cronV3.WithLogger(cronLogger{logger: glacier.logger}))
 		})
 		cc.MustSingleton(cron.NewManager)
 
@@ -234,13 +211,7 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 			p.Register(cc)
 		}
 
-		if glacier.useStackLogger != nil {
-			stackWriter := writer.NewStackWriter()
-			glacier.useStackLogger(cc, stackWriter)
-			logger.All().LogWriter(stackWriter)
-		}
-
-		log.WithFields(logger.Fields{
+		glacier.logger.WithFields(log.Fields{
 			"count":   len(glacier.providers),
 			"version": glacier.version,
 		}).Debugf("service providers has been registered, starting ...")
@@ -277,7 +248,7 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 			}
 		}
 
-		log.WithFields(logger.Fields{
+		glacier.logger.WithFields(log.Fields{
 			"boot_count":   len(glacier.providers),
 			"daemon_count": daemonServiceProviderCount,
 		}).Debugf("service providers has been started")
@@ -296,19 +267,19 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 					gf.AddShutdownHandler(s.Stop)
 					gf.AddReloadHandler(s.Reload)
 					if err := s.Start(); err != nil {
-						log.Errorf("service %s has stopped: %v", s.Name(), err)
+						glacier.logger.Errorf("service %s has stopped: %v", s.Name(), err)
 					}
 				})
 			}(s)
 		}
 
-		log.WithFields(logger.Fields{
+		glacier.logger.WithFields(log.Fields{
 			"count": len(glacier.services),
 		}).Debugf("services has been started")
 
 		defer cc.MustResolve(func(conf *Config) {
 			if err := recover(); err != nil {
-				log.Criticalf("application startup failed, Err: %v, Stack: %s", err, debug.Stack())
+				glacier.logger.Criticalf("application startup failed, Err: %v, Stack: %s", err, debug.Stack())
 			}
 
 			if conf.ShutdownTimeout > 0 {
@@ -319,13 +290,13 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 				}()
 				select {
 				case <-ok:
-					log.Debugf("all services has been stopped")
+					glacier.logger.Debugf("all services has been stopped")
 				case <-time.After(conf.ShutdownTimeout):
-					log.Errorf("shutdown timeout, exit directly")
+					glacier.logger.Errorf("shutdown timeout, exit directly")
 				}
 			} else {
 				wg.Wait()
-				log.Debugf("all services has been stopped")
+				glacier.logger.Debugf("all services has been stopped")
 			}
 		})
 
@@ -362,7 +333,7 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 			gf.AddShutdownHandler(cr.Stop)
 			cr.Start()
 
-			log.Debugf("cron task server has been started")
+			glacier.logger.Debugf("cron task server has been started")
 
 			if glacier.afterServerStart != nil {
 				if err := glacier.afterServerStart(cc); err != nil {
@@ -380,7 +351,7 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 				go cc.MustResolve(glacier.mainFunc)
 			}
 
-			log.Debugf("started glacier application in %v", time.Now().Sub(startupTs))
+			glacier.logger.Debugf("started glacier application in %v", time.Now().Sub(startupTs))
 
 			return gf.Start()
 		})
@@ -393,14 +364,16 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 	}
 }
 
-type cronLogger struct{}
+type cronLogger struct {
+	logger log.Logger
+}
 
 func (l cronLogger) Info(msg string, keysAndValues ...interface{}) {
 	// Just drop it, we don't care
 }
 
 func (l cronLogger) Error(err error, msg string, keysAndValues ...interface{}) {
-	log.WithFields(logger.Fields{
+	l.logger.WithFields(log.Fields{
 		"arguments": keysAndValues,
 	}).Errorf("%s: %v", msg, err)
 }
