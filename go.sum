@@ -45,6 +45,8 @@ github.com/mylxsw/graceful v0.0.0-20191128055330-290857a79dcc h1:yADzgXZqOXlzorW
 github.com/mylxsw/graceful v0.0.0-20191128055330-290857a79dcc/go.mod h1:Skt4GaATnUdq3MArrHK32UsSC9tq8GB0ZToWkF420Os=
 github.com/mylxsw/graceful v0.0.0-20200512142145-c4b7435b7b88 h1:IevIWDfkTp06E7OMKIjsGYWvmsVvXzD6oFBoP8SeUm8=
 github.com/mylxsw/graceful v0.0.0-20200512142145-c4b7435b7b88/go.mod h1:Skt4GaATnUdq3MArrHK32UsSC9tq8GB0ZToWkF420Os=
+github.com/mylxsw/graceful v0.0.0-20200521071307-30ef03ecf5a8 h1:0gfJ8H7bx+si3Hqno9an6aZDsqWDO1CjAb/+U5yN3a8=
+github.com/mylxsw/graceful v0.0.0-20200521071307-30ef03ecf5a8/go.mod h1:Skt4GaATnUdq3MArrHK32UsSC9tq8GB0ZToWkF420Os=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

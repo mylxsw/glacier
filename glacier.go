@@ -47,7 +47,9 @@ type glacierImpl struct {
 
 	httpListenAddr   string
 	enableHTTPServer bool
-	listener         net.Listener
+
+	tcpListenerBuilder func() net.Listener
+	gracefulBuilder    func() graceful.Graceful
 
 	singletons []interface{}
 	prototypes []interface{}
@@ -73,6 +75,12 @@ func CreateGlacier(version string) Glacier {
 	glacier.services = make([]Service, 0)
 	glacier.handler = glacier.createServer()
 
+	return glacier
+}
+
+// Graceful 设置优雅停机实现
+func (glacier *glacierImpl) Graceful(builder func() graceful.Graceful) Glacier {
+	glacier.gracefulBuilder = builder
 	return glacier
 }
 
@@ -189,7 +197,7 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 			return err
 		}
 
-		cc.MustResolve(func(gf *graceful.Graceful) {
+		cc.MustResolve(func(gf graceful.Graceful) {
 			gf.AddShutdownHandler(cancel)
 		})
 
@@ -234,7 +242,7 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 			go func(s Service) {
 				defer wg.Done()
 
-				cc.MustResolve(func(gf *graceful.Graceful) {
+				cc.MustResolve(func(gf graceful.Graceful) {
 					gf.AddShutdownHandler(s.Stop)
 					gf.AddReloadHandler(s.Reload)
 					if err := s.Start(); err != nil {
@@ -282,7 +290,10 @@ func (glacier *glacierImpl) initialize(cc container.Container) error {
 	cc.MustSingleton(func() log.Logger { return glacier.logger })
 
 	// 优雅停机
-	cc.MustSingleton(func(conf *Config) *graceful.Graceful {
+	cc.MustSingleton(func(conf *Config) graceful.Graceful {
+		if glacier.gracefulBuilder != nil {
+			return glacier.gracefulBuilder()
+		}
 		return graceful.NewWithDefault(conf.ShutdownTimeout)
 	})
 
@@ -347,22 +358,22 @@ func (glacier *glacierImpl) initialize(cc container.Container) error {
 	return nil
 }
 
-// buildTCPListener 创建 listener 对象
+// buildTCPListener 创建 tcpListenerBuilder 对象
 func (glacier *glacierImpl) buildTCPListener() (net.Listener, error) {
-	if glacier.listener != nil {
-		return glacier.listener, nil
+	if glacier.tcpListenerBuilder != nil {
+		return glacier.tcpListenerBuilder(), nil
 	}
 
 	if glacier.httpListenAddr == "" {
-		return nil, errors.New("no tcp listener specified, you can call TCPListener or TCPListenerAddr before Run")
+		return nil, errors.New("no tcp tcpListenerBuilder specified, you can call TCPListener or TCPListenerAddr before Run")
 	}
 
 	return net.Listen("tcp", glacier.httpListenAddr)
 }
 
 // startServer 启动 Glacier
-func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.Time) func(cr cron.Manager, gf *graceful.Graceful) error {
-	return func(cr cron.Manager, gf *graceful.Graceful) error {
+func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.Time) func(cr cron.Manager, gf graceful.Graceful) error {
+	return func(cr cron.Manager, gf graceful.Graceful) error {
 		if err := glacier.startCronTaskServer(cr, gf, cc); err != nil {
 			return err
 		}
@@ -399,7 +410,7 @@ func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.T
 }
 
 // startCronTaskServer 启动定时任务
-func (glacier *glacierImpl) startCronTaskServer(cr cron.Manager, gf *graceful.Graceful, cc container.Container) error {
+func (glacier *glacierImpl) startCronTaskServer(cr cron.Manager, gf graceful.Graceful, cc container.Container) error {
 	// 设置定时任务
 	if glacier.cronTaskFunc != nil {
 		if err := glacier.cronTaskFunc(cr, cc); err != nil {

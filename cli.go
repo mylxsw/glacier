@@ -6,6 +6,7 @@ import (
 
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/web"
+	"github.com/mylxsw/graceful"
 )
 
 const (
@@ -56,7 +57,7 @@ type Glacier interface {
 	Service(service Service)
 
 	// TCPListener 设置 net.Listener 对象，优先顺序为 TCPListener > TCPListenerAddr > Config.HttpListen
-	TCPListener(ln net.Listener) Glacier
+	TCPListener(listenerBuilder func() net.Listener) Glacier
 	// WithListenerAddr 设置 Http 服务监听地址，优先顺序为 TCPListener > TCPListenerAddr > Config.HttpListen
 	TCPListenerAddr(addr string) Glacier
 
@@ -65,7 +66,7 @@ type Glacier interface {
 	// WebAppInit web app 初始化阶段，web 应用对象还没有创建，在这里可以更新 web 配置
 	WebAppInit(initFunc InitWebAppHandler) Glacier
 	// WebAppServerInit web 服务初始化阶段，web 服务对象已经创建，此时不能再更新 web 配置了
-	// 此时 web 服务还没有启动，可以通过 handler 修改 server 对象和 listener 对象
+	// 此时 web 服务还没有启动，可以通过 handler 修改 server 对象和 tcpListenerBuilder 对象
 	WebAppServerInit(handler InitServerHandler) Glacier
 	// WebAppRouter 路由注册 Handler，在该 Handler 中注册 API 路由规则
 	WebAppRouter(handler InitRouterHandler) Glacier
@@ -77,6 +78,9 @@ type Glacier interface {
 	WebAppExceptionHandler(handler web.ExceptionHandler) Glacier
 	// HttpListenAddr 返回 HTTP 监听地址
 	HttpListenAddr() string
+
+	// Graceful 设置优雅停机实现
+	Graceful(builder func() graceful.Graceful) Glacier
 
 	Handler() func(cliContext FlagContext) error
 	// BeforeInitialize Glacier 初始化之前执行，一般用于设置一些基本配置，比如日志等

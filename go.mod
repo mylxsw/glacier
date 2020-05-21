@@ -12,7 +12,7 @@ require (
 	github.com/json-iterator/go v1.1.9 // indirect
 	github.com/mylxsw/asteria v0.0.0-20200520022208-48f9ce0b961f
 	github.com/mylxsw/container v0.0.0-20191208075953-c8ee6e3238cc
-	github.com/mylxsw/graceful v0.0.0-20200512142145-c4b7435b7b88
+	github.com/mylxsw/graceful v0.0.0-20200521071307-30ef03ecf5a8
 	github.com/pkg/errors v0.8.1
 	github.com/robfig/cron/v3 v3.0.0
 	github.com/urfave/cli v1.21.0

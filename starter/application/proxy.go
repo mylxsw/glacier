@@ -6,6 +6,7 @@ import (
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier"
 	"github.com/mylxsw/glacier/web"
+	"github.com/mylxsw/graceful"
 )
 
 func (application *Application) Provider(provider glacier.ServiceProvider) {
@@ -16,8 +17,12 @@ func (application *Application) Service(service glacier.Service) {
 	application.glacier.Service(service)
 }
 
-func (application *Application) TCPListener(ln net.Listener) glacier.Glacier {
-	return application.glacier.TCPListener(ln)
+func (application *Application) Graceful(builder func() graceful.Graceful) glacier.Glacier {
+	return application.glacier.Graceful(builder)
+}
+
+func (application *Application) TCPListener(builder func() net.Listener) glacier.Glacier {
+	return application.glacier.TCPListener(builder)
 }
 
 func (application *Application) TCPListenerAddr(addr string) glacier.Glacier {
@@ -103,4 +108,3 @@ func (application *Application) Container() container.Container {
 func (application *Application) Main(f interface{}) glacier.Glacier {
 	return application.glacier.Main(f)
 }
-

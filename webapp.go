@@ -27,9 +27,12 @@ func (glacier *glacierImpl) TCPListenerAddr(addr string) Glacier {
 	return glacier
 }
 
-func (glacier *glacierImpl) TCPListener(ln net.Listener) Glacier {
-	glacier.listener = ln
-	glacier.httpListenAddr = ln.Addr().String()
+func (glacier *glacierImpl) TCPListener(listenerBuilder func() net.Listener) Glacier {
+	glacier.tcpListenerBuilder = func() net.Listener {
+		ln := listenerBuilder()
+		glacier.httpListenAddr = ln.Addr().String()
+		return ln
+	}
 	return glacier
 }
 
@@ -114,7 +117,7 @@ func (app *WebApp) Init(initFunc InitWebAppHandler) error {
 
 // Start create the http server
 func (app *WebApp) Start() error {
-	return app.cc.ResolveWithError(func(conf *Config, listener net.Listener, gf *graceful.Graceful, logger log.Logger) error {
+	return app.cc.ResolveWithError(func(conf *Config, listener net.Listener, gf graceful.Graceful, logger log.Logger) error {
 		srv := &http.Server{
 			Handler:      app.router(),
 			WriteTimeout: conf.HttpWriteTimeout,
