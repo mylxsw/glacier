@@ -287,10 +287,10 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 func (glacier *glacierImpl) initialize(cc container.Container) error {
 	// 基本配置加载
 	cc.MustSingleton(ConfigLoader)
-	cc.MustSingleton(func() log.Logger { return glacier.logger })
+	cc.MustSingletonOverride(func() log.Logger { return glacier.logger })
 
 	// 优雅停机
-	cc.MustSingleton(func(conf *Config) graceful.Graceful {
+	cc.MustSingletonOverride(func(conf *Config) graceful.Graceful {
 		if glacier.gracefulBuilder != nil {
 			return glacier.gracefulBuilder()
 		}
@@ -298,11 +298,11 @@ func (glacier *glacierImpl) initialize(cc container.Container) error {
 	})
 
 	// 事件管理器
-	cc.MustSingleton(func() event.Store { return event.NewMemoryEventStore(false) })
-	cc.MustSingleton(event.NewEventManager)
+	cc.MustSingletonOverride(func() event.Store { return event.NewMemoryEventStore(false) })
+	cc.MustSingletonOverride(event.NewEventManager)
 
 	// Listener 对象
-	cc.MustSingleton(func() (net.Listener, error) {
+	cc.MustSingletonOverride(func() (net.Listener, error) {
 		ln, err := glacier.buildTCPListener()
 		if err == nil {
 			glacier.httpListenAddr = ln.Addr().String()
@@ -311,7 +311,7 @@ func (glacier *glacierImpl) initialize(cc container.Container) error {
 	})
 
 	// WebAPP 对象
-	cc.MustSingleton(func(cliCtx FlagContext) (*WebApp, error) {
+	cc.MustSingletonOverride(func(cliCtx FlagContext) (*WebApp, error) {
 		webApp := NewWebApp(cc, glacier.webAppRouterFunc, glacier.webAppServerFunc)
 
 		webApp.MuxRouter(glacier.webAppMuxRouterFunc)
@@ -324,10 +324,10 @@ func (glacier *glacierImpl) initialize(cc container.Container) error {
 	})
 
 	// 定时任务对象
-	cc.MustSingleton(func() *cronV3.Cron {
+	cc.MustSingletonOverride(func() *cronV3.Cron {
 		return cronV3.New(cronV3.WithSeconds(), cronV3.WithLogger(cronLogger{logger: glacier.logger}))
 	})
-	cc.MustSingleton(cron.NewManager)
+	cc.MustSingletonOverride(cron.NewManager)
 
 	// 注册其它对象
 	for _, i := range glacier.singletons {

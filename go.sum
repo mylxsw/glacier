@@ -41,6 +41,8 @@ github.com/mylxsw/asteria v0.0.0-20200520022208-48f9ce0b961f h1:pMiRlxvQDoyZ4UW0
 github.com/mylxsw/asteria v0.0.0-20200520022208-48f9ce0b961f/go.mod h1:v0FN8lOptbljEJBRtBrvompc+NyUpIR7Dcpg2f9823s=
 github.com/mylxsw/container v0.0.0-20191208075953-c8ee6e3238cc h1:xBh4hQSO+fcWa/bFLOjxO4huSgofBltDJ3KXPiZlHGo=
 github.com/mylxsw/container v0.0.0-20191208075953-c8ee6e3238cc/go.mod h1:v2QwNL+V2nI1o7naopTXXalpa1Y6b5E8lCwwANiYfyc=
+github.com/mylxsw/container v0.0.0-20200521105006-1091c6685128 h1:iokAdL8KLE6tQJAalGyX9kLGOoQA/YFynQafRSE3804=
+github.com/mylxsw/container v0.0.0-20200521105006-1091c6685128/go.mod h1:v2QwNL+V2nI1o7naopTXXalpa1Y6b5E8lCwwANiYfyc=
 github.com/mylxsw/graceful v0.0.0-20191128055330-290857a79dcc h1:yADzgXZqOXlzorWum4VThVLW/ByIPE4N7gcdmNFMTBw=
 github.com/mylxsw/graceful v0.0.0-20191128055330-290857a79dcc/go.mod h1:Skt4GaATnUdq3MArrHK32UsSC9tq8GB0ZToWkF420Os=
 github.com/mylxsw/graceful v0.0.0-20200512142145-c4b7435b7b88 h1:IevIWDfkTp06E7OMKIjsGYWvmsVvXzD6oFBoP8SeUm8=
