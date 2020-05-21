@@ -16,7 +16,7 @@ func (j ServiceProvider) Boot(app glacier.Glacier) {
 	app.Cron(func(cr cron.Manager, cc container.Container) error {
 		cr.DistributeLockManager(NewDistributeLockManager())
 
-		_ = cr.Add("test-job", "@every 5s", TestJob)
+		_ = cr.Add("test-job", "@every 10s", TestJob)
 
 		job, _ := cr.Info("test-job")
 		nextTs, _ := job.Next(5)

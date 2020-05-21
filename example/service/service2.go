@@ -28,7 +28,7 @@ func (d *Demo2Service) Start() error {
 		case <-d.stopped:
 			return nil
 		default:
-			time.Sleep(1 * time.Second)
+			time.Sleep(7 * time.Second)
 			log.Infof("hello, world from %s", d.Name())
 		}
 	}

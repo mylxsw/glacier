@@ -12,11 +12,12 @@ import (
 
 // Router 定制的路由
 type Router struct {
-	router     *mux.Router
-	container  container.Container
-	routes     []*RouteRule
-	decorators []HandlerDecorator
-	prefix     string
+	router          *mux.Router
+	container       container.Container
+	routes          []*RouteRule
+	decorators      []HandlerDecorator
+	prefix          string
+	ignoreLastSlash bool
 }
 
 // RouteRule 路由规则
@@ -126,23 +127,24 @@ func NewRouterWithContainer(c container.Container, conf *Config, decorators ...H
 	cc.MustBindValue("config", conf)
 	cc.MustSingleton(func() *Config { return conf })
 
-	return create(cc, mux.NewRouter(), decorators...)
+	return create(cc, conf.IgnoreLastSlash, mux.NewRouter(), decorators...)
 }
 
 // create 创建定制路由器
-func create(c container.Container, router *mux.Router, decorators ...HandlerDecorator) *Router {
+func create(c container.Container, ignoreLastSlash bool, router *mux.Router, decorators ...HandlerDecorator) *Router {
 	return &Router{
-		router:     router,
-		routes:     []*RouteRule{},
-		decorators: decorators,
-		prefix:     "",
-		container:  c,
+		router:          router,
+		routes:          []*RouteRule{},
+		decorators:      decorators,
+		prefix:          "",
+		container:       c,
+		ignoreLastSlash: ignoreLastSlash,
 	}
 }
 
 // Group 创建路由组
 func (router *Router) Group(prefix string, f func(rou *Router), decors ...HandlerDecorator) {
-	r := create(router.container, router.router, decors...)
+	r := create(router.container, router.ignoreLastSlash, router.router, decors...)
 	r.prefix = prefix
 
 	f(r)
@@ -161,8 +163,21 @@ func (router *Router) Group(prefix string, f func(rou *Router), decors ...Handle
 	}
 }
 
+type requestModifyMiddleware struct {
+	handler http.Handler
+	router  *Router
+}
+
+func (m requestModifyMiddleware) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	if m.router.ignoreLastSlash {
+		request.URL.Path = strings.TrimRight(request.URL.Path, "/")
+	}
+
+	m.handler.ServeHTTP(writer, request)
+}
+
 // Perform 将路由规则添加到路由器
-func (router *Router) Perform(exceptionHandler ExceptionHandler) *mux.Router {
+func (router *Router) Perform(exceptionHandler ExceptionHandler, cb func(*mux.Router)) http.Handler {
 	// cors support and exception handler
 	corsHandler := func(rt *RouteRule) WebHandler {
 		return func(ctx Context) (resp Response) {
@@ -223,7 +238,11 @@ func (router *Router) Perform(exceptionHandler ExceptionHandler) *mux.Router {
 		}
 	}
 
-	return router.router
+	cb(router.router)
+	return requestModifyMiddleware{
+		handler: router.router,
+		router:  router,
+	}
 }
 
 // GetRoutes 获取所有路由规则
@@ -232,6 +251,10 @@ func (router *Router) GetRoutes() []*RouteRule {
 }
 
 func (router *Router) addWebHandler(method string, path string, handler WebHandler, middlewares ...HandlerDecorator) *RouteRule {
+	if router.ignoreLastSlash {
+		path = strings.TrimRight(path, "/")
+	}
+
 	rou := &RouteRule{
 		method:     method,
 		path:       path,

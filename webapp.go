@@ -16,20 +16,31 @@ import (
 type InitRouterHandler func(router *web.Router, mw web.RequestMiddleware)
 type InitMuxRouterHandler func(router *mux.Router)
 type InitServerHandler func(server *http.Server, listener net.Listener)
+type InitWebAppHandler func(cc container.Container, webApp *WebApp, conf *web.Config) error
 
-// WithHttpServer with http server support
-func (glacier *glacierImpl) WithHttpServer(listenAddr string) Glacier {
-	if listenAddr == "" {
-		listenAddr = ":19950"
+func (glacier *glacierImpl) TCPListenerAddr(addr string) Glacier {
+	if addr == "" {
+		addr = ":8080"
 	}
 
-	glacier.httpListenAddr = listenAddr
+	glacier.httpListenAddr = addr
+	return glacier
+}
 
+func (glacier *glacierImpl) TCPListener(ln net.Listener) Glacier {
+	glacier.listener = ln
+	glacier.httpListenAddr = ln.Addr().String()
+	return glacier
+}
+
+// WithHttpServer with http server support
+func (glacier *glacierImpl) WithHttpServer() Glacier {
+	glacier.enableHTTPServer = true
 	return glacier
 }
 
 // WebAppInit set a hook func for app init
-func (glacier *glacierImpl) WebAppInit(initFunc interface{}) Glacier {
+func (glacier *glacierImpl) WebAppInit(initFunc InitWebAppHandler) Glacier {
 	glacier.webAppInitFunc = initFunc
 	return glacier
 }
@@ -93,12 +104,12 @@ func (app *WebApp) MuxRouter(f InitMuxRouterHandler) {
 	app.muxRouter = f
 }
 
-func (app *WebApp) Init(initFunc interface{}) error {
+func (app *WebApp) Init(initFunc InitWebAppHandler) error {
 	if initFunc == nil {
 		return nil
 	}
 
-	return app.cc.ResolveWithError(initFunc)
+	return initFunc(app.cc, app, app.conf)
 }
 
 // Start create the http server
@@ -141,20 +152,18 @@ func (app *WebApp) Start() error {
 	})
 }
 
-func (app *WebApp) router() *mux.Router {
+func (app *WebApp) router() http.Handler {
 	router := web.NewRouterWithContainer(app.cc, app.conf)
 	mw := web.NewRequestMiddleware()
 
 	app.initRouter(router, mw)
 
-	muxRouter := router.Perform(app.exceptionHandler)
-	if app.muxRouter != nil {
-		app.muxRouter(muxRouter)
-	}
+	return router.Perform(app.exceptionHandler, func(muxRouter *mux.Router) {
+		if app.muxRouter != nil {
+			app.muxRouter(muxRouter)
+		}
 
-	app.cc.MustSingleton(func() *mux.Router {
-		return muxRouter
+		app.cc.MustSingleton(func() *mux.Router { return muxRouter })
+		app.cc.MustSingleton(func() http.Handler { return muxRouter })
 	})
-
-	return muxRouter
 }

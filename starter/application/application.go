@@ -98,26 +98,6 @@ func (application *Application) AddFlags(flags ...cli.Flag) *Application {
 
 // Run start glacierImpl server
 func (application *Application) Run(args []string) error {
-	if application.glacier.HttpListenAddr() != "" {
-		application.cli.Flags = append(
-			application.cli.Flags,
-			altsrc.NewStringFlag(cli.StringFlag{
-				Name:  glacier.HttpListenOption,
-				Value: application.glacier.HttpListenAddr(),
-				Usage: "http server listen address",
-			}),
-			altsrc.NewStringFlag(cli.StringFlag{
-				Name:  glacier.WebTemplatePrefixOption,
-				Usage: "web template path prefix",
-				Value: "",
-			}),
-			altsrc.NewInt64Flag(cli.Int64Flag{
-				Name:  glacier.WebMultipartFormMaxMemory,
-				Usage: "multipart form max memory size in bytes",
-				Value: int64(10 << 20),
-			}))
-	}
-
 	return application.cli.Run(args)
 }
 
