@@ -106,7 +106,7 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 
 	jobHandler := func() {
 		if c.distributeLockManager != nil && !c.distributeLockManager.HasLock() {
-			log.Debugf("cron job [%s] can not start because it doesn't get the lock", name)
+			c.logger.Debugf("cron job [%s] can not start because it doesn't get the lock", name)
 			return
 		}
 

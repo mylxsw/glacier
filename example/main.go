@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 	"runtime/debug"
+	"strings"
 
 	"github.com/gorilla/mux"
+	asteriaEvent "github.com/mylxsw/asteria/event"
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier"
@@ -28,6 +30,17 @@ type CronEvent struct{}
 
 func main() {
 	//log.All().LogFormatter(formatter.NewJSONFormatter())
+
+	log.DefaultDynamicModuleName(true)
+	log.AddGlobalFilter(func(filter log.Filter) log.Filter {
+		return func(f asteriaEvent.Event) {
+			if strings.HasPrefix(f.Module, "github.com.mylxsw.glacier.cron") {
+				return
+			}
+
+			filter(f)
+		}
+	})
 
 	app := application.Create(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]))
 

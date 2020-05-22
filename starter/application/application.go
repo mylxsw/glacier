@@ -14,7 +14,7 @@ var _app *Application
 // App return glacierImpl instance you created
 func App() *Application {
 	if _app == nil {
-		panic("you should create a glacierImpl application by call CreateGlacier function first!")
+		panic("you should create a Glacier application by call Create function first!")
 	}
 
 	return _app
