@@ -45,12 +45,16 @@ github.com/mylxsw/container v0.0.0-20200521105006-1091c6685128 h1:iokAdL8KLE6tQJ
 github.com/mylxsw/container v0.0.0-20200521105006-1091c6685128/go.mod h1:v2QwNL+V2nI1o7naopTXXalpa1Y6b5E8lCwwANiYfyc=
 github.com/mylxsw/container v0.0.0-20200522073114-0a55a01f6826 h1:GitZahSchBQ8oxuyB+qSH7xU1N+P21FuTBb6pVwraSw=
 github.com/mylxsw/container v0.0.0-20200522073114-0a55a01f6826/go.mod h1:N7QSVqaHggsEM4ckqO35RqEb1/wGXQfYgWF3ho9vRTY=
+github.com/mylxsw/container v0.0.0-20200525090619-01208c02b074 h1:8OLLLh/tG7M5kQrkmFIVYFpj2bLUtYZ3q+jp4vcA5gQ=
+github.com/mylxsw/container v0.0.0-20200525090619-01208c02b074/go.mod h1:UDbF8EtqT7jB0yDc6g9u4P8ORvw4RbFot1QputpgR5U=
 github.com/mylxsw/graceful v0.0.0-20191128055330-290857a79dcc h1:yADzgXZqOXlzorWum4VThVLW/ByIPE4N7gcdmNFMTBw=
 github.com/mylxsw/graceful v0.0.0-20191128055330-290857a79dcc/go.mod h1:Skt4GaATnUdq3MArrHK32UsSC9tq8GB0ZToWkF420Os=
 github.com/mylxsw/graceful v0.0.0-20200512142145-c4b7435b7b88 h1:IevIWDfkTp06E7OMKIjsGYWvmsVvXzD6oFBoP8SeUm8=
 github.com/mylxsw/graceful v0.0.0-20200512142145-c4b7435b7b88/go.mod h1:Skt4GaATnUdq3MArrHK32UsSC9tq8GB0ZToWkF420Os=
 github.com/mylxsw/graceful v0.0.0-20200521071307-30ef03ecf5a8 h1:0gfJ8H7bx+si3Hqno9an6aZDsqWDO1CjAb/+U5yN3a8=
 github.com/mylxsw/graceful v0.0.0-20200521071307-30ef03ecf5a8/go.mod h1:Skt4GaATnUdq3MArrHK32UsSC9tq8GB0ZToWkF420Os=
+github.com/mylxsw/graceful v0.0.0-20200605063420-3c53968cf134 h1:uYT1HZC8kyKGtAR/Los/azrD8uROgkM8HHuhN2bzPmI=
+github.com/mylxsw/graceful v0.0.0-20200605063420-3c53968cf134/go.mod h1:Skt4GaATnUdq3MArrHK32UsSC9tq8GB0ZToWkF420Os=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

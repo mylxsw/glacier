@@ -196,7 +196,7 @@ func (ctx *WebContext) Resolve(callback interface{}) Response {
 			Error: err,
 		}
 	}
-	provider, err := ctx.cc.ServiceProvider(ctxFunc, ctxFuncInterface, requestFunc, requestFuncInterface, wsFunc)
+	provider, err := ctx.cc.Provider(ctxFunc, ctxFuncInterface, requestFunc, requestFuncInterface, wsFunc)
 	if err != nil {
 		return ctx.NewErrorResponse(
 			fmt.Sprintf("create dependency container for request failed: %s", err),
