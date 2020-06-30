@@ -4,6 +4,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/web"
 	"github.com/mylxsw/graceful"
@@ -96,6 +97,7 @@ type Glacier interface {
 	// 设置定时任务
 	Cron(f CronTaskFunc) Glacier
 	EventListener(f EventListenerFunc) Glacier
+	Logger(logger log.Logger) Glacier
 	Singleton(ins interface{}) Glacier
 	Prototype(ins interface{}) Glacier
 	ResolveWithError(resolver interface{}) error

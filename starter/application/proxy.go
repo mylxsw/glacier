@@ -3,6 +3,7 @@ package application
 import (
 	"net"
 
+	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier"
 	"github.com/mylxsw/glacier/web"
@@ -107,4 +108,8 @@ func (application *Application) Container() container.Container {
 
 func (application *Application) Main(f interface{}) glacier.Glacier {
 	return application.glacier.Main(f)
+}
+
+func (application *Application) Logger(logger log.Logger) glacier.Glacier {
+	return application.glacier.Logger(logger)
 }
