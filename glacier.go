@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"reflect"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -219,6 +220,12 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 		var wg sync.WaitGroup
 		var daemonServiceProviderCount int
 		for _, p := range glacier.providers {
+			if reflect.ValueOf(p).Kind() == reflect.Ptr {
+				if err := cc.AutoWire(p); err != nil {
+					return fmt.Errorf("can not autowire provider: %v", err)
+				}
+			}
+
 			p.Boot(glacier)
 			// 如果是 DaemonServiceProvider，需要在单独的 Goroutine 执行，一般都是阻塞执行的
 			if pp, ok := p.(DaemonServiceProvider); ok {
@@ -350,6 +357,12 @@ func (glacier *glacierImpl) initialize(cc container.Container) error {
 
 	// 初始化 Services
 	for i, s := range glacier.services {
+		if reflect.ValueOf(s).Kind() == reflect.Ptr {
+			if err := cc.AutoWire(s); err != nil {
+				return fmt.Errorf("can not autowire service: %v", err)
+			}
+		}
+
 		if err := s.Init(cc); err != nil {
 			return fmt.Errorf("service %d initialize failed: %v", i, err)
 		}

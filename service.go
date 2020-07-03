@@ -24,9 +24,11 @@ type Service interface {
 type ServiceProvider interface {
 	// Register add some dependency for current module
 	// this method is called one by one synchronous
+	// service provider don't autowired in this stage
 	Register(app container.Container)
 	// Boot start the module
 	// this method is called one by one synchronous after all register methods called
+	// service provider has been autowired in this stage
 	Boot(app Glacier)
 }
 
