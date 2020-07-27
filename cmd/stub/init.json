@@ -1,0 +1,4 @@
+{
+  "Module": "github.com/demo/demo",
+  "WithHttpServer": true
+}
