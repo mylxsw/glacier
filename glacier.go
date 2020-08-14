@@ -43,8 +43,8 @@ type glacierImpl struct {
 	webAppServerFunc       InitServerHandler
 	webAppExceptionHandler web.ExceptionHandler
 
-	cronTaskFunc      CronTaskFunc
-	eventListenerFunc EventListenerFunc
+	cronTaskFuncs      []CronTaskFunc
+	eventListenerFuncs []EventListenerFunc
 
 	httpListenAddr   string
 	enableHTTPServer bool
@@ -75,6 +75,8 @@ func CreateGlacier(version string) Glacier {
 	glacier.providers = make([]ServiceProvider, 0)
 	glacier.services = make([]Service, 0)
 	glacier.handler = glacier.createServer()
+	glacier.eventListenerFuncs = make([]EventListenerFunc, 0)
+	glacier.cronTaskFuncs = make([]CronTaskFunc, 0)
 
 	return glacier
 }
@@ -116,7 +118,7 @@ func (glacier *glacierImpl) BeforeServerStop(f func(cc container.Container) erro
 
 // Cron add cron tasks
 func (glacier *glacierImpl) Cron(f CronTaskFunc) Glacier {
-	glacier.cronTaskFunc = f
+	glacier.cronTaskFuncs = append(glacier.cronTaskFuncs, f)
 	return glacier
 }
 
@@ -128,7 +130,7 @@ func (glacier *glacierImpl) Logger(logger log.Logger) Glacier {
 
 // EventListener add event listeners
 func (glacier *glacierImpl) EventListener(f EventListenerFunc) Glacier {
-	glacier.eventListenerFunc = f
+	glacier.eventListenerFuncs = append(glacier.eventListenerFuncs, f)
 	return glacier
 }
 
@@ -210,9 +212,11 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 		}
 
 		// 启动事件监听，注册事件监听函数
-		if glacier.eventListenerFunc != nil {
-			if err := cc.Resolve(glacier.eventListenerFunc); err != nil {
-				return err
+		if glacier.eventListenerFuncs != nil {
+			for _, el := range glacier.eventListenerFuncs {
+				if err := cc.Resolve(el); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -425,9 +429,11 @@ func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.T
 // startCronTaskServer 启动定时任务
 func (glacier *glacierImpl) startCronTaskServer(cr cron.Manager, gf graceful.Graceful, cc container.Container) error {
 	// 设置定时任务
-	if glacier.cronTaskFunc != nil {
-		if err := glacier.cronTaskFunc(cr, cc); err != nil {
-			return err
+	if glacier.cronTaskFuncs != nil {
+		for _, ct := range glacier.cronTaskFuncs {
+			if err := ct(cr, cc); err != nil {
+				return err
+			}
 		}
 	}
 
