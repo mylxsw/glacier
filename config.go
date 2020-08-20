@@ -3,11 +3,12 @@ package glacier
 import (
 	"time"
 
+	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/glacier/web"
 )
 
 const (
-	ShutdownTimeoutOption     = "shutdown_timeout"
+	ShutdownTimeoutOption = "shutdown_timeout"
 )
 
 type Config struct {
@@ -19,7 +20,7 @@ type Config struct {
 	WebConfig *web.Config
 }
 
-func ConfigLoader(c FlagContext) *Config {
+func ConfigLoader(c infra.FlagContext) *Config {
 	config := &Config{}
 	config.ShutdownTimeout = c.Duration(ShutdownTimeoutOption)
 

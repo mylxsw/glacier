@@ -1,11 +1,16 @@
-package glacier
+package infra
 
 import (
+	"context"
 	"net"
+	"net/http"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/cron"
+	"github.com/mylxsw/glacier/event"
 	"github.com/mylxsw/glacier/web"
 	"github.com/mylxsw/graceful"
 )
@@ -14,6 +19,58 @@ const (
 	VersionKey     string = "version"
 	StartupTimeKey string = "startup_time"
 )
+
+type Web interface {
+	UpdateConfig(cb func(conf *web.Config))
+	ExceptionHandler(handler web.ExceptionHandler)
+	MuxRouter(f InitMuxRouterHandler)
+	Init(initFunc InitWebAppHandler) error
+	Start() error
+}
+
+type InitRouterHandler func(router *web.Router, mw web.RequestMiddleware)
+type InitMuxRouterHandler func(router *mux.Router)
+type InitServerHandler func(server *http.Server, listener net.Listener)
+type InitWebAppHandler func(cc container.Container, webApp Web, conf *web.Config) error
+
+type CronTaskFunc func(cr cron.Manager, cc container.Container) error
+type EventListenerFunc func(listener event.Manager, cc container.Container)
+
+// Service is a interface for service
+type Service interface {
+	// Init initialize the service
+	Init(cc container.Container) error
+	// Name return service name
+	Name() string
+	// Start start service, not blocking
+	Start() error
+	// Stop stop the service
+	Stop()
+	// Reload reload service
+	Reload()
+}
+
+type ServiceProvider interface {
+	// Register add some dependency for current module
+	// this method is called one by one synchronous
+	// service provider don't autowired in this stage
+	Register(app container.Container)
+	// Boot start the module
+	// this method is called one by one synchronous after all register methods called
+	// service provider has been autowired in this stage
+	Boot(app Glacier)
+}
+
+type DaemonServiceProvider interface {
+	ServiceProvider
+	// Daemon is a async method called after boot
+	// this method is called asynchronous and concurrent
+	Daemon(ctx context.Context, app Glacier)
+}
+
+type ListenerBuilder interface {
+	Build(cc container.Container) (net.Listener, error)
+}
 
 type FlagContext interface {
 	String(name string) string
@@ -57,13 +114,8 @@ type Glacier interface {
 	// Service 注册一个 Service
 	Service(service Service)
 
-	// TCPListener 设置 net.Listener 对象，优先顺序为 TCPListener > TCPListenerAddr > Config.HttpListen
-	TCPListener(listenerBuilder func() net.Listener) Glacier
-	// WithListenerAddr 设置 Http 服务监听地址，优先顺序为 TCPListener > TCPListenerAddr > Config.HttpListen
-	TCPListenerAddr(addr string) Glacier
-
 	// WithHttpServer 初始化 Http Server
-	WithHttpServer() Glacier
+	WithHttpServer(builder ListenerBuilder) Glacier
 	// WebAppInit web app 初始化阶段，web 应用对象还没有创建，在这里可以更新 web 配置
 	WebAppInit(initFunc InitWebAppHandler) Glacier
 	// WebAppServerInit web 服务初始化阶段，web 服务对象已经创建，此时不能再更新 web 配置了

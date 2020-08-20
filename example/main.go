@@ -10,13 +10,14 @@ import (
 	asteriaEvent "github.com/mylxsw/asteria/event"
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
-	"github.com/mylxsw/glacier"
 	"github.com/mylxsw/glacier/cron"
 	"github.com/mylxsw/glacier/event"
 	"github.com/mylxsw/glacier/example/api"
 	"github.com/mylxsw/glacier/example/config"
 	"github.com/mylxsw/glacier/example/job"
 	"github.com/mylxsw/glacier/example/service"
+	"github.com/mylxsw/glacier/infra"
+	"github.com/mylxsw/glacier/listener"
 	"github.com/mylxsw/glacier/starter/application"
 	"github.com/mylxsw/glacier/web"
 	"github.com/urfave/cli"
@@ -45,13 +46,14 @@ func main() {
 	app := application.Create(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]))
 
 	app.AddFlags(altsrc.NewStringFlag(cli.StringFlag{
-		Name:  "test",
-		Value: "",
+		Name:  "listen",
+		Usage: "http listen addr",
+		Value: ":19945",
 	}))
 
-	app.WithHttpServer().TCPListenerAddr(":19945")
+	app.WithHttpServer(listener.FlagContext("listen"))
 
-	app.WebAppInit(func(cc container.Container, webApp *glacier.WebApp, conf *web.Config) error {
+	app.WebAppInit(func(cc container.Container, webApp infra.Web, conf *web.Config) error {
 		// 设置该选项之后，路由匹配时将会忽略最末尾的 /
 		// 路由 /aaa/bbb  匹配 /aaa/bbb, /aaa/bbb/
 		// 路由 /aaa/bbb/ 匹配 /aaa/bbb, /aaa/bbb/
@@ -91,7 +93,7 @@ func main() {
 		})
 	})
 
-	app.Singleton(func(c glacier.FlagContext) *config.Config {
+	app.Singleton(func(c infra.FlagContext) *config.Config {
 		return &config.Config{
 			DB:   "xxxxxx",
 			Test: c.String("test"),

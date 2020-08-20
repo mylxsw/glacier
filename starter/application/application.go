@@ -5,6 +5,7 @@ import (
 
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier"
+	"github.com/mylxsw/glacier/infra"
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
 )
@@ -26,7 +27,7 @@ func Container() container.Container {
 }
 
 type Application struct {
-	glacier glacier.Glacier
+	glacier infra.Glacier
 	cli     *cli.App
 }
 
@@ -86,7 +87,7 @@ func Create(version string, flags ...cli.Flag) *Application {
 }
 
 // glacierImpl return glacierImpl instance
-func (application *Application) Glacier() glacier.Glacier {
+func (application *Application) Glacier() infra.Glacier {
 	return application.glacier
 }
 

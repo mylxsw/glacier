@@ -2,7 +2,6 @@ package glacier
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"reflect"
@@ -14,6 +13,8 @@ import (
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/cron"
 	"github.com/mylxsw/glacier/event"
+	"github.com/mylxsw/glacier/infra"
+	"github.com/mylxsw/glacier/listener"
 	"github.com/mylxsw/glacier/web"
 	"github.com/mylxsw/graceful"
 	cronV3 "github.com/robfig/cron/v3"
@@ -26,30 +27,30 @@ type glacierImpl struct {
 	container container.Container
 	logger    log.Logger
 
-	handler func(cliCtx FlagContext) error
+	handler func(cliCtx infra.FlagContext) error
 
-	providers []ServiceProvider
-	services  []Service
+	providers []infra.ServiceProvider
+	services  []infra.Service
 
-	beforeInitialize  func(c FlagContext) error
+	beforeInitialize  func(c infra.FlagContext) error
 	beforeServerStart func(cc container.Container) error
 	afterServerStart  func(cc container.Container) error
 	beforeServerStop  func(cc container.Container) error
 	mainFunc          interface{}
 
-	webAppInitFunc         InitWebAppHandler
-	webAppRouterFunc       InitRouterHandler
-	webAppMuxRouterFunc    InitMuxRouterHandler
-	webAppServerFunc       InitServerHandler
+	webAppInitFunc         infra.InitWebAppHandler
+	webAppRouterFunc       infra.InitRouterHandler
+	webAppMuxRouterFunc    infra.InitMuxRouterHandler
+	webAppServerFunc       infra.InitServerHandler
 	webAppExceptionHandler web.ExceptionHandler
 
-	cronTaskFuncs      []CronTaskFunc
-	eventListenerFuncs []EventListenerFunc
+	cronTaskFuncs      []infra.CronTaskFunc
+	eventListenerFuncs []infra.EventListenerFunc
 
 	httpListenAddr   string
 	enableHTTPServer bool
 
-	tcpListenerBuilder func() net.Listener
+	tcpListenerBuilder infra.ListenerBuilder
 	gracefulBuilder    func() graceful.Graceful
 
 	singletons []interface{}
@@ -60,88 +61,85 @@ func (glacier *glacierImpl) HttpListenAddr() string {
 	return glacier.httpListenAddr
 }
 
-type CronTaskFunc func(cr cron.Manager, cc container.Container) error
-type EventListenerFunc func(listener event.Manager, cc container.Container)
-
 // CreateGlacier a new glacierImpl server
-func CreateGlacier(version string) Glacier {
+func CreateGlacier(version string) infra.Glacier {
 	glacier := &glacierImpl{}
 	glacier.version = version
 	glacier.enableHTTPServer = false
-	glacier.webAppInitFunc = func(cc container.Container, webApp *WebApp, conf *web.Config) error { return nil }
+	glacier.webAppInitFunc = func(cc container.Container, webApp infra.Web, conf *web.Config) error { return nil }
 	glacier.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
 	glacier.singletons = make([]interface{}, 0)
 	glacier.prototypes = make([]interface{}, 0)
-	glacier.providers = make([]ServiceProvider, 0)
-	glacier.services = make([]Service, 0)
+	glacier.providers = make([]infra.ServiceProvider, 0)
+	glacier.services = make([]infra.Service, 0)
 	glacier.handler = glacier.createServer()
-	glacier.eventListenerFuncs = make([]EventListenerFunc, 0)
-	glacier.cronTaskFuncs = make([]CronTaskFunc, 0)
+	glacier.eventListenerFuncs = make([]infra.EventListenerFunc, 0)
+	glacier.cronTaskFuncs = make([]infra.CronTaskFunc, 0)
 
 	return glacier
 }
 
 // Graceful 设置优雅停机实现
-func (glacier *glacierImpl) Graceful(builder func() graceful.Graceful) Glacier {
+func (glacier *glacierImpl) Graceful(builder func() graceful.Graceful) infra.Glacier {
 	glacier.gracefulBuilder = builder
 	return glacier
 }
 
-func (glacier *glacierImpl) Handler() func(cliContext FlagContext) error {
+func (glacier *glacierImpl) Handler() func(cliContext infra.FlagContext) error {
 	return glacier.handler
 }
 
 // BeforeInitialize set a hook func executed before server initialize
 // Usually, we use this method to initialize the log configuration
-func (glacier *glacierImpl) BeforeInitialize(f func(c FlagContext) error) Glacier {
+func (glacier *glacierImpl) BeforeInitialize(f func(c infra.FlagContext) error) infra.Glacier {
 	glacier.beforeInitialize = f
 	return glacier
 }
 
 // BeforeServerStart set a hook func executed before server start
-func (glacier *glacierImpl) BeforeServerStart(f func(cc container.Container) error) Glacier {
+func (glacier *glacierImpl) BeforeServerStart(f func(cc container.Container) error) infra.Glacier {
 	glacier.beforeServerStart = f
 	return glacier
 }
 
 // AfterServerStart set a hook func executed after server started
-func (glacier *glacierImpl) AfterServerStart(f func(cc container.Container) error) Glacier {
+func (glacier *glacierImpl) AfterServerStart(f func(cc container.Container) error) infra.Glacier {
 	glacier.afterServerStart = f
 	return glacier
 }
 
 // BeforeServerStop set a hook func executed before server stop
-func (glacier *glacierImpl) BeforeServerStop(f func(cc container.Container) error) Glacier {
+func (glacier *glacierImpl) BeforeServerStop(f func(cc container.Container) error) infra.Glacier {
 	glacier.beforeServerStop = f
 	return glacier
 }
 
 // Cron add cron tasks
-func (glacier *glacierImpl) Cron(f CronTaskFunc) Glacier {
+func (glacier *glacierImpl) Cron(f infra.CronTaskFunc) infra.Glacier {
 	glacier.cronTaskFuncs = append(glacier.cronTaskFuncs, f)
 	return glacier
 }
 
 // Logger set a log implements
-func (glacier *glacierImpl) Logger(logger log.Logger) Glacier {
+func (glacier *glacierImpl) Logger(logger log.Logger) infra.Glacier {
 	glacier.logger = logger
 	return glacier
 }
 
 // EventListener add event listeners
-func (glacier *glacierImpl) EventListener(f EventListenerFunc) Glacier {
+func (glacier *glacierImpl) EventListener(f infra.EventListenerFunc) infra.Glacier {
 	glacier.eventListenerFuncs = append(glacier.eventListenerFuncs, f)
 	return glacier
 }
 
 // Singleton add a singleton instance to container
-func (glacier *glacierImpl) Singleton(ins interface{}) Glacier {
+func (glacier *glacierImpl) Singleton(ins interface{}) infra.Glacier {
 	glacier.singletons = append(glacier.singletons, ins)
 	return glacier
 }
 
 // Prototype add a prototype to container
-func (glacier *glacierImpl) Prototype(ins interface{}) Glacier {
+func (glacier *glacierImpl) Prototype(ins interface{}) infra.Glacier {
 	glacier.prototypes = append(glacier.prototypes, ins)
 	return glacier
 }
@@ -162,14 +160,14 @@ func (glacier *glacierImpl) Container() container.Container {
 }
 
 // Main execute main business logic
-func (glacier *glacierImpl) Main(f interface{}) Glacier {
+func (glacier *glacierImpl) Main(f interface{}) infra.Glacier {
 	glacier.mainFunc = f
 	return glacier
 }
 
-func (glacier *glacierImpl) createServer() func(c FlagContext) error {
+func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 	startupTs := time.Now()
-	return func(cliCtx FlagContext) error {
+	return func(cliCtx infra.FlagContext) error {
 		if glacier.beforeInitialize != nil {
 			if err := glacier.beforeInitialize(cliCtx); err != nil {
 				return err
@@ -192,9 +190,9 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 		glacier.container = cc
 
 		// 运行信息
-		cc.MustBindValue(VersionKey, glacier.version)
-		cc.MustBindValue(StartupTimeKey, startupTs)
-		cc.MustSingleton(func() FlagContext { return cliCtx })
+		cc.MustBindValue(infra.VersionKey, glacier.version)
+		cc.MustBindValue(infra.StartupTimeKey, startupTs)
+		cc.MustSingleton(func() infra.FlagContext { return cliCtx })
 
 		if err := glacier.initialize(cc); err != nil {
 			return err
@@ -232,10 +230,10 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 
 			p.Boot(glacier)
 			// 如果是 DaemonServiceProvider，需要在单独的 Goroutine 执行，一般都是阻塞执行的
-			if pp, ok := p.(DaemonServiceProvider); ok {
+			if pp, ok := p.(infra.DaemonServiceProvider); ok {
 				wg.Add(1)
 				daemonServiceProviderCount++
-				go func(pp DaemonServiceProvider) {
+				go func(pp infra.DaemonServiceProvider) {
 					defer wg.Done()
 					pp.Daemon(ctx, glacier)
 				}(pp)
@@ -250,7 +248,7 @@ func (glacier *glacierImpl) createServer() func(c FlagContext) error {
 		// start services
 		for _, s := range glacier.services {
 			wg.Add(1)
-			go func(s Service) {
+			go func(s infra.Service) {
 				defer wg.Done()
 
 				cc.MustResolve(func(gf graceful.Graceful) {
@@ -322,7 +320,7 @@ func (glacier *glacierImpl) initialize(cc container.Container) error {
 	})
 
 	// WebAPP 对象
-	cc.MustSingletonOverride(func(cliCtx FlagContext) (*WebApp, error) {
+	cc.MustSingletonOverride(func(cliCtx infra.FlagContext) (infra.Web, error) {
 		webApp := NewWebApp(cc, glacier.webAppRouterFunc, glacier.webAppServerFunc)
 
 		webApp.MuxRouter(glacier.webAppMuxRouterFunc)
@@ -377,15 +375,17 @@ func (glacier *glacierImpl) initialize(cc container.Container) error {
 
 // buildTCPListener 创建 tcpListenerBuilder 对象
 func (glacier *glacierImpl) buildTCPListener() (net.Listener, error) {
-	if glacier.tcpListenerBuilder != nil {
-		return glacier.tcpListenerBuilder(), nil
+	if glacier.tcpListenerBuilder == nil {
+		glacier.tcpListenerBuilder = listener.Default("127.0.0.1:8080")
 	}
 
-	if glacier.httpListenAddr == "" {
-		return nil, errors.New("no tcp tcpListenerBuilder specified, you can call TCPListener or TCPListenerAddr before Run")
+	listener, err := glacier.tcpListenerBuilder.Build(glacier.container)
+	if err != nil {
+		return nil, err
 	}
 
-	return net.Listen("tcp", glacier.httpListenAddr)
+	glacier.httpListenAddr = listener.Addr().String()
+	return listener, nil
 }
 
 // startServer 启动 Glacier
@@ -396,7 +396,7 @@ func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.T
 		}
 
 		if glacier.enableHTTPServer {
-			if err := cc.ResolveWithError(func(webApp *WebApp) error {
+			if err := cc.ResolveWithError(func(webApp infra.Web) error {
 				return webApp.Start()
 			}); err != nil {
 				return err

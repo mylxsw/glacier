@@ -9,83 +9,62 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/glacier/web"
 	"github.com/mylxsw/graceful"
 )
 
-type InitRouterHandler func(router *web.Router, mw web.RequestMiddleware)
-type InitMuxRouterHandler func(router *mux.Router)
-type InitServerHandler func(server *http.Server, listener net.Listener)
-type InitWebAppHandler func(cc container.Container, webApp *WebApp, conf *web.Config) error
-
-func (glacier *glacierImpl) TCPListenerAddr(addr string) Glacier {
-	if addr == "" {
-		addr = ":8080"
-	}
-
-	glacier.httpListenAddr = addr
-	return glacier
-}
-
-func (glacier *glacierImpl) TCPListener(listenerBuilder func() net.Listener) Glacier {
-	glacier.tcpListenerBuilder = func() net.Listener {
-		ln := listenerBuilder()
-		glacier.httpListenAddr = ln.Addr().String()
-		return ln
-	}
-	return glacier
-}
-
 // WithHttpServer with http server support
-func (glacier *glacierImpl) WithHttpServer() Glacier {
+func (glacier *glacierImpl) WithHttpServer(builder infra.ListenerBuilder) infra.Glacier {
 	glacier.enableHTTPServer = true
+	glacier.tcpListenerBuilder = builder
 	return glacier
 }
 
 // WebAppInit set a hook func for app init
-func (glacier *glacierImpl) WebAppInit(initFunc InitWebAppHandler) Glacier {
+func (glacier *glacierImpl) WebAppInit(initFunc infra.InitWebAppHandler) infra.Glacier {
 	glacier.webAppInitFunc = initFunc
 	return glacier
 }
 
 // WebAppServerInit is a function for initialize http server
-func (glacier *glacierImpl) WebAppServerInit(handler InitServerHandler) Glacier {
+func (glacier *glacierImpl) WebAppServerInit(handler infra.InitServerHandler) infra.Glacier {
 	glacier.webAppServerFunc = handler
 	return glacier
 }
 
 // WebAppRouter add routes for http server
-func (glacier *glacierImpl) WebAppRouter(handler InitRouterHandler) Glacier {
+func (glacier *glacierImpl) WebAppRouter(handler infra.InitRouterHandler) infra.Glacier {
 	glacier.webAppRouterFunc = handler
 	return glacier
 }
 
 // WebAppMuxRouter add mux routes for http server
-func (glacier *glacierImpl) WebAppMuxRouter(handler InitMuxRouterHandler) Glacier {
+func (glacier *glacierImpl) WebAppMuxRouter(handler infra.InitMuxRouterHandler) infra.Glacier {
 	glacier.webAppMuxRouterFunc = handler
 	return glacier
 }
 
 // WebAppExceptionHandler set exception handler for web app
-func (glacier *glacierImpl) WebAppExceptionHandler(handler web.ExceptionHandler) Glacier {
+func (glacier *glacierImpl) WebAppExceptionHandler(handler web.ExceptionHandler) infra.Glacier {
 	glacier.webAppExceptionHandler = handler
 	return glacier
 }
 
-// WebApp is the web app
-type WebApp struct {
+// WebServer is the web app
+type WebServer struct {
 	cc                 container.Container
-	initRouter         InitRouterHandler
-	initServerListener InitServerHandler
-	muxRouter          InitMuxRouterHandler
+	initRouter         infra.InitRouterHandler
+	initServerListener infra.InitServerHandler
+	muxRouter          infra.InitMuxRouterHandler
 	exceptionHandler   web.ExceptionHandler
 
 	conf *web.Config
 }
 
-// NewWebApp create a new WebApp
-func NewWebApp(cc container.Container, initRouter InitRouterHandler, initServerListener InitServerHandler) *WebApp {
-	return &WebApp{
+// NewWebApp create a new WebServer
+func NewWebApp(cc container.Container, initRouter infra.InitRouterHandler, initServerListener infra.InitServerHandler) infra.Web {
+	return &WebServer{
 		cc:                 cc,
 		initRouter:         initRouter,
 		initServerListener: initServerListener,
@@ -94,20 +73,20 @@ func NewWebApp(cc container.Container, initRouter InitRouterHandler, initServerL
 }
 
 // UpdateConfig update WebAPP configurations
-func (app *WebApp) UpdateConfig(cb func(conf *web.Config)) {
+func (app *WebServer) UpdateConfig(cb func(conf *web.Config)) {
 	cb(app.conf)
 }
 
 // ExceptionHandler set exception handler
-func (app *WebApp) ExceptionHandler(handler web.ExceptionHandler) {
+func (app *WebServer) ExceptionHandler(handler web.ExceptionHandler) {
 	app.exceptionHandler = handler
 }
 
-func (app *WebApp) MuxRouter(f InitMuxRouterHandler) {
+func (app *WebServer) MuxRouter(f infra.InitMuxRouterHandler) {
 	app.muxRouter = f
 }
 
-func (app *WebApp) Init(initFunc InitWebAppHandler) error {
+func (app *WebServer) Init(initFunc infra.InitWebAppHandler) error {
 	if initFunc == nil {
 		return nil
 	}
@@ -116,7 +95,7 @@ func (app *WebApp) Init(initFunc InitWebAppHandler) error {
 }
 
 // Start create the http server
-func (app *WebApp) Start() error {
+func (app *WebServer) Start() error {
 	return app.cc.ResolveWithError(func(conf *Config, listener net.Listener, gf graceful.Graceful, logger log.Logger) error {
 		srv := &http.Server{
 			Handler:      app.router(),
@@ -155,7 +134,7 @@ func (app *WebApp) Start() error {
 	})
 }
 
-func (app *WebApp) router() http.Handler {
+func (app *WebServer) router() http.Handler {
 	router := web.NewRouterWithContainer(app.cc, app.conf)
 	mw := web.NewRequestMiddleware()
 
