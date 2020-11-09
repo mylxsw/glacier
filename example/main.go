@@ -32,6 +32,7 @@ type CronEvent struct{}
 func main() {
 	//log.All().LogFormatter(formatter.NewJSONFormatter())
 
+	//log.DefaultLogLevel(level.Error)
 	log.DefaultDynamicModuleName(true)
 	log.AddGlobalFilter(func(filter log.Filter) log.Filter {
 		return func(f asteriaEvent.Event) {
@@ -89,7 +90,9 @@ func main() {
 
 	app.EventListener(func(listener event.Manager, cc container.Container) {
 		listener.Listen(func(event CronEvent) {
-			log.Debug("a new cron task executed")
+			if log.DebugEnabled() {
+				log.Debug("a new cron task executed")
+			}
 		})
 	})
 
@@ -101,9 +104,11 @@ func main() {
 	})
 
 	app.Main(func(conf *config.Config, router *mux.Router) {
-		log.Debugf("config: %s", conf.Serialize())
-		for _, r := range web.GetAllRoutes(router) {
-			log.Debugf("route: %s -> %s | %s | %s", r.Name, r.Methods, r.PathTemplate, r.PathRegexp)
+		if log.DebugEnabled() {
+			log.Debugf("config: %s", conf.Serialize())
+			for _, r := range web.GetAllRoutes(router) {
+				log.Debugf("route: %s -> %s | %s | %s", r.Name, r.Methods, r.PathTemplate, r.PathRegexp)
+			}
 		}
 	})
 

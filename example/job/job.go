@@ -18,10 +18,12 @@ func (j ServiceProvider) Boot(app infra.Glacier) {
 
 		_ = cr.Add("test-job", "@every 10s", TestJob)
 
-		job, _ := cr.Info("test-job")
-		nextTs, _ := job.Next(5)
-		for i, nt := range nextTs {
-			log.Debugf("job test-job next %d ---> %s", i, nt)
+		if log.DebugEnabled() {
+			job, _ := cr.Info("test-job")
+			nextTs, _ := job.Next(5)
+			for i, nt := range nextTs {
+				log.Debugf("job test-job next %d ---> %s", i, nt)
+			}
 		}
 
 		return nil
@@ -36,12 +38,16 @@ func NewDistributeLockManager() *DistributeLockManager {
 }
 
 func (manager *DistributeLockManager) TryLock() error {
-	log.Debug("try lock ...")
+	if log.DebugEnabled() {
+		log.Debug("try lock ...")
+	}
 	return nil
 }
 
 func (manager *DistributeLockManager) TryUnLock() error {
-	log.Debug("try unlock ...")
+	if log.DebugEnabled() {
+		log.Debug("try unlock ...")
+	}
 	return nil
 }
 

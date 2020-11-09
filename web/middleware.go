@@ -29,13 +29,15 @@ func (rm RequestMiddleware) AccessLog(logger log.Logger) HandlerDecorator {
 			startTs := time.Now()
 			resp := handler(ctx)
 
-			logger.Debugf(
-				"%s %s [%d] [%.4fms]",
-				ctx.Method(),
-				ctx.Request().Raw().URL.String(),
-				resp.Code(),
-				time.Now().Sub(startTs).Seconds()*1000,
-			)
+			if logger.DebugEnabled() {
+				logger.Debugf(
+					"%s %s [%d] [%.4fms]",
+					ctx.Method(),
+					ctx.Request().Raw().URL.String(),
+					resp.Code(),
+					time.Now().Sub(startTs).Seconds()*1000,
+				)
+			}
 
 			return resp
 		}

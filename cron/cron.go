@@ -106,14 +106,20 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 
 	jobHandler := func() {
 		if c.distributeLockManager != nil && !c.distributeLockManager.HasLock() {
-			c.logger.Debugf("cron job [%s] can not start because it doesn't get the lock", name)
+			if c.logger.DebugEnabled() {
+				c.logger.Debugf("cron job [%s] can not start because it doesn't get the lock", name)
+			}
 			return
 		}
 
-		c.logger.Debugf("cron job [%s] running", name)
+		if c.logger.DebugEnabled() {
+			c.logger.Debugf("cron job [%s] running", name)
+		}
 		startTs := time.Now()
 		defer func() {
-			c.logger.Debugf("cron job [%s] stopped, elapse %s", name, time.Now().Sub(startTs))
+			if c.logger.DebugEnabled() {
+				c.logger.Debugf("cron job [%s] stopped, elapse %s", name, time.Now().Sub(startTs))
+			}
 		}()
 		if err := c.cc.ResolveWithError(handler); err != nil {
 			c.logger.Errorf("cron job [%s] failed, Err: %v, Stack: \n%s", name, err, debug.Stack())
@@ -132,8 +138,9 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 		handler: jobHandler,
 		Paused:  false,
 	}
-
-	c.logger.Debugf("add job [%s] to cron manager with plan %s", name, plan)
+	if c.logger.DebugEnabled() {
+		c.logger.Debugf("add job [%s] to cron manager with plan %s", name, plan)
+	}
 
 	return nil
 }
@@ -152,8 +159,9 @@ func (c *cronManager) Remove(name string) error {
 		c.cr.Remove(reg.ID)
 	}
 
-	c.logger.Debugf("remove job [%s] from cron manager", name)
-
+	if c.logger.DebugEnabled() {
+		c.logger.Debugf("remove job [%s] from cron manager", name)
+	}
 	return nil
 }
 
@@ -173,7 +181,9 @@ func (c *cronManager) Pause(name string) error {
 	c.cr.Remove(reg.ID)
 	reg.Paused = true
 
-	c.logger.Debugf("change job [%s] to paused", name)
+	if c.logger.DebugEnabled() {
+		c.logger.Debugf("change job [%s] to paused", name)
+	}
 
 	return nil
 }
@@ -199,7 +209,9 @@ func (c *cronManager) Continue(name string) error {
 	reg.Paused = false
 	reg.ID = id
 
-	c.logger.Debugf("change job [%s] to continue", name)
+	if c.logger.DebugEnabled() {
+		c.logger.Debugf("change job [%s] to continue", name)
+	}
 
 	return nil
 }
@@ -219,7 +231,9 @@ func (c *cronManager) Start() {
 	if c.distributeLockManager != nil {
 		getDistributeLock := func() {
 			if err := c.distributeLockManager.TryLock(); err != nil {
-				c.logger.Warningf("try to get distribute lock failed: %v", err)
+				if c.logger.WarningEnabled() {
+					c.logger.Warningf("try to get distribute lock failed: %v", err)
+				}
 			}
 		}
 
@@ -236,7 +250,9 @@ func (c *cronManager) Stop() {
 	c.cr.Stop()
 	if c.distributeLockManager != nil {
 		if err := c.distributeLockManager.TryUnLock(); err != nil {
-			c.logger.Warningf("try to release distribute lock failed: %v", err)
+			if c.logger.WarningEnabled() {
+				c.logger.Warningf("try to release distribute lock failed: %v", err)
+			}
 		}
 	}
 }

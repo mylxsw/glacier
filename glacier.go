@@ -240,10 +240,12 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 			}
 		}
 
-		glacier.logger.WithFields(log.Fields{
-			"boot_count":   len(glacier.providers),
-			"daemon_count": daemonServiceProviderCount,
-		}).Debugf("service providers has been started")
+		if glacier.logger.DebugEnabled() {
+			glacier.logger.WithFields(log.Fields{
+				"boot_count":   len(glacier.providers),
+				"daemon_count": daemonServiceProviderCount,
+			}).Debugf("service providers has been started")
+		}
 
 		// start services
 		for _, s := range glacier.services {
@@ -261,9 +263,11 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 			}(s)
 		}
 
-		glacier.logger.WithFields(log.Fields{
-			"count": len(glacier.services),
-		}).Debugf("services has been started")
+		if glacier.logger.DebugEnabled() {
+			glacier.logger.WithFields(log.Fields{
+				"count": len(glacier.services),
+			}).Debugf("services has been started")
+		}
 
 		defer cc.MustResolve(func(conf *Config) {
 			if err := recover(); err != nil {
@@ -278,13 +282,17 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 				}()
 				select {
 				case <-ok:
-					glacier.logger.Debugf("all services has been stopped")
+					if glacier.logger.DebugEnabled() {
+						glacier.logger.Debugf("all services has been stopped")
+					}
 				case <-time.After(conf.ShutdownTimeout):
 					glacier.logger.Errorf("shutdown timeout, exit directly")
 				}
 			} else {
 				wg.Wait()
-				glacier.logger.Debugf("all services has been stopped")
+				if glacier.logger.DebugEnabled() {
+					glacier.logger.Debugf("all services has been stopped")
+				}
 			}
 		})
 
@@ -352,10 +360,12 @@ func (glacier *glacierImpl) initialize(cc container.Container) error {
 		p.Register(cc)
 	}
 
-	glacier.logger.WithFields(log.Fields{
-		"count":   len(glacier.providers),
-		"version": glacier.version,
-	}).Debugf("service providers has been registered, starting ...")
+	if glacier.logger.DebugEnabled() {
+		glacier.logger.WithFields(log.Fields{
+			"count":   len(glacier.providers),
+			"version": glacier.version,
+		}).Debugf("service providers has been registered, starting ...")
+	}
 
 	// 初始化 Services
 	for i, s := range glacier.services {
@@ -420,7 +430,9 @@ func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.T
 			go cc.MustResolve(glacier.mainFunc)
 		}
 
-		glacier.logger.Debugf("started glacier application in %v", time.Now().Sub(startupTs))
+		if glacier.logger.DebugEnabled() {
+			glacier.logger.Debugf("started glacier application in %v", time.Now().Sub(startupTs))
+		}
 
 		return gf.Start()
 	}
@@ -441,7 +453,10 @@ func (glacier *glacierImpl) startCronTaskServer(cr cron.Manager, gf graceful.Gra
 	gf.AddShutdownHandler(cr.Stop)
 	cr.Start()
 
-	glacier.logger.Debugf("cron task server has been started")
+	if glacier.logger.DebugEnabled() {
+		glacier.logger.Debugf("cron task server has been started")
+	}
+
 	return nil
 }
 

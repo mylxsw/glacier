@@ -42,13 +42,14 @@ func main() {
 	{{ if .WithHttpServer }}app.Provider(api.ServiceProvider{}){{ end }}
 
 	app.Main(func(conf *config.Config, router *mux.Router) {
-		log.With(conf).Debug("configuration loaded")
-
-        {{ if .WithHttpServer }}
-		for _, r := range web.GetAllRoutes(router) {
-			log.Debugf("route: %s -> %s | %s | %s", r.Name, r.Methods, r.PathTemplate, r.PathRegexp)
-		}
-		{{ end }}
+        if log.DebugEnabled() {
+            log.With(conf).Debug("configuration loaded")
+            {{ if .WithHttpServer }}
+            for _, r := range web.GetAllRoutes(router) {
+                log.Debugf("route: %s -> %s | %s | %s", r.Name, r.Methods, r.PathTemplate, r.PathRegexp)
+            }
+            {{ end }}
+        }
 	})
 
 	if err := app.Run(os.Args); err != nil {

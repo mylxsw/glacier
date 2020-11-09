@@ -112,18 +112,29 @@ func (app *WebServer) Start() error {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			logger.Debugf("prepare to shutdown http server...")
+			if logger.DebugEnabled() {
+				logger.Debugf("prepare to shutdown http server...")
+			}
+
 			if err := srv.Shutdown(ctx); err != nil {
 				logger.Errorf("shutdown http server failed: %s", err)
 			}
 
-			logger.Warning("http server has been shutdown")
+			if logger.WarningEnabled() {
+				logger.Warning("http server has been shutdown")
+			}
 		})
 
 		go func() {
-			logger.Debugf("http server started, listening on %s", listener.Addr())
+			if logger.DebugEnabled() {
+				logger.Debugf("http server started, listening on %s", listener.Addr())
+			}
+
 			if err := srv.Serve(listener); err != nil {
-				logger.Debugf("http server stopped: %s", err)
+				if logger.DebugEnabled() {
+					logger.Debugf("http server stopped: %s", err)
+				}
+
 				if err != http.ErrServerClosed {
 					gf.Shutdown()
 				}
