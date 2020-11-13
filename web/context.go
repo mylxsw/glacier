@@ -56,7 +56,7 @@ func (h webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w:       w,
 			headers: make(map[string]string),
 		},
-		request: &HttpRequest{r: r, body: body, cc: h.container, conf: *h.conf,},
+		request: &HttpRequest{r: r, body: body, cc: h.container, conf: *h.conf},
 		cc:      h.container,
 		conf:    *h.conf,
 	}
@@ -131,8 +131,13 @@ func (ctx *WebContext) NewAPIResponse(businessCode string, message string, data 
 }
 
 // NewRawResponse create a new RawResponse
-func (ctx *WebContext) NewRawResponse() *RawResponse {
-	return NewRawResponse(ctx.response)
+func (ctx *WebContext) NewRawResponse(handler func(w http.ResponseWriter)) *RawResponse {
+	return NewRawResponse(ctx.response, handler)
+}
+
+// Raw create a new RawResponse
+func (ctx *WebContext) Raw(handler func(w http.ResponseWriter)) *RawResponse {
+	return NewRawResponse(ctx.response, handler)
 }
 
 // NewHTMLResponse create a new HTMLResponse

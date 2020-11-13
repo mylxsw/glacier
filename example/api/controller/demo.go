@@ -23,6 +23,14 @@ func (d *DemoController) Register(router *web.Router) {
 		router.Get("/", d.Get).Custom(func(rou *mux.Route) {
 			rou.Name("demo:routes")
 		})
+		router.Get("/raw", d.RawRes)
+	})
+}
+
+func (d *DemoController) RawRes(ctx web.Context) web.Response {
+	return ctx.NewRawResponse(func(w http.ResponseWriter) {
+		w.Header().Set("X-Ray", "OOPS")
+		_, _ = w.Write([]byte("Hello, world"))
 	})
 }
 

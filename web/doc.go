@@ -17,7 +17,8 @@ type Context interface {
 	Nil() *NilResponse
 	API(businessCode string, message string, data interface{}) *JSONResponse
 	NewAPIResponse(businessCode string, message string, data interface{}) *JSONResponse
-	NewRawResponse() *RawResponse
+	Raw(func(w http.ResponseWriter)) *RawResponse
+	NewRawResponse(func(w http.ResponseWriter)) *RawResponse
 	NewHTMLResponse(res string) *HTMLResponse
 	HTML(res string) *HTMLResponse
 	HTMLWithCode(res string, code int) *HTMLResponse
