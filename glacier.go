@@ -211,15 +211,6 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 			}
 		}
 
-		// 启动事件监听，注册事件监听函数
-		if glacier.eventListenerFuncs != nil {
-			for _, el := range glacier.eventListenerFuncs {
-				if err := cc.Resolve(el); err != nil {
-					return err
-				}
-			}
-		}
-
 		// 初始化 ServiceProvider
 		var wg sync.WaitGroup
 		var daemonServiceProviderCount int
@@ -247,6 +238,15 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 				"boot_count":   len(glacier.providers),
 				"daemon_count": daemonServiceProviderCount,
 			}).Debugf("service providers has been started")
+		}
+
+		// 启动事件监听，注册事件监听函数
+		if glacier.eventListenerFuncs != nil {
+			for _, el := range glacier.eventListenerFuncs {
+				if err := cc.Resolve(el); err != nil {
+					return err
+				}
+			}
 		}
 
 		// start services
