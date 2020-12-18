@@ -1,9 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
+	"runtime"
 	"runtime/debug"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -27,7 +30,13 @@ import (
 var Version = "1.0"
 var GitCommit = "aabbccddeeffgghhiijjkk"
 
-type CronEvent struct{}
+type CronEvent struct {
+	GoroutineID uint64
+}
+
+func (c CronEvent) Async() bool {
+	return true
+}
 
 func main() {
 	//log.All().LogFormatter(formatter.NewJSONFormatter())
@@ -52,19 +61,13 @@ func main() {
 		Value: ":19945",
 	}))
 
-	app.WithHttpServer(listener.FlagContext("listen"))
-
-	app.WebAppInit(func(cc container.Container, webApp infra.Web, conf *web.Config) error {
-		// 设置该选项之后，路由匹配时将会忽略最末尾的 /
-		// 路由 /aaa/bbb  匹配 /aaa/bbb, /aaa/bbb/
-		// 路由 /aaa/bbb/ 匹配 /aaa/bbb, /aaa/bbb/
-		// 默认为 false，匹配规则如下
-		// 路由 /aaa/bbb 只匹配 /aaa/bbb 不匹配 /aaa/bbb/
-		// 路由 /aaa/bbb/ 只匹配 /aaa/bbb/ 不匹配 /aaa/bbb
-		conf.IgnoreLastSlash = true
-
-		return nil
-	})
+	// 设置该选项之后，路由匹配时将会忽略最末尾的 /
+	// 路由 /aaa/bbb  匹配 /aaa/bbb, /aaa/bbb/
+	// 路由 /aaa/bbb/ 匹配 /aaa/bbb, /aaa/bbb/
+	// 默认为 false，匹配规则如下
+	// 路由 /aaa/bbb 只匹配 /aaa/bbb 不匹配 /aaa/bbb/
+	// 路由 /aaa/bbb/ 只匹配 /aaa/bbb/ 不匹配 /aaa/bbb
+	app.WithHttpServer(listener.FlagContext("listen"), infra.SetIgnoreLastSlashOption(true))
 
 	app.WebAppExceptionHandler(func(ctx web.Context, err interface{}) web.Response {
 		log.Errorf("stack: %s", debug.Stack())
@@ -80,7 +83,7 @@ func main() {
 	app.Cron(func(cr cron.Manager, cc container.Container) error {
 		if err := cr.Add("hello", "@every 15s", func(manager event.Manager) {
 			log.Infof("hello, example!")
-			manager.Publish(CronEvent{})
+			manager.Publish(CronEvent{GoroutineID: getGID()})
 		}); err != nil {
 			return err
 		}
@@ -93,6 +96,8 @@ func main() {
 			if log.DebugEnabled() {
 				log.Debug("a new cron task executed")
 			}
+
+			log.Infof("event processed, listener_goroutine_id=%d, publisher_goroutine_id=%d", getGID(), event.GoroutineID)
 		})
 	})
 
@@ -115,4 +120,13 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		panic(err)
 	}
+}
+
+func getGID() uint64 {
+	b := make([]byte, 64)
+	b = b[:runtime.Stack(b, false)]
+	b = bytes.TrimPrefix(b, []byte("goroutine "))
+	b = b[:bytes.IndexByte(b, ' ')]
+	n, _ := strconv.ParseUint(string(b), 10, 64)
+	return n
 }

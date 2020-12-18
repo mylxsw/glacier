@@ -52,5 +52,5 @@ func (manager *DistributeLockManager) TryUnLock() error {
 }
 
 func (manager *DistributeLockManager) HasLock() bool {
-	return false
+	return true
 }

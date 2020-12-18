@@ -20,8 +20,8 @@ func (application *Application) Graceful(builder func() graceful.Graceful) infra
 	return application.glacier.Graceful(builder)
 }
 
-func (application *Application) WithHttpServer(builder infra.ListenerBuilder) infra.Glacier {
-	return application.glacier.WithHttpServer(builder)
+func (application *Application) WithHttpServer(builder infra.ListenerBuilder, options ...infra.WebServerOption) infra.Glacier {
+	return application.glacier.WithHttpServer(builder, options...)
 }
 
 func (application *Application) WebAppInit(initFunc infra.InitWebAppHandler) infra.Glacier {

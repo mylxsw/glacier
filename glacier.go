@@ -43,6 +43,7 @@ type glacierImpl struct {
 	webAppMuxRouterFunc    infra.InitMuxRouterHandler
 	webAppServerFunc       infra.InitServerHandler
 	webAppExceptionHandler web.ExceptionHandler
+	webAppOptions          []infra.WebServerOption
 
 	cronTaskFuncs      []infra.CronTaskFunc
 	eventListenerFuncs []infra.EventListenerFunc
@@ -68,6 +69,7 @@ func CreateGlacier(version string) infra.Glacier {
 	glacier.enableHTTPServer = false
 	glacier.webAppInitFunc = func(cc container.Container, webApp infra.Web, conf *web.Config) error { return nil }
 	glacier.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
+	glacier.webAppOptions = make([]infra.WebServerOption, 0)
 	glacier.singletons = make([]interface{}, 0)
 	glacier.prototypes = make([]interface{}, 0)
 	glacier.providers = make([]infra.ServiceProvider, 0)
@@ -194,13 +196,13 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 		cc.MustBindValue(infra.StartupTimeKey, startupTs)
 		cc.MustSingleton(func() infra.FlagContext { return cliCtx })
 
-		if err := glacier.initialize(cc); err != nil {
-			return err
-		}
-
+		err := glacier.initialize(cc)
 		cc.MustResolve(func(gf graceful.Graceful) {
 			gf.AddShutdownHandler(cancel)
 		})
+		if err != nil {
+			return err
+		}
 
 		// 服务启动前回调
 		if glacier.beforeServerStart != nil {
@@ -330,6 +332,11 @@ func (glacier *glacierImpl) initialize(cc container.Container) error {
 	// WebAPP 对象
 	cc.MustSingletonOverride(func(cliCtx infra.FlagContext) (infra.Web, error) {
 		webApp := NewWebApp(cc, glacier.webAppRouterFunc, glacier.webAppServerFunc)
+		webApp.UpdateConfig(func(conf *web.Config) {
+			for _, opt := range glacier.webAppOptions {
+				opt(conf)
+			}
+		})
 
 		webApp.MuxRouter(glacier.webAppMuxRouterFunc)
 		webApp.ExceptionHandler(glacier.webAppExceptionHandler)

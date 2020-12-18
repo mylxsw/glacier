@@ -33,6 +33,8 @@ type InitMuxRouterHandler func(router *mux.Router)
 type InitServerHandler func(server *http.Server, listener net.Listener)
 type InitWebAppHandler func(cc container.Container, webApp Web, conf *web.Config) error
 
+type WebServerOption func(conf *web.Config)
+
 type CronTaskFunc func(cr cron.Manager, cc container.Container) error
 type EventListenerFunc func(listener event.Manager, cc container.Container)
 
@@ -115,7 +117,7 @@ type Glacier interface {
 	Service(service Service)
 
 	// WithHttpServer 初始化 Http Server
-	WithHttpServer(builder ListenerBuilder) Glacier
+	WithHttpServer(builder ListenerBuilder, options ...WebServerOption) Glacier
 	// WebAppInit web app 初始化阶段，web 应用对象还没有创建，在这里可以更新 web 配置
 	WebAppInit(initFunc InitWebAppHandler) Glacier
 	// WebAppServerInit web 服务初始化阶段，web 服务对象已经创建，此时不能再更新 web 配置了

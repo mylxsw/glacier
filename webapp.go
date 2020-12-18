@@ -15,9 +15,10 @@ import (
 )
 
 // WithHttpServer with http server support
-func (glacier *glacierImpl) WithHttpServer(builder infra.ListenerBuilder) infra.Glacier {
+func (glacier *glacierImpl) WithHttpServer(builder infra.ListenerBuilder, options ...infra.WebServerOption) infra.Glacier {
 	glacier.enableHTTPServer = true
 	glacier.tcpListenerBuilder = builder
+	glacier.webAppOptions = options
 	return glacier
 }
 
