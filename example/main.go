@@ -74,11 +74,8 @@ func main() {
 		return nil
 	})
 
-	app.Provider(job.ServiceProvider{})
-	app.Provider(api.ServiceProvider{})
-
-	app.Service(&service.DemoService{})
-	app.Service(&service.Demo2Service{})
+	app.Provider(job.ServiceProvider{}, api.ServiceProvider{})
+	app.Service(&service.DemoService{}, &service.Demo2Service{})
 
 	app.Cron(func(cr cron.Manager, cc container.Container) error {
 		if err := cr.Add("hello", "@every 15s", func(manager event.Manager) {

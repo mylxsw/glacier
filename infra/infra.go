@@ -112,9 +112,9 @@ type FlagContext interface {
 }
 type Glacier interface {
 	// Provider 注册一个模块
-	Provider(provider ServiceProvider)
+	Provider(providers ...ServiceProvider)
 	// Service 注册一个 Service
-	Service(service Service)
+	Service(services ...Service)
 
 	// WithHttpServer 初始化 Http Server
 	WithHttpServer(builder ListenerBuilder, options ...WebServerOption) Glacier
@@ -152,8 +152,8 @@ type Glacier interface {
 	Cron(f CronTaskFunc) Glacier
 	EventListener(f EventListenerFunc) Glacier
 	Logger(logger log.Logger) Glacier
-	Singleton(ins interface{}) Glacier
-	Prototype(ins interface{}) Glacier
+	Singleton(ins... interface{}) Glacier
+	Prototype(ins... interface{}) Glacier
 	ResolveWithError(resolver interface{}) error
 	MustResolve(resolver interface{})
 	Container() container.Container

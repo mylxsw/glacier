@@ -135,14 +135,14 @@ func (glacier *glacierImpl) EventListener(f infra.EventListenerFunc) infra.Glaci
 }
 
 // Singleton add a singleton instance to container
-func (glacier *glacierImpl) Singleton(ins interface{}) infra.Glacier {
-	glacier.singletons = append(glacier.singletons, ins)
+func (glacier *glacierImpl) Singleton(ins... interface{}) infra.Glacier {
+	glacier.singletons = append(glacier.singletons, ins...)
 	return glacier
 }
 
 // Prototype add a prototype to container
-func (glacier *glacierImpl) Prototype(ins interface{}) infra.Glacier {
-	glacier.prototypes = append(glacier.prototypes, ins)
+func (glacier *glacierImpl) Prototype(ins... interface{}) infra.Glacier {
+	glacier.prototypes = append(glacier.prototypes, ins...)
 	return glacier
 }
 

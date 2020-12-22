@@ -8,12 +8,12 @@ import (
 	"github.com/mylxsw/graceful"
 )
 
-func (application *Application) Provider(provider infra.ServiceProvider) {
-	application.glacier.Provider(provider)
+func (application *Application) Provider(providers... infra.ServiceProvider) {
+	application.glacier.Provider(providers...)
 }
 
-func (application *Application) Service(service infra.Service) {
-	application.glacier.Service(service)
+func (application *Application) Service(services... infra.Service) {
+	application.glacier.Service(services...)
 }
 
 func (application *Application) Graceful(builder func() graceful.Graceful) infra.Glacier {
@@ -76,12 +76,12 @@ func (application *Application) EventListener(f infra.EventListenerFunc) infra.G
 	return application.glacier.EventListener(f)
 }
 
-func (application *Application) Singleton(ins interface{}) infra.Glacier {
-	return application.glacier.Singleton(ins)
+func (application *Application) Singleton(ins... interface{}) infra.Glacier {
+	return application.glacier.Singleton(ins...)
 }
 
-func (application *Application) Prototype(ins interface{}) infra.Glacier {
-	return application.glacier.Prototype(ins)
+func (application *Application) Prototype(ins... interface{}) infra.Glacier {
+	return application.glacier.Prototype(ins...)
 }
 
 func (application *Application) ResolveWithError(resolver interface{}) error {
