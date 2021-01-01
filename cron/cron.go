@@ -117,8 +117,12 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 		}
 		startTs := time.Now()
 		defer func() {
-			if c.logger.DebugEnabled() {
-				c.logger.Debugf("cron job [%s] stopped, elapse %s", name, time.Now().Sub(startTs))
+			if err := recover(); err != nil {
+				c.logger.Errorf("cron job [%s] stopped with some errors: %v, elapse %s", name, err, time.Now().Sub(startTs))
+			} else {
+				if c.logger.DebugEnabled() {
+					c.logger.Debugf("cron job [%s] stopped, elapse %s", name, time.Now().Sub(startTs))
+				}
 			}
 		}()
 		if err := c.cc.ResolveWithError(handler); err != nil {
