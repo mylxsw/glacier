@@ -16,7 +16,10 @@ func (j ServiceProvider) Boot(app infra.Glacier) {
 	app.Cron(func(cr cron.Manager, cc container.Container) error {
 		cr.DistributeLockManager(NewDistributeLockManager())
 
-		_ = cr.Add("test-job", "@every 10s", TestJob)
+		//_ = cr.Add("test-job", "@every 10s", TestJob)
+		_ = cr.Add("test-timeout-job", "@every 5s", cron.WithoutOverlap(TestTimeoutJob).SkipCallback(func() {
+			log.Errorf("test-timeout-job skipped")
+		}))
 
 		if log.DebugEnabled() {
 			job, _ := cr.Info("test-job")

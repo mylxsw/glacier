@@ -104,6 +104,11 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 		return fmt.Errorf("job with name [%s] has existed: %d | %s", name, reg.ID, reg.Plan)
 	}
 
+	hh, ok := handler.(JobHandler)
+	if !ok {
+		hh = newHandler(handler)
+	}
+	
 	jobHandler := func() {
 		if c.distributeLockManager != nil && !c.distributeLockManager.HasLock() {
 			if c.logger.DebugEnabled() {
@@ -125,7 +130,7 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 				}
 			}
 		}()
-		if err := c.cc.ResolveWithError(handler); err != nil {
+		if err := c.cc.ResolveWithError(hh.Handle); err != nil {
 			c.logger.Errorf("cron job [%s] failed, Err: %v, Stack: \n%s", name, err, debug.Stack())
 		}
 	}

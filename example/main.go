@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 	asteriaEvent "github.com/mylxsw/asteria/event"
+	"github.com/mylxsw/asteria/level"
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/cron"
@@ -45,7 +46,7 @@ func main() {
 	log.DefaultDynamicModuleName(true)
 	log.AddGlobalFilter(func(filter log.Filter) log.Filter {
 		return func(f asteriaEvent.Event) {
-			if strings.HasPrefix(f.Module, "github.com.mylxsw.glacier.cron") {
+			if f.Level == level.Debug && strings.HasPrefix(f.Module, "github.com.mylxsw.glacier.cron") {
 				return
 			}
 
