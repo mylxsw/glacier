@@ -20,6 +20,15 @@ import (
 	cronV3 "github.com/robfig/cron/v3"
 )
 
+// Status 当前 Glacier 的状态
+type Status int
+
+const (
+	Unknown     Status = 0
+	Initialized Status = 1
+	Started     Status = 2
+)
+
 // glacierImpl is the server
 type glacierImpl struct {
 	appName   string
@@ -57,6 +66,8 @@ type glacierImpl struct {
 
 	singletons []interface{}
 	prototypes []interface{}
+
+	status Status
 }
 
 func (glacier *glacierImpl) HttpListenAddr() string {
@@ -78,6 +89,7 @@ func CreateGlacier(version string) infra.Glacier {
 	glacier.handler = glacier.createServer()
 	glacier.eventListenerFuncs = make([]infra.EventListenerFunc, 0)
 	glacier.cronTaskFuncs = make([]infra.CronTaskFunc, 0)
+	glacier.status = Unknown
 
 	return glacier
 }
@@ -143,12 +155,20 @@ func (glacier *glacierImpl) EventListener(f infra.EventListenerFunc) infra.Glaci
 
 // Singleton add a singleton instance to container
 func (glacier *glacierImpl) Singleton(ins ...interface{}) infra.Glacier {
+	if glacier.status >= Initialized {
+		panic(fmt.Sprintf("can not invoke this method after Glacier has been initialize"))
+	}
+
 	glacier.singletons = append(glacier.singletons, ins...)
 	return glacier
 }
 
 // Prototype add a prototype to container
 func (glacier *glacierImpl) Prototype(ins ...interface{}) infra.Glacier {
+	if glacier.status >= Initialized {
+		panic(fmt.Sprintf("can not invoke this method after Glacier has been initialize"))
+	}
+
 	glacier.prototypes = append(glacier.prototypes, ins...)
 	return glacier
 }
@@ -333,7 +353,7 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 // initialize 初始化 Glacier
 func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.FlagContext) error {
 	// 基本配置加载
-	cc.MustSingleton(ConfigLoader)
+	cc.MustSingletonOverride(ConfigLoader)
 	cc.MustSingletonOverride(func() log.Logger { return glacier.logger })
 
 	// 优雅停机
@@ -383,11 +403,11 @@ func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.Flag
 
 	// 注册其它对象
 	for _, i := range glacier.singletons {
-		cc.MustSingleton(i)
+		cc.MustSingletonOverride(i)
 	}
 
 	for _, i := range glacier.prototypes {
-		cc.MustPrototype(i)
+		cc.MustPrototypeOverride(i)
 	}
 
 	// 注册服务提供者对象（模块）
@@ -423,6 +443,7 @@ func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.Flag
 		}
 	}
 
+	glacier.status = Initialized
 	return nil
 }
 
@@ -477,6 +498,7 @@ func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.T
 			glacier.logger.Debugf("started glacier application in %v", time.Now().Sub(startupTs))
 		}
 
+		glacier.status = Started
 		return gf.Start()
 	}
 }
