@@ -242,7 +242,7 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 		var wg sync.WaitGroup
 		var daemonServiceProviderCount int
 		for _, p := range glacier.providers {
-			if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoadModule(cliCtx) {
+			if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
 				continue
 			}
 
@@ -272,7 +272,7 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 
 		// 如果是 DaemonProvider，需要在单独的 Goroutine 执行，一般都是阻塞执行的
 		for _, p := range glacier.providers {
-			if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoadModule(cliCtx) {
+			if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
 				continue
 			}
 
@@ -295,7 +295,7 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 
 		// start services
 		for _, s := range glacier.services {
-			if po, ok := s.(infra.ModuleLoadPolicy); ok && !po.ShouldLoadModule(cliCtx) {
+			if po, ok := s.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
 				continue
 			}
 
@@ -412,7 +412,7 @@ func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.Flag
 
 	// 注册服务提供者对象（模块）
 	for _, p := range glacier.providers {
-		if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoadModule(cliCtx) {
+		if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
 			continue
 		}
 
@@ -428,7 +428,7 @@ func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.Flag
 
 	// 初始化 Services
 	for i, s := range glacier.services {
-		if po, ok := s.(infra.ModuleLoadPolicy); ok && !po.ShouldLoadModule(cliCtx) {
+		if po, ok := s.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
 			continue
 		}
 

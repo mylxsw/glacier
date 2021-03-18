@@ -9,7 +9,7 @@ import (
 
 type ServiceProvider struct{}
 
-func (j ServiceProvider) ShouldLoadModule(c infra.FlagContext) bool {
+func (j ServiceProvider) ShouldLoad(c infra.FlagContext) bool {
 	return c.Bool("load-job")
 }
 

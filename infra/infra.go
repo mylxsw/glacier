@@ -54,8 +54,8 @@ type Service interface {
 
 // ModuleLoadPolicy 实现该接口用于判断当前模块（Service/Provider/DaemonProvider）是否加载
 type ModuleLoadPolicy interface {
-	// ShouldLoadModule 如果返回 true，则加载该模块，否则跳过
-	ShouldLoadModule(c FlagContext) bool
+	// ShouldLoad 如果返回 true，则加载该模块，否则跳过
+	ShouldLoad(c FlagContext) bool
 }
 
 type Provider interface {

@@ -13,7 +13,7 @@ type DemoService struct {
 	stopped chan interface{}
 }
 
-func (d *DemoService) ShouldLoadModule(c infra.FlagContext) bool {
+func (d *DemoService) ShouldLoad(c infra.FlagContext) bool {
 	return c.Bool("load-demoservice")
 }
 
