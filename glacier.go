@@ -29,14 +29,15 @@ type glacierImpl struct {
 
 	handler func(cliCtx infra.FlagContext) error
 
-	providers []infra.ServiceProvider
+	providers []infra.Provider
 	services  []infra.Service
 
-	beforeInitialize  func(c infra.FlagContext) error
-	beforeServerStart func(cc container.Container) error
-	afterServerStart  func(cc container.Container) error
-	beforeServerStop  func(cc container.Container) error
-	mainFunc          interface{}
+	beforeInitialize    func(c infra.FlagContext) error
+	beforeServerStart   func(cc container.Container) error
+	afterServerStart    func(cc container.Container) error
+	beforeServerStop    func(cc container.Container) error
+	afterProviderBooted interface{}
+	mainFunc            interface{}
 
 	webAppInitFunc         infra.InitWebAppHandler
 	webAppRouterFunc       infra.InitRouterHandler
@@ -72,7 +73,7 @@ func CreateGlacier(version string) infra.Glacier {
 	glacier.webAppOptions = make([]infra.WebServerOption, 0)
 	glacier.singletons = make([]interface{}, 0)
 	glacier.prototypes = make([]interface{}, 0)
-	glacier.providers = make([]infra.ServiceProvider, 0)
+	glacier.providers = make([]infra.Provider, 0)
 	glacier.services = make([]infra.Service, 0)
 	glacier.handler = glacier.createServer()
 	glacier.eventListenerFuncs = make([]infra.EventListenerFunc, 0)
@@ -116,6 +117,12 @@ func (glacier *glacierImpl) BeforeServerStop(f func(cc container.Container) erro
 	return glacier
 }
 
+// AfterProviderBooted set a hook func executed after all providers has been booted
+func (glacier *glacierImpl) AfterProviderBooted(f interface{}) infra.Glacier {
+	glacier.afterProviderBooted = f
+	return glacier
+}
+
 // Cron add cron tasks
 func (glacier *glacierImpl) Cron(f infra.CronTaskFunc) infra.Glacier {
 	glacier.cronTaskFuncs = append(glacier.cronTaskFuncs, f)
@@ -135,13 +142,13 @@ func (glacier *glacierImpl) EventListener(f infra.EventListenerFunc) infra.Glaci
 }
 
 // Singleton add a singleton instance to container
-func (glacier *glacierImpl) Singleton(ins... interface{}) infra.Glacier {
+func (glacier *glacierImpl) Singleton(ins ...interface{}) infra.Glacier {
 	glacier.singletons = append(glacier.singletons, ins...)
 	return glacier
 }
 
 // Prototype add a prototype to container
-func (glacier *glacierImpl) Prototype(ins... interface{}) infra.Glacier {
+func (glacier *glacierImpl) Prototype(ins ...interface{}) infra.Glacier {
 	glacier.prototypes = append(glacier.prototypes, ins...)
 	return glacier
 }
@@ -196,7 +203,7 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 		cc.MustBindValue(infra.StartupTimeKey, startupTs)
 		cc.MustSingleton(func() infra.FlagContext { return cliCtx })
 
-		err := glacier.initialize(cc)
+		err := glacier.initialize(cc, cliCtx)
 		cc.MustResolve(func(gf graceful.Graceful) {
 			gf.AddShutdownHandler(cancel)
 		})
@@ -211,10 +218,14 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 			}
 		}
 
-		// 初始化 ServiceProvider
+		// 初始化 Provider
 		var wg sync.WaitGroup
 		var daemonServiceProviderCount int
 		for _, p := range glacier.providers {
+			if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoadModule(cliCtx) {
+				continue
+			}
+
 			if reflect.ValueOf(p).Kind() == reflect.Ptr {
 				if err := cc.AutoWire(p); err != nil {
 					return fmt.Errorf("can not autowire provider: %v", err)
@@ -222,11 +233,33 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 			}
 
 			p.Boot(glacier)
-			// 如果是 DaemonServiceProvider，需要在单独的 Goroutine 执行，一般都是阻塞执行的
-			if pp, ok := p.(infra.DaemonServiceProvider); ok {
+		}
+
+		// 启动事件监听，注册事件监听函数
+		if glacier.eventListenerFuncs != nil {
+			for _, el := range glacier.eventListenerFuncs {
+				if err := cc.Resolve(el); err != nil {
+					return err
+				}
+			}
+		}
+
+		if glacier.afterProviderBooted != nil {
+			if err := cc.ResolveWithError(glacier.afterProviderBooted); err != nil {
+				return err
+			}
+		}
+
+		// 如果是 DaemonProvider，需要在单独的 Goroutine 执行，一般都是阻塞执行的
+		for _, p := range glacier.providers {
+			if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoadModule(cliCtx) {
+				continue
+			}
+
+			if pp, ok := p.(infra.DaemonProvider); ok {
 				wg.Add(1)
 				daemonServiceProviderCount++
-				go func(pp infra.DaemonServiceProvider) {
+				go func(pp infra.DaemonProvider) {
 					defer wg.Done()
 					pp.Daemon(ctx, glacier)
 				}(pp)
@@ -240,17 +273,12 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 			}).Debugf("service providers has been started")
 		}
 
-		// 启动事件监听，注册事件监听函数
-		if glacier.eventListenerFuncs != nil {
-			for _, el := range glacier.eventListenerFuncs {
-				if err := cc.Resolve(el); err != nil {
-					return err
-				}
-			}
-		}
-
 		// start services
 		for _, s := range glacier.services {
+			if po, ok := s.(infra.ModuleLoadPolicy); ok && !po.ShouldLoadModule(cliCtx) {
+				continue
+			}
+
 			wg.Add(1)
 			go func(s infra.Service) {
 				defer wg.Done()
@@ -303,7 +331,7 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 }
 
 // initialize 初始化 Glacier
-func (glacier *glacierImpl) initialize(cc container.Container) error {
+func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.FlagContext) error {
 	// 基本配置加载
 	cc.MustSingleton(ConfigLoader)
 	cc.MustSingletonOverride(func() log.Logger { return glacier.logger })
@@ -364,6 +392,10 @@ func (glacier *glacierImpl) initialize(cc container.Container) error {
 
 	// 注册服务提供者对象（模块）
 	for _, p := range glacier.providers {
+		if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoadModule(cliCtx) {
+			continue
+		}
+
 		p.Register(cc)
 	}
 
@@ -376,6 +408,10 @@ func (glacier *glacierImpl) initialize(cc container.Container) error {
 
 	// 初始化 Services
 	for i, s := range glacier.services {
+		if po, ok := s.(infra.ModuleLoadPolicy); ok && !po.ShouldLoadModule(cliCtx) {
+			continue
+		}
+
 		if reflect.ValueOf(s).Kind() == reflect.Ptr {
 			if err := cc.AutoWire(s); err != nil {
 				return fmt.Errorf("can not autowire service: %v", err)

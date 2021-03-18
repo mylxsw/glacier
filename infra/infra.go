@@ -52,7 +52,13 @@ type Service interface {
 	Reload()
 }
 
-type ServiceProvider interface {
+// ModuleLoadPolicy 实现该接口用于判断当前模块（Service/Provider/DaemonProvider）是否加载
+type ModuleLoadPolicy interface {
+	// ShouldLoadModule 如果返回 true，则加载该模块，否则跳过
+	ShouldLoadModule(c FlagContext) bool
+}
+
+type Provider interface {
 	// Register add some dependency for current module
 	// this method is called one by one synchronous
 	// service provider don't autowired in this stage
@@ -63,8 +69,8 @@ type ServiceProvider interface {
 	Boot(app Glacier)
 }
 
-type DaemonServiceProvider interface {
-	ServiceProvider
+type DaemonProvider interface {
+	Provider
 	// Daemon is a async method called after boot
 	// this method is called asynchronous and concurrent
 	Daemon(ctx context.Context, app Glacier)
@@ -112,7 +118,7 @@ type FlagContext interface {
 }
 type Glacier interface {
 	// Provider 注册一个模块
-	Provider(providers ...ServiceProvider)
+	Provider(providers ...Provider)
 	// Service 注册一个 Service
 	Service(services ...Service)
 
@@ -147,13 +153,15 @@ type Glacier interface {
 	AfterServerStart(f func(cc container.Container) error) Glacier
 	// BeforeServerStop 服务停止前的回调
 	BeforeServerStop(f func(cc container.Container) error) Glacier
+	// AfterProviderBooted 所有的 providers 都已经完成 boot 之后执行
+	AfterProviderBooted(f interface{}) Glacier
 
 	// 设置定时任务
 	Cron(f CronTaskFunc) Glacier
 	EventListener(f EventListenerFunc) Glacier
 	Logger(logger log.Logger) Glacier
-	Singleton(ins... interface{}) Glacier
-	Prototype(ins... interface{}) Glacier
+	Singleton(ins ...interface{}) Glacier
+	Prototype(ins ...interface{}) Glacier
 	ResolveWithError(resolver interface{}) error
 	MustResolve(resolver interface{})
 	Container() container.Container

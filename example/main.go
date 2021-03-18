@@ -61,6 +61,8 @@ func main() {
 		Usage: "http listen addr",
 		Value: ":19945",
 	}))
+	app.AddFlags(altsrc.NewBoolFlag(cli.BoolFlag{Name: "load-job"}))
+	app.AddFlags(altsrc.NewBoolFlag(cli.BoolFlag{Name: "load-demoservice"}))
 
 	// 设置该选项之后，路由匹配时将会忽略最末尾的 /
 	// 路由 /aaa/bbb  匹配 /aaa/bbb, /aaa/bbb/

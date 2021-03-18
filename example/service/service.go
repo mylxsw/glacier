@@ -5,11 +5,16 @@ import (
 
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/infra"
 )
 
 type DemoService struct {
 	cc      container.Container
 	stopped chan interface{}
+}
+
+func (d *DemoService) ShouldLoadModule(c infra.FlagContext) bool {
+	return c.Bool("load-demoservice")
 }
 
 func (d *DemoService) Init(cc container.Container) error {

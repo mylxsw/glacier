@@ -9,6 +9,10 @@ import (
 
 type ServiceProvider struct{}
 
+func (j ServiceProvider) ShouldLoadModule(c infra.FlagContext) bool {
+	return c.Bool("load-job")
+}
+
 func (j ServiceProvider) Register(cc container.Container) {
 }
 

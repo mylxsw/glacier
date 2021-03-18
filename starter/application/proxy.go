@@ -8,11 +8,11 @@ import (
 	"github.com/mylxsw/graceful"
 )
 
-func (application *Application) Provider(providers... infra.ServiceProvider) {
+func (application *Application) Provider(providers ...infra.Provider) {
 	application.glacier.Provider(providers...)
 }
 
-func (application *Application) Service(services... infra.Service) {
+func (application *Application) Service(services ...infra.Service) {
 	application.glacier.Service(services...)
 }
 
@@ -68,6 +68,10 @@ func (application *Application) BeforeServerStop(f func(cc container.Container) 
 	return application.glacier.BeforeServerStop(f)
 }
 
+func (application *Application) AfterProviderBooted(f interface{}) infra.Glacier {
+	return application.glacier.AfterProviderBooted(f)
+}
+
 func (application *Application) Cron(f infra.CronTaskFunc) infra.Glacier {
 	return application.glacier.Cron(f)
 }
@@ -76,11 +80,11 @@ func (application *Application) EventListener(f infra.EventListenerFunc) infra.G
 	return application.glacier.EventListener(f)
 }
 
-func (application *Application) Singleton(ins... interface{}) infra.Glacier {
+func (application *Application) Singleton(ins ...interface{}) infra.Glacier {
 	return application.glacier.Singleton(ins...)
 }
 
-func (application *Application) Prototype(ins... interface{}) infra.Glacier {
+func (application *Application) Prototype(ins ...interface{}) infra.Glacier {
 	return application.glacier.Prototype(ins...)
 }
 

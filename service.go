@@ -3,7 +3,7 @@ package glacier
 import "github.com/mylxsw/glacier/infra"
 
 // Provider add a service provider
-func (glacier *glacierImpl) Provider(providers... infra.ServiceProvider) {
+func (glacier *glacierImpl) Provider(providers... infra.Provider) {
 	glacier.providers = append(glacier.providers, providers...)
 }
 
