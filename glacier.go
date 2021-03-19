@@ -3,7 +3,6 @@ package glacier
 import (
 	"context"
 	"fmt"
-	"net"
 	"reflect"
 	"runtime/debug"
 	"sync"
@@ -11,13 +10,8 @@ import (
 
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
-	"github.com/mylxsw/glacier/cron"
-	"github.com/mylxsw/glacier/event"
 	"github.com/mylxsw/glacier/infra"
-	"github.com/mylxsw/glacier/listener"
-	"github.com/mylxsw/glacier/web"
 	"github.com/mylxsw/graceful"
-	cronV3 "github.com/robfig/cron/v3"
 )
 
 // Status 当前 Glacier 的状态
@@ -48,21 +42,7 @@ type glacierImpl struct {
 	afterProviderBooted interface{}
 	mainFunc            interface{}
 
-	webAppInitFunc         infra.InitWebAppHandler
-	webAppRouterFunc       infra.InitRouterHandler
-	webAppMuxRouterFunc    infra.InitMuxRouterHandler
-	webAppServerFunc       infra.InitServerHandler
-	webAppExceptionHandler web.ExceptionHandler
-	webAppOptions          []infra.WebServerOption
-
-	cronTaskFuncs      []infra.CronTaskFunc
-	eventListenerFuncs []infra.EventListenerFunc
-
-	httpListenAddr   string
-	enableHTTPServer bool
-
-	tcpListenerBuilder infra.ListenerBuilder
-	gracefulBuilder    func() graceful.Graceful
+	gracefulBuilder func() graceful.Graceful
 
 	singletons []interface{}
 	prototypes []interface{}
@@ -70,25 +50,15 @@ type glacierImpl struct {
 	status Status
 }
 
-func (glacier *glacierImpl) HttpListenAddr() string {
-	return glacier.httpListenAddr
-}
-
 // CreateGlacier a new glacierImpl server
 func CreateGlacier(version string) infra.Glacier {
 	glacier := &glacierImpl{}
 	glacier.version = version
-	glacier.enableHTTPServer = false
-	glacier.webAppInitFunc = func(cc container.Container, webApp infra.Web, conf *web.Config) error { return nil }
-	glacier.webAppRouterFunc = func(router *web.Router, mw web.RequestMiddleware) {}
-	glacier.webAppOptions = make([]infra.WebServerOption, 0)
 	glacier.singletons = make([]interface{}, 0)
 	glacier.prototypes = make([]interface{}, 0)
 	glacier.providers = make([]infra.Provider, 0)
 	glacier.services = make([]infra.Service, 0)
 	glacier.handler = glacier.createServer()
-	glacier.eventListenerFuncs = make([]infra.EventListenerFunc, 0)
-	glacier.cronTaskFuncs = make([]infra.CronTaskFunc, 0)
 	glacier.status = Unknown
 
 	return glacier
@@ -135,21 +105,9 @@ func (glacier *glacierImpl) AfterProviderBooted(f interface{}) infra.Glacier {
 	return glacier
 }
 
-// Cron add cron tasks
-func (glacier *glacierImpl) Cron(f infra.CronTaskFunc) infra.Glacier {
-	glacier.cronTaskFuncs = append(glacier.cronTaskFuncs, f)
-	return glacier
-}
-
 // Logger set a log implements
 func (glacier *glacierImpl) Logger(logger log.Logger) infra.Glacier {
 	glacier.logger = logger
-	return glacier
-}
-
-// EventListener add event listeners
-func (glacier *glacierImpl) EventListener(f infra.EventListenerFunc) infra.Glacier {
-	glacier.eventListenerFuncs = append(glacier.eventListenerFuncs, f)
 	return glacier
 }
 
@@ -242,10 +200,6 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 		var wg sync.WaitGroup
 		var daemonServiceProviderCount int
 		for _, p := range glacier.providers {
-			if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
-				continue
-			}
-
 			if reflect.ValueOf(p).Kind() == reflect.Ptr {
 				if err := cc.AutoWire(p); err != nil {
 					return fmt.Errorf("can not autowire provider: %v", err)
@@ -253,15 +207,6 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 			}
 
 			p.Boot(glacier)
-		}
-
-		// 启动事件监听，注册事件监听函数
-		if glacier.eventListenerFuncs != nil {
-			for _, el := range glacier.eventListenerFuncs {
-				if err := cc.Resolve(el); err != nil {
-					return err
-				}
-			}
 		}
 
 		if glacier.afterProviderBooted != nil {
@@ -272,10 +217,6 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 
 		// 如果是 DaemonProvider，需要在单独的 Goroutine 执行，一般都是阻塞执行的
 		for _, p := range glacier.providers {
-			if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
-				continue
-			}
-
 			if pp, ok := p.(infra.DaemonProvider); ok {
 				wg.Add(1)
 				daemonServiceProviderCount++
@@ -286,19 +227,8 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 			}
 		}
 
-		if glacier.logger.DebugEnabled() {
-			glacier.logger.WithFields(log.Fields{
-				"boot_count":   len(glacier.providers),
-				"daemon_count": daemonServiceProviderCount,
-			}).Debugf("service providers has been started")
-		}
-
 		// start services
 		for _, s := range glacier.services {
-			if po, ok := s.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
-				continue
-			}
-
 			wg.Add(1)
 			go func(s infra.Service) {
 				defer wg.Done()
@@ -311,12 +241,6 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 					}
 				})
 			}(s)
-		}
-
-		if glacier.logger.DebugEnabled() {
-			glacier.logger.WithFields(log.Fields{
-				"count": len(glacier.services),
-			}).Debugf("services has been started")
 		}
 
 		defer cc.MustResolve(func(conf *Config) {
@@ -364,43 +288,6 @@ func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.Flag
 		return graceful.NewWithDefault(conf.ShutdownTimeout)
 	})
 
-	// 事件管理器
-	cc.MustSingletonOverride(func() event.Store { return event.NewMemoryEventStore(false) })
-	cc.MustSingletonOverride(event.NewEventManager)
-
-	// Listener 对象
-	cc.MustSingletonOverride(func() (net.Listener, error) {
-		ln, err := glacier.buildTCPListener()
-		if err == nil {
-			glacier.httpListenAddr = ln.Addr().String()
-		}
-		return ln, err
-	})
-
-	// WebAPP 对象
-	cc.MustSingletonOverride(func(cliCtx infra.FlagContext) (infra.Web, error) {
-		webApp := NewWebApp(cc, glacier.webAppRouterFunc, glacier.webAppServerFunc)
-		webApp.UpdateConfig(func(conf *web.Config) {
-			for _, opt := range glacier.webAppOptions {
-				opt(conf)
-			}
-		})
-
-		webApp.MuxRouter(glacier.webAppMuxRouterFunc)
-		webApp.ExceptionHandler(glacier.webAppExceptionHandler)
-		if err := webApp.Init(glacier.webAppInitFunc); err != nil {
-			return nil, err
-		}
-
-		return webApp, nil
-	})
-
-	// 定时任务对象
-	cc.MustSingletonOverride(func() *cronV3.Cron {
-		return cronV3.New(cronV3.WithSeconds(), cronV3.WithLogger(cronLogger{logger: glacier.logger}))
-	})
-	cc.MustSingletonOverride(cron.NewManager)
-
 	// 注册其它对象
 	for _, i := range glacier.singletons {
 		cc.MustSingletonOverride(i)
@@ -410,36 +297,22 @@ func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.Flag
 		cc.MustPrototypeOverride(i)
 	}
 
-	// 注册服务提供者对象（模块）
-	for _, p := range glacier.providers {
-		if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
-			continue
-		}
+	glacier.providers = glacier.providersFilter(cliCtx)
+	glacier.services = glacier.servicesFilter(cliCtx)
 
+	for _, p := range glacier.providers {
 		p.Register(cc)
 	}
 
-	if glacier.logger.DebugEnabled() {
-		glacier.logger.WithFields(log.Fields{
-			"count":   len(glacier.providers),
-			"version": glacier.version,
-		}).Debugf("service providers has been registered, starting ...")
-	}
-
-	// 初始化 Services
-	for i, s := range glacier.services {
-		if po, ok := s.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
-			continue
-		}
-
+	for _, s := range glacier.services {
 		if reflect.ValueOf(s).Kind() == reflect.Ptr {
 			if err := cc.AutoWire(s); err != nil {
-				return fmt.Errorf("can not autowire service: %v", err)
+				return fmt.Errorf("service %s autowired failed: %v", reflect.TypeOf(s).String(), err)
 			}
 		}
 
 		if err := s.Init(cc); err != nil {
-			return fmt.Errorf("service %d initialize failed: %v", i, err)
+			return fmt.Errorf("service %s initialize failed: %v", reflect.TypeOf(s).String(), err)
 		}
 	}
 
@@ -447,36 +320,72 @@ func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.Flag
 	return nil
 }
 
-// buildTCPListener 创建 tcpListenerBuilder 对象
-func (glacier *glacierImpl) buildTCPListener() (net.Listener, error) {
-	if glacier.tcpListenerBuilder == nil {
-		glacier.tcpListenerBuilder = listener.Default("127.0.0.1:8080")
+// servicesFilter 预处理 services，排除不需要加载的 services
+func (glacier *glacierImpl) servicesFilter(cliCtx infra.FlagContext) []infra.Service {
+	services := make([]infra.Service, 0)
+	for _, s := range glacier.services {
+		if po, ok := s.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
+			continue
+		}
+
+		services = append(services, s)
 	}
 
-	listener, err := glacier.tcpListenerBuilder.Build(glacier.container)
-	if err != nil {
-		return nil, err
+	uniqAggregates := make(map[reflect.Type]int)
+	for _, s := range services {
+		st := reflect.TypeOf(s)
+		v, ok := uniqAggregates[st]
+		if ok {
+			glacier.logger.WithFields(log.Fields{"count": v + 1}).
+				Warningf("service %s are loaded more than once", st.Name())
+		}
+
+		uniqAggregates[st] = v + 1
 	}
 
-	glacier.httpListenAddr = listener.Addr().String()
-	return listener, nil
+	return services
+}
+
+// providersFilter 预处理 providers，排除掉不需要加载的 providers
+func (glacier *glacierImpl) providersFilter(cliCtx infra.FlagContext) []infra.Provider {
+	aggregates := make([]infra.Provider, 0)
+	for _, p := range glacier.providers {
+		if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
+			continue
+		}
+
+		aggregates = append(append(aggregates, resolveProviderAggregate(p)...), p)
+	}
+
+	uniqAggregates := make(map[reflect.Type]int)
+	for _, p := range aggregates {
+		pt := reflect.TypeOf(p)
+		v, ok := uniqAggregates[pt]
+		if ok {
+			glacier.logger.WithFields(log.Fields{"count": v + 1}).
+				Warningf("provider %s %s are loaded more than once", pt.PkgPath(), pt.String())
+		}
+
+		uniqAggregates[pt] = v + 1
+	}
+
+	return aggregates
+}
+
+func resolveProviderAggregate(provider infra.Provider) []infra.Provider {
+	providers := make([]infra.Provider, 0)
+	if ex, ok := provider.(infra.ProviderAggregate); ok {
+		for _, exp := range ex.Aggregates() {
+			providers = append(append(providers, resolveProviderAggregate(exp)...), exp)
+		}
+	}
+
+	return providers
 }
 
 // startServer 启动 Glacier
-func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.Time) func(cr cron.Manager, gf graceful.Graceful) error {
-	return func(cr cron.Manager, gf graceful.Graceful) error {
-		if err := glacier.startCronTaskServer(cr, gf, cc); err != nil {
-			return err
-		}
-
-		if glacier.enableHTTPServer {
-			if err := cc.ResolveWithError(func(webApp infra.Web) error {
-				return webApp.Start()
-			}); err != nil {
-				return err
-			}
-		}
-
+func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.Time) func(gf graceful.Graceful) error {
+	return func(gf graceful.Graceful) error {
 		// 服务都启动之后的回调
 		if glacier.afterServerStart != nil {
 			if err := glacier.afterServerStart(cc); err != nil {
@@ -501,40 +410,4 @@ func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.T
 		glacier.status = Started
 		return gf.Start()
 	}
-}
-
-// startCronTaskServer 启动定时任务
-func (glacier *glacierImpl) startCronTaskServer(cr cron.Manager, gf graceful.Graceful, cc container.Container) error {
-	// 设置定时任务
-	if glacier.cronTaskFuncs != nil {
-		for _, ct := range glacier.cronTaskFuncs {
-			if err := ct(cr, cc); err != nil {
-				return err
-			}
-		}
-	}
-
-	// 启动定时任务管理器
-	gf.AddShutdownHandler(cr.Stop)
-	cr.Start()
-
-	if glacier.logger.DebugEnabled() {
-		glacier.logger.Debugf("cron task server has been started")
-	}
-
-	return nil
-}
-
-type cronLogger struct {
-	logger log.Logger
-}
-
-func (l cronLogger) Info(msg string, keysAndValues ...interface{}) {
-	// Just drop it, we don't care
-}
-
-func (l cronLogger) Error(err error, msg string, keysAndValues ...interface{}) {
-	l.logger.WithFields(log.Fields{
-		"arguments": keysAndValues,
-	}).Errorf("%s: %v", msg, err)
 }

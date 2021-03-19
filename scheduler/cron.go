@@ -1,4 +1,4 @@
-package cron
+package scheduler
 
 import (
 	"fmt"
@@ -12,10 +12,15 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-// Manager is a manager object to manage cron jobs
-type Manager interface {
+// JobCreator is a creator for cron job
+type JobCreator interface {
 	// Add add a cron job
 	Add(name string, plan string, handler interface{}) error
+}
+
+// Scheduler is a manager object to manage cron jobs
+type Scheduler interface {
+	JobCreator
 	// Remove remove a cron job
 	Remove(name string) error
 	// Pause set job status to paused
@@ -46,7 +51,7 @@ type DistributeLockManager interface {
 	HasLock() bool
 }
 
-type cronManager struct {
+type schedulerImpl struct {
 	lock sync.RWMutex
 	cc   container.Container
 	cr   *cron.Cron
@@ -84,19 +89,19 @@ func (job Job) Next(nextNum int) ([]time.Time, error) {
 	return results, nil
 }
 
-// NewManager create a new Manager
-func NewManager(cc container.Container, logger log.Logger) Manager {
-	m := cronManager{cc: cc, jobs: make(map[string]*Job), logger: logger}
+// NewManager create a new Scheduler
+func NewManager(cc container.Container, logger log.Logger) Scheduler {
+	m := schedulerImpl{cc: cc, jobs: make(map[string]*Job), logger: logger}
 	cc.MustResolve(func(cr *cron.Cron) { m.cr = cr })
 
 	return &m
 }
 
-func (c *cronManager) DistributeLockManager(lockManager DistributeLockManager) {
+func (c *schedulerImpl) DistributeLockManager(lockManager DistributeLockManager) {
 	c.distributeLockManager = lockManager
 }
 
-func (c *cronManager) Add(name string, plan string, handler interface{}) error {
+func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -108,7 +113,7 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 	if !ok {
 		hh = newHandler(handler)
 	}
-	
+
 	jobHandler := func() {
 		if c.distributeLockManager != nil && !c.distributeLockManager.HasLock() {
 			if c.logger.DebugEnabled() {
@@ -154,7 +159,7 @@ func (c *cronManager) Add(name string, plan string, handler interface{}) error {
 	return nil
 }
 
-func (c *cronManager) Remove(name string) error {
+func (c *schedulerImpl) Remove(name string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -174,7 +179,7 @@ func (c *cronManager) Remove(name string) error {
 	return nil
 }
 
-func (c *cronManager) Pause(name string) error {
+func (c *schedulerImpl) Pause(name string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -197,7 +202,7 @@ func (c *cronManager) Pause(name string) error {
 	return nil
 }
 
-func (c *cronManager) Continue(name string) error {
+func (c *schedulerImpl) Continue(name string) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -225,7 +230,7 @@ func (c *cronManager) Continue(name string) error {
 	return nil
 }
 
-func (c *cronManager) Info(name string) (Job, error) {
+func (c *schedulerImpl) Info(name string) (Job, error) {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
@@ -236,7 +241,7 @@ func (c *cronManager) Info(name string) (Job, error) {
 	return Job{}, fmt.Errorf("job with name [%s] not found", name)
 }
 
-func (c *cronManager) Start() {
+func (c *schedulerImpl) Start() {
 	if c.distributeLockManager != nil {
 		getDistributeLock := func() {
 			if err := c.distributeLockManager.TryLock(); err != nil {
@@ -255,7 +260,7 @@ func (c *cronManager) Start() {
 	c.cr.Start()
 }
 
-func (c *cronManager) Stop() {
+func (c *schedulerImpl) Stop() {
 	c.cr.Stop()
 	if c.distributeLockManager != nil {
 		if err := c.distributeLockManager.TryUnLock(); err != nil {

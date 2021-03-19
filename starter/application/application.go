@@ -101,21 +101,3 @@ func (application *Application) AddFlags(flags ...cli.Flag) *Application {
 func (application *Application) Run(args []string) error {
 	return application.cli.Run(args)
 }
-
-// StringFlag create a string flag
-func StringFlag(name string, defaultValue string, usage string) *altsrc.StringFlag {
-	return altsrc.NewStringFlag(cli.StringFlag{
-		Name:  name,
-		Usage: usage,
-		Value: defaultValue,
-	})
-}
-
-// IntFlag create a int flag
-func IntFlag(name string, defaultValue int, usage string) *altsrc.IntFlag {
-	return altsrc.NewIntFlag(cli.IntFlag{
-		Name:  name,
-		Usage: usage,
-		Value: defaultValue,
-	})
-}

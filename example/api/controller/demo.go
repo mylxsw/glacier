@@ -20,9 +20,6 @@ func (d *DemoController) Register(router *web.Router) {
 		router.Post("/", d.Create).Custom(func(rou *mux.Route) {
 			rou.Name("demo:create")
 		})
-		router.Get("/", d.Get).Custom(func(rou *mux.Route) {
-			rou.Name("demo:routes")
-		})
 		router.Get("/raw", d.RawRes)
 	})
 }
@@ -31,16 +28,6 @@ func (d *DemoController) RawRes(ctx web.Context) web.Response {
 	return ctx.NewRawResponse(func(w http.ResponseWriter) {
 		w.Header().Set("X-Ray", "OOPS")
 		_, _ = w.Write([]byte("Hello, world"))
-	})
-}
-
-func (d *DemoController) Get(ctx web.Context, router *mux.Router) web.Response {
-	rr, _ := router.Get("demo:create").GetPathRegexp()
-	routes := web.GetAllRoutes(router)
-
-	return ctx.JSON(web.M{
-		"routes":                routes,
-		"regex_for_demo:create": rr,
 	})
 }
 

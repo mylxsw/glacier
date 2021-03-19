@@ -4,7 +4,6 @@ import (
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
-	"github.com/mylxsw/glacier/web"
 	"github.com/mylxsw/graceful"
 )
 
@@ -18,34 +17,6 @@ func (application *Application) Service(services ...infra.Service) {
 
 func (application *Application) Graceful(builder func() graceful.Graceful) infra.Glacier {
 	return application.glacier.Graceful(builder)
-}
-
-func (application *Application) WithHttpServer(builder infra.ListenerBuilder, options ...infra.WebServerOption) infra.Glacier {
-	return application.glacier.WithHttpServer(builder, options...)
-}
-
-func (application *Application) WebAppInit(initFunc infra.InitWebAppHandler) infra.Glacier {
-	return application.glacier.WebAppInit(initFunc)
-}
-
-func (application *Application) WebAppServerInit(handler infra.InitServerHandler) infra.Glacier {
-	return application.glacier.WebAppServerInit(handler)
-}
-
-func (application *Application) WebAppRouter(handler infra.InitRouterHandler) infra.Glacier {
-	return application.glacier.WebAppRouter(handler)
-}
-
-func (application *Application) WebAppMuxRouter(handler infra.InitMuxRouterHandler) infra.Glacier {
-	return application.glacier.WebAppMuxRouter(handler)
-}
-
-func (application *Application) WebAppExceptionHandler(handler web.ExceptionHandler) infra.Glacier {
-	return application.glacier.WebAppExceptionHandler(handler)
-}
-
-func (application *Application) HttpListenAddr() string {
-	return application.glacier.HttpListenAddr()
 }
 
 func (application *Application) Handler() func(cliContext infra.FlagContext) error {
@@ -70,14 +41,6 @@ func (application *Application) BeforeServerStop(f func(cc container.Container) 
 
 func (application *Application) AfterProviderBooted(f interface{}) infra.Glacier {
 	return application.glacier.AfterProviderBooted(f)
-}
-
-func (application *Application) Cron(f infra.CronTaskFunc) infra.Glacier {
-	return application.glacier.Cron(f)
-}
-
-func (application *Application) EventListener(f infra.EventListenerFunc) infra.Glacier {
-	return application.glacier.EventListener(f)
 }
 
 func (application *Application) Singleton(ins ...interface{}) infra.Glacier {

@@ -190,7 +190,7 @@ func (router *Router) Perform(exceptionHandler ExceptionHandler, cb func(*mux.Ro
 					if resp == nil {
 						_resp, err := ErrorToResponse(ctx, err)
 						if err != nil {
-							resp = ctx.Error(fmt.Sprintf("Internal Server Error: %v", err), http.StatusInternalServerError)
+							resp = ctx.Error(fmt.Sprintf("Internal serverImpl Error: %v", err), http.StatusInternalServerError)
 						} else {
 							resp = _resp
 						}

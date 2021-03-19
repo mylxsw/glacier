@@ -1,6 +1,7 @@
 package event
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sync"
@@ -24,7 +25,7 @@ func NewEventManager(store Store) Manager {
 }
 
 // Listen create a relation from event to listeners
-func (em *eventManager) Listen(listeners ...Listener) {
+func (em *eventManager) Listen(listeners ...interface{}) {
 	em.lock.Lock()
 	defer em.lock.Unlock()
 
@@ -51,10 +52,17 @@ func (em *eventManager) Publish(evt interface{}) {
 	em.lock.RLock()
 	defer em.lock.RUnlock()
 
-	em.store.Publish(fmt.Sprintf("%s", reflect.TypeOf(evt)), evt)
+	em.store.Publish(Event{
+		Name:  fmt.Sprintf("%s", reflect.TypeOf(evt)),
+		Event: evt,
+	})
 }
 
 // Call trigger listener to execute
-func (em *eventManager) Call(evt interface{}, listener Listener) {
+func (em *eventManager) Call(evt interface{}, listener interface{}) {
 	reflect.ValueOf(listener).Call([]reflect.Value{reflect.ValueOf(evt)})
+}
+
+func (em *eventManager) Start(ctx context.Context) <-chan interface{} {
+	return em.store.Start(ctx)
 }

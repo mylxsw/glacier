@@ -3,15 +3,10 @@ package infra
 import (
 	"context"
 	"net"
-	"net/http"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
-	"github.com/mylxsw/glacier/cron"
-	"github.com/mylxsw/glacier/event"
-	"github.com/mylxsw/glacier/web"
 	"github.com/mylxsw/graceful"
 )
 
@@ -19,24 +14,6 @@ const (
 	VersionKey     string = "version"
 	StartupTimeKey string = "startup_time"
 )
-
-type Web interface {
-	UpdateConfig(cb func(conf *web.Config))
-	ExceptionHandler(handler web.ExceptionHandler)
-	MuxRouter(f InitMuxRouterHandler)
-	Init(initFunc InitWebAppHandler) error
-	Start() error
-}
-
-type InitRouterHandler func(router *web.Router, mw web.RequestMiddleware)
-type InitMuxRouterHandler func(router *mux.Router)
-type InitServerHandler func(server *http.Server, listener net.Listener)
-type InitWebAppHandler func(cc container.Container, webApp Web, conf *web.Config) error
-
-type WebServerOption func(conf *web.Config)
-
-type CronTaskFunc func(cr cron.Manager, cc container.Container) error
-type EventListenerFunc func(listener event.Manager, cc container.Container)
 
 // Service is a interface for service
 type Service interface {
@@ -74,6 +51,11 @@ type DaemonProvider interface {
 	// Daemon is a async method called after boot
 	// this method is called asynchronous and concurrent
 	Daemon(ctx context.Context, app Glacier)
+}
+
+// ProviderAggregate Provider 聚合，所有实现该接口的 Provider 在加载之前将会先加载该集合中的 Provider
+type ProviderAggregate interface {
+	Aggregates() []Provider
 }
 
 type ListenerBuilder interface {
@@ -116,29 +98,12 @@ type FlagContext interface {
 	FlagNames() (names []string)
 	GlobalFlagNames() (names []string)
 }
+
 type Glacier interface {
 	// Provider 注册一个模块
 	Provider(providers ...Provider)
 	// Service 注册一个 Service
 	Service(services ...Service)
-
-	// WithHttpServer 初始化 Http Server
-	WithHttpServer(builder ListenerBuilder, options ...WebServerOption) Glacier
-	// WebAppInit web app 初始化阶段，web 应用对象还没有创建，在这里可以更新 web 配置
-	WebAppInit(initFunc InitWebAppHandler) Glacier
-	// WebAppServerInit web 服务初始化阶段，web 服务对象已经创建，此时不能再更新 web 配置了
-	// 此时 web 服务还没有启动，可以通过 handler 修改 server 对象和 tcpListenerBuilder 对象
-	WebAppServerInit(handler InitServerHandler) Glacier
-	// WebAppRouter 路由注册 Handler，在该 Handler 中注册 API 路由规则
-	WebAppRouter(handler InitRouterHandler) Glacier
-	// WebAppMuxRouter 路由注册 Handler，该方法获取到的是底层的 Gorilla Mux 对象
-	// 一般用来注册静态资源路由
-	// router.PathPrefix("/dist/").Handler(http.StripPrefix("/dist/", http.FileServer(FS(false)))).Name("assets")
-	WebAppMuxRouter(handler InitMuxRouterHandler) Glacier
-	// WebAppExceptionHandler 设置 Web APP 异常处理器
-	WebAppExceptionHandler(handler web.ExceptionHandler) Glacier
-	// HttpListenAddr 返回 HTTP 监听地址
-	HttpListenAddr() string
 
 	// Graceful 设置优雅停机实现
 	Graceful(builder func() graceful.Graceful) Glacier
@@ -156,9 +121,6 @@ type Glacier interface {
 	// AfterProviderBooted 所有的 providers 都已经完成 boot 之后执行
 	AfterProviderBooted(f interface{}) Glacier
 
-	// 设置定时任务
-	Cron(f CronTaskFunc) Glacier
-	EventListener(f EventListenerFunc) Glacier
 	Logger(logger log.Logger) Glacier
 	Singleton(ins ...interface{}) Glacier
 	Prototype(ins ...interface{}) Glacier
