@@ -66,7 +66,7 @@ func (app *serverImpl) Start(listener net.Listener) error {
 	app.status = serverStatusStarted
 	return app.cc.ResolveWithError(func(gf graceful.Graceful, logger log.Logger) error {
 		srv := &http.Server{
-			Handler:      app.router(),
+			Handler:      app.router(app.cc),
 			WriteTimeout: app.conf.HttpWriteTimeout,
 			ReadTimeout:  app.conf.HttpReadTimeout,
 			IdleTimeout:  app.conf.HttpIdleTimeout,
@@ -111,12 +111,12 @@ func (app *serverImpl) Start(listener net.Listener) error {
 	})
 }
 
-func (app *serverImpl) router() http.Handler {
-	router := NewRouterWithContainer(app.cc, app.conf)
+func (app *serverImpl) router(cc container.Container) http.Handler {
+	router := NewRouterWithContainer(cc, app.conf)
 	mw := NewRequestMiddleware()
 
 	if app.conf.routeHandler != nil {
-		app.conf.routeHandler(router, mw)
+		app.conf.routeHandler(cc, router, mw)
 	}
 
 	return router.Perform(app.conf.exceptionHandler, func(muxRouter *mux.Router) {

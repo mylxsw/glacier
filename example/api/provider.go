@@ -16,35 +16,36 @@ type ServiceProvider struct{}
 
 func (s ServiceProvider) Aggregates() []infra.Provider {
 	return []infra.Provider{
-		web.Provider(listener.FlagContext("listen")),
+		web.Provider(
+			listener.FlagContext("listen"),
+			web.SetIgnoreLastSlashOption(true),
+			web.SetExceptionHandlerOption(s.exceptionHandler),
+			web.SetRouteHandlerOption(s.router),
+			web.SetMuxRouteHandlerOption(s.muxRouteHandler),
+		),
 	}
 }
 
-func (s ServiceProvider) Register(app container.Container) {
-
-}
-
-func (s ServiceProvider) Boot(app infra.Glacier) {
-	app.MustResolve(func(server web.Server) {
-		server.Options(
-			web.SetIgnoreLastSlashOption(true),
-			web.SetExceptionHandlerOption(func(ctx web.Context, err interface{}) web.Response {
-				log.Errorf("stack: %s", debug.Stack())
-				return nil
-			}),
-			web.SetRouteHandlerOption(func(router *web.Router, mw web.RequestMiddleware) {
-				router.WithMiddleware(mw.AccessLog(log.Module("request"))).
-					Controllers(
-						"/api",
-						controller.NewWelcomeController(app.Container()),
-						controller.NewDemoController(),
-					)
-			}),
-			web.SetMuxRouteHandlerOption(func(router *mux.Router) {
-				for _, r := range web.GetAllRoutes(router) {
-					log.Debugf("route: %s -> %s | %s | %s", r.Name, r.Methods, r.PathTemplate, r.PathRegexp)
-				}
-			}),
+func (s ServiceProvider) router(cc container.Container, router *web.Router, mw web.RequestMiddleware) {
+	router.WithMiddleware(mw.AccessLog(log.Module("request"))).
+		Controllers(
+			"/api",
+			controller.NewWelcomeController(cc),
+			controller.NewDemoController(),
 		)
-	})
 }
+
+func (s ServiceProvider) muxRouteHandler(router *mux.Router) {
+	for _, r := range web.GetAllRoutes(router) {
+		log.Debugf("route: %s -> %s | %s | %s", r.Name, r.Methods, r.PathTemplate, r.PathRegexp)
+	}
+}
+
+func (s ServiceProvider) exceptionHandler(ctx web.Context, err interface{}) web.Response {
+	log.Errorf("stack: %s", debug.Stack())
+	return nil
+}
+
+func (s ServiceProvider) Register(app container.Container) {}
+
+func (s ServiceProvider) Boot(app infra.Glacier) {}

@@ -9,7 +9,7 @@ import (
 	"github.com/mylxsw/container"
 )
 
-type RouteHandler func(router *Router, mw RequestMiddleware)
+type RouteHandler func(cc container.Container, router *Router, mw RequestMiddleware)
 type MuxRouteHandler func(router *mux.Router)
 type ListenerHandler func(server *http.Server, listener net.Listener)
 type InitHandler func(cc container.Container, webServer Server, conf *Config) error
