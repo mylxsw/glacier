@@ -11,7 +11,6 @@ import (
 	asteriaEvent "github.com/mylxsw/asteria/event"
 	"github.com/mylxsw/asteria/level"
 	"github.com/mylxsw/asteria/log"
-	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/event"
 	"github.com/mylxsw/glacier/example/api"
 	"github.com/mylxsw/glacier/example/config"
@@ -68,7 +67,7 @@ func main() {
 	app.Provider(job.ServiceProvider{}, api.ServiceProvider{})
 	app.Service(&service.DemoService{}, &service.Demo2Service{})
 
-	app.Provider(event.Provider(func(cc container.Container, listener event.Listener) {
+	app.Provider(event.Provider(func(cc infra.Resolver, listener event.Listener) {
 		listener.Listen(func(event CronEvent) {
 			if log.DebugEnabled() {
 				log.Debug("a new cron task executed")

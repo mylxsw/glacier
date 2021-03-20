@@ -5,7 +5,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/mylxsw/asteria/log"
-	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/example/api/controller"
 	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/glacier/listener"
@@ -26,7 +25,7 @@ func (s ServiceProvider) Aggregates() []infra.Provider {
 	}
 }
 
-func (s ServiceProvider) router(cc container.Container, router *web.Router, mw web.RequestMiddleware) {
+func (s ServiceProvider) router(cc infra.Resolver, router web.Router, mw web.RequestMiddleware) {
 	router.WithMiddleware(mw.AccessLog(log.Module("request"))).
 		Controllers(
 			"/api",
@@ -46,6 +45,6 @@ func (s ServiceProvider) exceptionHandler(ctx web.Context, err interface{}) web.
 	return nil
 }
 
-func (s ServiceProvider) Register(app container.Container) {}
+func (s ServiceProvider) Register(app infra.Binder) {}
 
-func (s ServiceProvider) Boot(app infra.Glacier) {}
+func (s ServiceProvider) Boot(app infra.Resolver) {}

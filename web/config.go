@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/infra"
 )
 
-type RouteHandler func(cc container.Container, router *Router, mw RequestMiddleware)
+type RouteHandler func(cc infra.Resolver, router Router, mw RequestMiddleware)
 type MuxRouteHandler func(router *mux.Router)
 type ListenerHandler func(server *http.Server, listener net.Listener)
-type InitHandler func(cc container.Container, webServer Server, conf *Config) error
+type InitHandler func(cc infra.Resolver, webServer Server, conf *Config) error
 
 type Config struct {
 	routeHandler     RouteHandler

@@ -4,20 +4,20 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/glacier/web"
 )
 
 type WelcomeController struct {
-	cc container.Container
+	cc infra.Resolver
 }
 
-func NewWelcomeController(cc container.Container) web.Controller {
+func NewWelcomeController(cc infra.Resolver) web.Controller {
 	return &WelcomeController{cc: cc}
 }
 
-func (w *WelcomeController) Register(router *web.Router) {
-	router.Group("/welcome", func(router *web.Router) {
+func (w *WelcomeController) Register(router web.Router) {
+	router.Group("/welcome", func(router web.Router) {
 		router.Get("/", w.Hello).Name("welcome:hello")
 		router.Get("/hello/{name}/", w.Hello2).Name("welcome:hello2")
 		router.Get("/panic/", w.Hello3).Name("welcome:panic")

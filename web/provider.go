@@ -20,9 +20,9 @@ func Provider(builder infra.ListenerBuilder, options ...Option) infra.DaemonProv
 	}
 }
 
-func (p *provider) Register(app container.Container) {
-	app.MustSingletonOverride(func() Server {
-		return NewServer(app, p.options...)
+func (p *provider) Register(app infra.Binder) {
+	app.MustSingletonOverride(func(cc container.Container) Server {
+		return NewServer(cc, p.options...)
 	})
 	app.MustSingletonOverride(func() infra.ListenerBuilder {
 		if p.listenerBuilder == nil {
@@ -33,12 +33,12 @@ func (p *provider) Register(app container.Container) {
 	})
 }
 
-func (p *provider) Boot(app infra.Glacier) {
+func (p *provider) Boot(app infra.Resolver) {
 }
 
-func (p *provider) Daemon(ctx context.Context, app infra.Glacier) {
+func (p *provider) Daemon(ctx context.Context, app infra.Resolver) {
 	app.MustResolve(func(server Server, listenerBuilder infra.ListenerBuilder) {
-		l, err := listenerBuilder.Build(app.Container())
+		l, err := listenerBuilder.Build(app)
 		if err != nil {
 			panic(err)
 		}

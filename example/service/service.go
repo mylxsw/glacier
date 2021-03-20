@@ -4,12 +4,11 @@ import (
 	"time"
 
 	"github.com/mylxsw/asteria/log"
-	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
 )
 
 type DemoService struct {
-	cc      container.Container
+	cc      infra.Resolver
 	stopped chan interface{}
 }
 
@@ -17,7 +16,7 @@ func (d *DemoService) ShouldLoad(c infra.FlagContext) bool {
 	return c.Bool("load-demoservice")
 }
 
-func (d *DemoService) Init(cc container.Container) error {
+func (d *DemoService) Init(cc infra.Resolver) error {
 	d.cc = cc
 	d.stopped = make(chan interface{}, 0)
 	return nil

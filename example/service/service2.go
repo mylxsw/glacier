@@ -4,15 +4,15 @@ import (
 	"time"
 
 	"github.com/mylxsw/asteria/log"
-	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/infra"
 )
 
 type Demo2Service struct {
-	cc      container.Container
+	cc      infra.Resolver
 	stopped chan interface{}
 }
 
-func (d *Demo2Service) Init(cc container.Container) error {
+func (d *Demo2Service) Init(cc infra.Resolver) error {
 	d.cc = cc
 	d.stopped = make(chan interface{}, 0)
 	return nil

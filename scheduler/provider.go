@@ -11,15 +11,15 @@ import (
 )
 
 type provider struct {
-	creator func(cc container.Container, creator JobCreator)
+	creator func(cc infra.Resolver, creator JobCreator)
 	options []Option
 }
 
-func Provider(creator func(cc container.Container, creator JobCreator), options ...Option) infra.DaemonProvider {
+func Provider(creator func(cc infra.Resolver, creator JobCreator), options ...Option) infra.DaemonProvider {
 	return &provider{creator: creator, options: options}
 }
 
-func (p *provider) Register(app container.Container) {
+func (p *provider) Register(app infra.Binder) {
 	// 定时任务对象
 	app.MustSingletonOverride(func(logger log.Logger) *cronV3.Cron {
 		return cronV3.New(cronV3.WithSeconds(), cronV3.WithLogger(cronLogger{logger: logger}))
@@ -35,11 +35,11 @@ func (p *provider) Register(app container.Container) {
 	app.MustSingletonOverride(func(cr Scheduler) JobCreator { return cr })
 }
 
-func (p *provider) Boot(app infra.Glacier) {
+func (p *provider) Boot(app infra.Resolver) {
 	app.MustResolve(p.creator)
 }
 
-func (p *provider) Daemon(ctx context.Context, app infra.Glacier) {
+func (p *provider) Daemon(ctx context.Context, app infra.Resolver) {
 	app.MustResolve(func(gf graceful.Graceful, cr Scheduler, logger log.Logger) {
 		gf.AddShutdownHandler(cr.Stop)
 		cr.Start()

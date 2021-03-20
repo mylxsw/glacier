@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net"
 
-	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
 )
 
@@ -18,7 +17,7 @@ func Default(listenAddr string) infra.ListenerBuilder {
 	return defaultBuilder{listenAddr: listenAddr}
 }
 
-func (e defaultBuilder) Build(cc container.Container) (net.Listener, error) {
+func (e defaultBuilder) Build(cc infra.Resolver) (net.Listener, error) {
 	return net.Listen("tcp", e.listenAddr)
 }
 
@@ -32,7 +31,7 @@ func FlagContext(flagName string) infra.ListenerBuilder {
 	return &flagContextBuilder{flagName: flagName}
 }
 
-func (builder *flagContextBuilder) Build(cc container.Container) (net.Listener, error) {
+func (builder *flagContextBuilder) Build(cc infra.Resolver) (net.Listener, error) {
 	listenAddr := cc.MustGet((*infra.FlagContext)(nil)).(infra.FlagContext).String(builder.flagName)
 	if listenAddr == "" {
 		return nil, errors.New("listen addr is required")
@@ -50,6 +49,6 @@ func Existed(listener net.Listener) infra.ListenerBuilder {
 	return existedBuilder{listener: listener}
 }
 
-func (e existedBuilder) Build(cc container.Container) (net.Listener, error) {
+func (e existedBuilder) Build(cc infra.Resolver) (net.Listener, error) {
 	return e.listener, nil
 }

@@ -180,6 +180,8 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 		cc.MustBindValue(infra.VersionKey, glacier.version)
 		cc.MustBindValue(infra.StartupTimeKey, startupTs)
 		cc.MustSingleton(func() infra.FlagContext { return cliCtx })
+		cc.MustSingletonOverride(func() infra.Resolver { return cc })
+		cc.MustSingletonOverride(func() infra.Binder { return cc })
 
 		err := glacier.initialize(cc, cliCtx)
 		cc.MustResolve(func(gf graceful.Graceful) {
@@ -206,7 +208,7 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 				}
 			}
 
-			p.Boot(glacier)
+			p.Boot(cc)
 		}
 
 		if glacier.afterProviderBooted != nil {
@@ -222,7 +224,7 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 				daemonServiceProviderCount++
 				go func(pp infra.DaemonProvider) {
 					defer wg.Done()
-					pp.Daemon(ctx, glacier)
+					pp.Daemon(ctx, cc)
 				}(pp)
 			}
 		}

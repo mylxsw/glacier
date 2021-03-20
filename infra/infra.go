@@ -18,7 +18,7 @@ const (
 // Service is a interface for service
 type Service interface {
 	// Init initialize the service
-	Init(cc container.Container) error
+	Init(resolver Resolver) error
 	// Name return service name
 	Name() string
 	// Start start service, not blocking
@@ -39,18 +39,18 @@ type Provider interface {
 	// Register add some dependency for current module
 	// this method is called one by one synchronous
 	// service provider don't autowired in this stage
-	Register(app container.Container)
+	Register(app Binder)
 	// Boot start the module
 	// this method is called one by one synchronous after all register methods called
 	// service provider has been autowired in this stage
-	Boot(app Glacier)
+	Boot(app Resolver)
 }
 
 type DaemonProvider interface {
 	Provider
 	// Daemon is a async method called after boot
 	// this method is called asynchronous and concurrent
-	Daemon(ctx context.Context, app Glacier)
+	Daemon(ctx context.Context, app Resolver)
 }
 
 // ProviderAggregate Provider 聚合，所有实现该接口的 Provider 在加载之前将会先加载该集合中的 Provider
@@ -59,7 +59,7 @@ type ProviderAggregate interface {
 }
 
 type ListenerBuilder interface {
-	Build(cc container.Container) (net.Listener, error)
+	Build(cc Resolver) (net.Listener, error)
 }
 
 type FlagContext interface {
@@ -130,3 +130,6 @@ type Glacier interface {
 	// Main 函数，在 App 启动的最后执行该函数
 	Main(f interface{}) Glacier
 }
+
+type Binder container.Binder
+type Resolver container.Resolver

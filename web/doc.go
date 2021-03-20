@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/mylxsw/container"
 )
@@ -131,7 +132,7 @@ type Response interface {
 // Controller is a interface for controller
 type Controller interface {
 	// Register register routes for a controller
-	Register(router *Router)
+	Register(router Router)
 }
 
 // ResponseCreator is a response creator
@@ -144,4 +145,50 @@ type ResponseCreator interface {
 	Cookie(cookie *http.Cookie)
 	GetCode() int
 	Flush()
+}
+
+type Router interface {
+	Group(prefix string, f func(rou Router), decors ...HandlerDecorator)
+	Perform(exceptionHandler ExceptionHandler, cb func(*mux.Router)) http.Handler
+	GetRoutes() []RouteRule
+	Any(path string, handler interface{}, middlewares ...HandlerDecorator) RouteRule
+	Get(path string, handler interface{}, middlewares ...HandlerDecorator) RouteRule
+	Post(path string, handler interface{}, middlewares ...HandlerDecorator) RouteRule
+	Delete(path string, handler interface{}, middlewares ...HandlerDecorator) RouteRule
+	Put(path string, handler interface{}, middlewares ...HandlerDecorator) RouteRule
+	Patch(path string, handler interface{}, middlewares ...HandlerDecorator) RouteRule
+	Head(path string, handler interface{}, middlewares ...HandlerDecorator) RouteRule
+	Options(path string, handler interface{}, middlewares ...HandlerDecorator) RouteRule
+	WebAny(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
+	WebGet(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
+	WebPost(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
+	WebPut(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
+	WebDelete(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
+	WebPatch(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
+	WebHead(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
+	WebOptions(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
+	Controllers(prefix string, controllers ...Controller)
+	WithMiddleware(decors ...HandlerDecorator) *MiddlewareRouter
+}
+
+type RouteRule interface {
+	Custom(custom func(rou *mux.Route)) RouteRule
+	Name(name string) RouteRule
+	Headers(pairs ...string) RouteRule
+	Queries(pairs ...string) RouteRule
+	Schemes(schemes ...string) RouteRule
+	Host(tpl string) RouteRule
+	Path(path string) RouteRule
+	Decorators(dec ...HandlerDecorator) RouteRule
+
+	GetName() string
+	GetHost() string
+	GetQueries() []string
+	GetSchemas() []string
+	GetHeaders() []string
+	GetCustom() func(rou *mux.Route)
+	GetDecorators() []HandlerDecorator
+	GetWebHandler() WebHandler
+	GetPath() string
+	GetMethod() string
 }

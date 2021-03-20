@@ -15,8 +15,8 @@ func NewDemoController() web.Controller {
 	return &DemoController{}
 }
 
-func (d *DemoController) Register(router *web.Router) {
-	router.Group("/demo", func(router *web.Router) {
+func (d *DemoController) Register(router web.Router) {
+	router.Group("/demo", func(router web.Router) {
 		router.Post("/", d.Create).Custom(func(rou *mux.Route) {
 			rou.Name("demo:create")
 		})
