@@ -1,12 +1,12 @@
 package scheduler
 
 import (
-	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/infra"
 )
 
 // JobHandler 定时任务 Job 处理接口，所有的任务都要实现该接口
 type JobHandler interface {
-	Handle(cc container.Container) error
+	Handle(resolver infra.Resolver) error
 }
 
 type jobHandlerImpl struct {
@@ -17,8 +17,8 @@ func newHandler(handler interface{}) JobHandler {
 	return jobHandlerImpl{handler: handler}
 }
 
-func (h jobHandlerImpl) Handle(cc container.Container) error {
-	return cc.ResolveWithError(h.handler)
+func (h jobHandlerImpl) Handle(resolver infra.Resolver) error {
+	return resolver.ResolveWithError(h.handler)
 }
 
 // WithoutOverlap 可以避免当前任务执行时间过长时，同一任务同时存在多个运行实例的问题
@@ -43,11 +43,11 @@ func (handler *OverlapJobHandler) SkipCallback(fn func()) *OverlapJobHandler {
 	return handler
 }
 
-func (handler *OverlapJobHandler) Handle(cc container.Container) error {
+func (handler *OverlapJobHandler) Handle(resolver infra.Resolver) error {
 	select {
 	case handler.executing <- struct{}{}:
 		defer func() { <-handler.executing }()
-		return cc.ResolveWithError(handler.handler)
+		return resolver.ResolveWithError(handler.handler)
 	default:
 		if handler.skipCallback != nil {
 			handler.skipCallback()
