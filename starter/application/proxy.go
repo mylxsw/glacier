@@ -31,11 +31,11 @@ func (application *Application) BeforeServerStart(f func(cc container.Container)
 	return application.glacier.BeforeServerStart(f)
 }
 
-func (application *Application) AfterServerStart(f func(cc container.Container) error) infra.Glacier {
+func (application *Application) AfterServerStart(f func(cc infra.Resolver) error) infra.Glacier {
 	return application.glacier.AfterServerStart(f)
 }
 
-func (application *Application) BeforeServerStop(f func(cc container.Container) error) infra.Glacier {
+func (application *Application) BeforeServerStop(f func(cc infra.Resolver) error) infra.Glacier {
 	return application.glacier.BeforeServerStop(f)
 }
 

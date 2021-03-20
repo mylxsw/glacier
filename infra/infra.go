@@ -115,9 +115,9 @@ type Glacier interface {
 	// BeforeServerStart 此时所有对象已经注册完毕，但是服务启动前执行
 	BeforeServerStart(f func(cc container.Container) error) Glacier
 	// AfterServerStart 此时所有服务都已经启动（Main 除外）
-	AfterServerStart(f func(cc container.Container) error) Glacier
+	AfterServerStart(f func(cc Resolver) error) Glacier
 	// BeforeServerStop 服务停止前的回调
-	BeforeServerStop(f func(cc container.Container) error) Glacier
+	BeforeServerStop(f func(cc Resolver) error) Glacier
 	// AfterProviderBooted 所有的 providers 都已经完成 boot 之后执行
 	AfterProviderBooted(f interface{}) Glacier
 

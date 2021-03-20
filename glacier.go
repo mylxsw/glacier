@@ -37,8 +37,8 @@ type glacierImpl struct {
 
 	beforeInitialize    func(c infra.FlagContext) error
 	beforeServerStart   func(cc container.Container) error
-	afterServerStart    func(cc container.Container) error
-	beforeServerStop    func(cc container.Container) error
+	afterServerStart    func(cc infra.Resolver) error
+	beforeServerStop    func(cc infra.Resolver) error
 	afterProviderBooted interface{}
 	mainFunc            interface{}
 
@@ -88,13 +88,13 @@ func (glacier *glacierImpl) BeforeServerStart(f func(cc container.Container) err
 }
 
 // AfterServerStart set a hook func executed after server started
-func (glacier *glacierImpl) AfterServerStart(f func(cc container.Container) error) infra.Glacier {
+func (glacier *glacierImpl) AfterServerStart(f func(cc infra.Resolver) error) infra.Glacier {
 	glacier.afterServerStart = f
 	return glacier
 }
 
 // BeforeServerStop set a hook func executed before server stop
-func (glacier *glacierImpl) BeforeServerStop(f func(cc container.Container) error) infra.Glacier {
+func (glacier *glacierImpl) BeforeServerStop(f func(cc infra.Resolver) error) infra.Glacier {
 	glacier.beforeServerStop = f
 	return glacier
 }
