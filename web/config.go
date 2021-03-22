@@ -10,7 +10,7 @@ import (
 )
 
 type RouteHandler func(cc infra.Resolver, router Router, mw RequestMiddleware)
-type MuxRouteHandler func(router *mux.Router)
+type MuxRouteHandler func(cc infra.Resolver, router *mux.Router)
 type ListenerHandler func(server *http.Server, listener net.Listener)
 type InitHandler func(cc infra.Resolver, webServer Server, conf *Config) error
 

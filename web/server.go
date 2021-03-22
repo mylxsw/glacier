@@ -9,14 +9,15 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/graceful"
 )
 
-type Option func(conf *Config)
+type Option func(cc infra.Resolver, conf *Config)
 
 type Server interface {
 	Start(listener net.Listener) error
-	Options(options ...Option)
+	Options(cc infra.Resolver, options ...Option)
 }
 
 // serverImpl is the web app
@@ -40,18 +41,18 @@ func NewServer(cc container.Container, options ...Option) Server {
 		conf:   DefaultConfig(),
 		status: serverStatusInit,
 	}
-	server.Options(options...)
+	server.Options(cc, options...)
 
 	return server
 }
 
-func (app *serverImpl) Options(options ...Option) {
+func (app *serverImpl) Options(cc infra.Resolver, options ...Option) {
 	if app.status > serverStatusInit {
 		panic("can not change options after server started")
 	}
 
 	for _, opt := range options {
-		opt(app.conf)
+		opt(cc, app.conf)
 	}
 }
 
@@ -124,6 +125,6 @@ func (app *serverImpl) router(cc container.Container) http.Handler {
 			return
 		}
 
-		app.conf.muxRouteHandler(muxRouter)
+		app.conf.muxRouteHandler(cc, muxRouter)
 	})
 }

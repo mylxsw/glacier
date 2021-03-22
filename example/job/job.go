@@ -17,7 +17,9 @@ func (j ServiceProvider) Aggregates() []infra.Provider {
 					log.Errorf("test-timeout-job skipped")
 				}))
 			},
-			scheduler.SetDistributeLockManagerOption(NewDistributeLockManager()),
+			scheduler.SetDistributeLockManagerOption(func(cc infra.Resolver) scheduler.DistributeLockManager {
+				return NewDistributeLockManager()
+			}),
 		),
 	}
 }

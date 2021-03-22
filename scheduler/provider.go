@@ -27,7 +27,7 @@ func (p *provider) Register(app infra.Binder) {
 	app.MustSingletonOverride(func(cc container.Container, logger log.Logger) Scheduler {
 		cr := NewManager(cc, logger)
 		for _, opt := range p.options {
-			opt(cr)
+			opt(cc, cr)
 		}
 
 		return cr
@@ -67,11 +67,11 @@ func (l cronLogger) Error(err error, msg string, keysAndValues ...interface{}) {
 }
 
 // Option 定时任务配置型
-type Option func(cr Scheduler)
+type Option func(cc infra.Resolver, cr Scheduler)
 
 // SetDistributeLockManagerOption 设置分布式锁管理器实现
-func SetDistributeLockManagerOption(lockManager DistributeLockManager) Option {
-	return func(cr Scheduler) {
-		cr.DistributeLockManager(lockManager)
+func SetDistributeLockManagerOption(lockManager func(cc infra.Resolver) DistributeLockManager) Option {
+	return func(cc infra.Resolver, cr Scheduler) {
+		cr.DistributeLockManager(lockManager(cc))
 	}
 }
