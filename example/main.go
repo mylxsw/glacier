@@ -67,15 +67,20 @@ func main() {
 	app.Provider(job.ServiceProvider{}, api.ServiceProvider{})
 	app.Service(&service.DemoService{}, &service.Demo2Service{})
 
-	app.Provider(event.Provider(func(cc infra.Resolver, listener event.Listener) {
-		listener.Listen(func(event CronEvent) {
-			if log.DebugEnabled() {
-				log.Debug("a new cron task executed")
-			}
+	app.Provider(event.Provider(
+		func(cc infra.Resolver, listener event.Listener) {
+			listener.Listen(func(event CronEvent) {
+				if log.DebugEnabled() {
+					log.Debug("a new cron task executed")
+				}
 
-			log.Infof("event processed, listener_goroutine_id=%d, publisher_goroutine_id=%d", getGID(), event.GoroutineID)
-		})
-	}, event.SetStoreOption(event.NewMemoryEventStore(true, 100))))
+				log.Infof("event processed, listener_goroutine_id=%d, publisher_goroutine_id=%d", getGID(), event.GoroutineID)
+			})
+		},
+		event.SetStoreOption(func(cc infra.Resolver) event.Store {
+			return event.NewMemoryEventStore(true, 100)
+		}),
+	))
 
 	app.Singleton(func(c infra.FlagContext) *config.Config {
 		return &config.Config{
