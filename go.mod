@@ -10,7 +10,7 @@ require (
 	github.com/gorilla/sessions v1.2.0
 	github.com/gorilla/websocket v1.4.1
 	github.com/json-iterator/go v1.1.10 // indirect
-	github.com/mylxsw/asteria v0.0.0-20210107083329-f465aaced0b0
+	github.com/mylxsw/asteria v0.0.0-20210423061904-9b17f4c87f96
 	github.com/mylxsw/container v0.0.0-20210320032614-4c230b312e04
 	github.com/mylxsw/graceful v0.0.0-20210318070625-a4a80fb77564
 	github.com/pkg/errors v0.8.1

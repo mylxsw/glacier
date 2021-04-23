@@ -16,7 +16,7 @@ type UserUpdatedEvent struct {
 }
 
 func TestPublishEvent(t *testing.T) {
-	eventManager := event.NewEventManager(event.NewMemoryEventStore(false))
+	eventManager := event.NewEventManager(event.NewMemoryEventStore(false, 10))
 	eventManager.Listen(func(evt UserCreatedEvent) {
 		t.Logf("user created: id=%s, name=%s", evt.ID, evt.UserName)
 
