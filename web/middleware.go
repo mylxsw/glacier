@@ -140,12 +140,7 @@ func (rm RequestMiddleware) AuthHandler(cb func(ctx Context, typ string, credent
 func (rm RequestMiddleware) Session(store sessions.Store, name string, options *sessions.Options) HandlerDecorator {
 	return func(handler WebHandler) WebHandler {
 		return func(ctx Context) Response {
-			var err error
-			session, err := store.Get(ctx.Request().Raw(), name)
-			if err != nil {
-				panic(errors.Wrap(err, "can not create session"))
-			}
-
+			session, _ := store.Get(ctx.Request().Raw(), name)
 			if options != nil {
 				session.Options = options
 			}
