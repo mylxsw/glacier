@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -20,12 +21,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// request 请求对象封装
+// HttpRequest 请求对象封装
 type HttpRequest struct {
 	r       *http.Request
 	body    []byte
 	session *sessions.Session
 	cc      container.Container
+	router  *routerImpl
 	conf    Config
 }
 
@@ -391,3 +393,17 @@ func (req *HttpRequest) Validate(validator Validator, jsonResponse bool) {
 	}
 }
 
+// RouteURL builds a URL for the route
+func (req *HttpRequest) RouteURL(name string, pairs ...string) (*url.URL, error) {
+	return req.router.router.Get(name).URL(pairs...)
+}
+
+// RouteByName get a route by name
+func (req *HttpRequest) RouteByName(name string) RouteAware {
+	return req.router.router.Get(name)
+}
+
+// CurrentRoute return current route
+func (req *HttpRequest) CurrentRoute() RouteAware {
+	return mux.CurrentRoute(req.r)
+}

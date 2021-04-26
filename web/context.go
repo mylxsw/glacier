@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"path/filepath"
 
 	"github.com/gorilla/sessions"
@@ -25,6 +26,7 @@ type WebContext struct {
 type webHandler struct {
 	handle    WebHandler
 	container container.Container
+	router    *routerImpl
 	conf      *Config
 }
 
@@ -32,15 +34,17 @@ type webHandler struct {
 type WebHandler func(context Context) Response
 
 // newWebHandler 创建一个WebHandler，用于传递给Router
-func newWebHandler(cc container.Container, handler WebHandler, decors ...HandlerDecorator) webHandler {
+func newWebHandler(router *routerImpl, handler WebHandler, decors ...HandlerDecorator) webHandler {
 	for i := range decors {
 		d := decors[len(decors)-i-1]
 		handler = d(handler)
 	}
 
+	cc := router.container
 	return webHandler{
 		handle:    handler,
 		container: cc,
+		router:    router,
 		conf:      cc.MustGet(&Config{}).(*Config),
 	}
 }
@@ -56,7 +60,7 @@ func (h webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w:       w,
 			headers: make(map[string]string),
 		},
-		request: &HttpRequest{r: r, body: body, cc: h.container, conf: *h.conf},
+		request: &HttpRequest{r: r, body: body, cc: h.container, conf: *h.conf, router: h.router},
 		cc:      h.container,
 		conf:    *h.conf,
 	}
@@ -467,4 +471,16 @@ func (ctx *WebContext) Decode(v interface{}) error {
 // Validate execute a validator, if error happens, panic it
 func (ctx *WebContext) Validate(validator Validator, jsonResponse bool) {
 	ctx.request.Validate(validator, jsonResponse)
+}
+
+func (ctx *WebContext) RouteURL(name string, pairs ...string) (*url.URL, error) {
+	return ctx.request.RouteURL(name, pairs...)
+}
+
+func (ctx *WebContext) RouteByName(name string) RouteAware {
+	return ctx.request.RouteByName(name)
+}
+
+func (ctx *WebContext) CurrentRoute() RouteAware {
+	return ctx.request.CurrentRoute()
 }

@@ -177,7 +177,10 @@ func NewRouterWithContainer(c container.Container, conf *Config, decorators ...H
 	cc.MustBindValue("config", conf)
 	cc.MustSingleton(func() *Config { return conf })
 
-	return create(cc, conf.IgnoreLastSlash, mux.NewRouter(), decorators...)
+	muxRouter := mux.NewRouter()
+	cc.MustSingleton(func() *mux.Router { return muxRouter })
+
+	return create(cc, conf.IgnoreLastSlash, muxRouter, decorators...)
 }
 
 // create 创建定制路由器
@@ -256,7 +259,7 @@ func (router *routerImpl) Perform(exceptionHandler ExceptionHandler, cb func(*mu
 	}
 
 	for _, r := range router.routes {
-		var handler http.Handler = newWebHandler(router.container, corsHandler(r), r.GetDecorators()...)
+		var handler http.Handler = newWebHandler(router, corsHandler(r), r.GetDecorators()...)
 		route := router.router.Handle(r.GetPath(), handler)
 		if r.GetMethod() != "" {
 			route.Methods(r.GetMethod(), http.MethodOptions)
@@ -367,44 +370,4 @@ func (router *routerImpl) Head(path string, handler interface{}, middlewares ...
 // Options 指定所有OPTIONS方式的路由规则
 func (router *routerImpl) Options(path string, handler interface{}, middlewares ...HandlerDecorator) RouteRule {
 	return router.addHandler("OPTIONS", path, handler, middlewares...)
-}
-
-// WebAny 指定所有请求方式的路由规则，WebHandler方式
-func (router *routerImpl) WebAny(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule {
-	return router.addWebHandler("", path, handler, middlewares...)
-}
-
-// WebGet 指定GET请求方式的路由规则，WebHandler方式
-func (router *routerImpl) WebGet(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule {
-	return router.addWebHandler("GET", path, handler, middlewares...)
-}
-
-// WebPost 指定POST请求方式的路由规则，WebHandler方式
-func (router *routerImpl) WebPost(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule {
-	return router.addWebHandler("POST", path, handler, middlewares...)
-}
-
-// WebPut 指定所有Put方式的路由规则，WebHandler方式
-func (router *routerImpl) WebPut(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule {
-	return router.addWebHandler("PUT", path, handler, middlewares...)
-}
-
-// WebDelete 指定所有DELETE方式的路由规则，WebHandler方式
-func (router *routerImpl) WebDelete(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule {
-	return router.addWebHandler("DELETE", path, handler, middlewares...)
-}
-
-// WebPatch 指定所有PATCH方式的路由规则，WebHandler方式
-func (router *routerImpl) WebPatch(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule {
-	return router.addWebHandler("PATCH", path, handler, middlewares...)
-}
-
-// WebHead 指定所有HEAD方式的路由规则，WebHandler方式
-func (router *routerImpl) WebHead(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule {
-	return router.addWebHandler("HEAD", path, handler, middlewares...)
-}
-
-// WebOptions 指定所有OPTIONS方式的路由规则，WebHandler方式
-func (router *routerImpl) WebOptions(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule {
-	return router.addWebHandler("OPTIONS", path, handler, middlewares...)
 }

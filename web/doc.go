@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"net/http"
+	"net/url"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -73,6 +74,10 @@ type Context interface {
 	Container() container.Container
 	View(tplPath string, data interface{}) *HTMLResponse
 	Validate(validator Validator, jsonResponse bool)
+
+	RouteURL(name string, pairs ...string) (*url.URL, error)
+	RouteByName(name string) RouteAware
+	CurrentRoute() RouteAware
 }
 
 type Request interface {
@@ -120,6 +125,10 @@ type Request interface {
 	Session() *sessions.Session
 	SetSession(session *sessions.Session)
 
+	RouteURL(name string, pairs ...string) (*url.URL, error)
+	RouteByName(name string) RouteAware
+	CurrentRoute() RouteAware
+
 	Validate(validator Validator, jsonResponse bool)
 }
 
@@ -159,14 +168,7 @@ type Router interface {
 	Patch(path string, handler interface{}, middlewares ...HandlerDecorator) RouteRule
 	Head(path string, handler interface{}, middlewares ...HandlerDecorator) RouteRule
 	Options(path string, handler interface{}, middlewares ...HandlerDecorator) RouteRule
-	WebAny(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
-	WebGet(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
-	WebPost(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
-	WebPut(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
-	WebDelete(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
-	WebPatch(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
-	WebHead(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
-	WebOptions(path string, handler WebHandler, middlewares ...HandlerDecorator) RouteRule
+
 	Controllers(prefix string, controllers ...Controller)
 	WithMiddleware(decors ...HandlerDecorator) *MiddlewareRouter
 }
@@ -191,4 +193,18 @@ type RouteRule interface {
 	GetWebHandler() WebHandler
 	GetPath() string
 	GetMethod() string
+}
+
+type RouteAware interface {
+	SkipClean() bool
+	GetName() string
+	URL(pairs ...string) (*url.URL, error)
+	URLHost(pairs ...string) (*url.URL, error)
+	URLPath(pairs ...string) (*url.URL, error)
+	GetPathTemplate() (string, error)
+	GetPathRegexp() (string, error)
+	GetQueriesRegexp() ([]string, error)
+	GetQueriesTemplates() ([]string, error)
+	GetMethods() ([]string, error)
+	GetHostTemplate() (string, error)
 }

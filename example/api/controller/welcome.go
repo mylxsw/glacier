@@ -25,10 +25,13 @@ func (w *WelcomeController) Register(router web.Router) {
 }
 
 func (w *WelcomeController) Hello(ctx web.Context) web.M {
+	panicURL, _ := ctx.RouteURL("welcome:panic")
 	return web.M{
-		"message": fmt.Sprintf("Hello, %s", ctx.Input("name")),
-		"path":    ctx.Request().Raw().RequestURI,
-		"url":     ctx.Request().Raw().URL,
+		"message":   fmt.Sprintf("Hello, %s", ctx.Input("name")),
+		"path":      ctx.Request().Raw().RequestURI,
+		"url":       ctx.Request().Raw().URL,
+		"name":      ctx.CurrentRoute().GetName(),
+		"panic_url": panicURL.String(),
 	}
 }
 
