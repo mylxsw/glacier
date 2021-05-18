@@ -38,8 +38,8 @@ github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3Rllmb
 github.com/mylxsw/asteria v0.0.0-20210107083329-f465aaced0b0/go.mod h1:LLAdhjXLJdhyCmb3Mh+/DiNgjeCIZ+Z/VWMF3tmJoXU=
 github.com/mylxsw/asteria v0.0.0-20210423061904-9b17f4c87f96 h1:OxvE/N9rgWD58AwJW1rAtGGS7KXYJf2y6DejfaqKXJM=
 github.com/mylxsw/asteria v0.0.0-20210423061904-9b17f4c87f96/go.mod h1:LLAdhjXLJdhyCmb3Mh+/DiNgjeCIZ+Z/VWMF3tmJoXU=
-github.com/mylxsw/container v0.0.0-20210320032614-4c230b312e04 h1:Oqh+X6IO7z8ORo3tmLEfsenEPE9aHhYv0WOKFL4moQY=
-github.com/mylxsw/container v0.0.0-20210320032614-4c230b312e04/go.mod h1:UDbF8EtqT7jB0yDc6g9u4P8ORvw4RbFot1QputpgR5U=
+github.com/mylxsw/container v0.0.0-20210518064353-cefb03feb6aa h1:ruKLeEMUH7RWlgzQSBuwJhGLHIv0uh2P4qLAAJRuF/U=
+github.com/mylxsw/container v0.0.0-20210518064353-cefb03feb6aa/go.mod h1:UDbF8EtqT7jB0yDc6g9u4P8ORvw4RbFot1QputpgR5U=
 github.com/mylxsw/graceful v0.0.0-20210318070625-a4a80fb77564 h1:bm9z1TNpmuOY4TutqejxlbNBy5hJaGX+uU5eOC5LUtk=
 github.com/mylxsw/graceful v0.0.0-20210318070625-a4a80fb77564/go.mod h1:8lD0X9U+/IfoW5t8f50k4BcomSznR0PR29ZRUsQ/n0I=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=

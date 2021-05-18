@@ -11,7 +11,7 @@ require (
 	github.com/gorilla/sessions v1.2.1
 	github.com/gorilla/websocket v1.4.2
 	github.com/mylxsw/asteria v0.0.0-20210423061904-9b17f4c87f96
-	github.com/mylxsw/container v0.0.0-20210320032614-4c230b312e04
+	github.com/mylxsw/container v0.0.0-20210518064353-cefb03feb6aa
 	github.com/mylxsw/graceful v0.0.0-20210318070625-a4a80fb77564
 	github.com/pkg/errors v0.9.1
 	github.com/robfig/cron/v3 v3.0.1
