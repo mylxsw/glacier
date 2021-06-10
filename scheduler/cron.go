@@ -19,6 +19,11 @@ type JobCreator interface {
 	Add(name string, plan string, handler interface{}) error
 	// AddAndRunOnServerReady add a cron job, and trigger it immediatly when server is ready
 	AddAndRunOnServerReady(name string, plan string, handler interface{}) error
+
+	// MustAdd add a cron job
+	MustAdd(name string, plan string, handler interface{})
+	// MustAddAndRunOnServerReady add a cron job, and trigger it immediatly when server is ready
+	MustAddAndRunOnServerReady(name string, plan string, handler interface{})
 }
 
 // Scheduler is a manager object to manage cron jobs
@@ -104,6 +109,12 @@ func (c *schedulerImpl) DistributeLockManager(lockManager DistributeLockManager)
 	c.distributeLockManager = lockManager
 }
 
+func (c *schedulerImpl) MustAddAndRunOnServerReady(name string, plan string, handler interface{}) {
+	if err := c.AddAndRunOnServerReady(name, plan, handler); err != nil {
+		panic(err)
+	}
+}
+
 func (c *schedulerImpl) AddAndRunOnServerReady(name string, plan string, handler interface{}) error {
 	if err := c.Add(name, plan, handler); err != nil {
 		return err
@@ -117,6 +128,12 @@ func (c *schedulerImpl) AddAndRunOnServerReady(name string, plan string, handler
 	return c.cc.Resolve(func(hook infra.Hook) {
 		hook.OnServerReady(handler)
 	})
+}
+
+func (c *schedulerImpl) MustAdd(name string, plan string, handler interface{}) {
+	if err := c.Add(name, plan, handler); err != nil {
+		panic(err)
+	}
 }
 
 func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error {
