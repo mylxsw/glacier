@@ -108,6 +108,9 @@ type Glacier interface {
 	// Graceful 设置优雅停机实现
 	Graceful(builder func() graceful.Graceful) Glacier
 
+	// OnReady call a function a server ready
+	OnReady(f interface{})
+
 	Handler() func(cliContext FlagContext) error
 	// BeforeInitialize Glacier 初始化之前执行，一般用于设置一些基本配置，比如日志等
 	BeforeInitialize(f func(c FlagContext) error) Glacier
@@ -133,3 +136,8 @@ type Glacier interface {
 
 type Binder container.Binder
 type Resolver container.Resolver
+
+type Hook interface {
+	// OnReady call a function a server ready
+	OnReady(f interface{})
+}

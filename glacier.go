@@ -2,6 +2,7 @@ package glacier
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"runtime/debug"
@@ -23,12 +24,19 @@ const (
 	Started     Status = 2
 )
 
+type DelayTask struct {
+	Func interface{}
+}
+
 // glacierImpl is the server
 type glacierImpl struct {
-	appName   string
 	version   string
 	container container.Container
 	logger    log.Logger
+
+	delayTasks      []DelayTask
+	delayTaskClosed bool
+	lock            sync.RWMutex
 
 	handler func(cliCtx infra.FlagContext) error
 
@@ -58,6 +66,7 @@ func CreateGlacier(version string) infra.Glacier {
 	glacier.prototypes = make([]interface{}, 0)
 	glacier.providers = make([]infra.Provider, 0)
 	glacier.services = make([]infra.Service, 0)
+	glacier.delayTasks = make([]DelayTask, 0)
 	glacier.handler = glacier.createServer()
 	glacier.status = Unknown
 
@@ -79,6 +88,22 @@ func (glacier *glacierImpl) Handler() func(cliContext infra.FlagContext) error {
 func (glacier *glacierImpl) BeforeInitialize(f func(c infra.FlagContext) error) infra.Glacier {
 	glacier.beforeInitialize = f
 	return glacier
+}
+
+// OnReady call a function on server ready
+func (glacier *glacierImpl) OnReady(f interface{}) {
+	if reflect.TypeOf(f).Kind() != reflect.Func {
+		panic(errors.New("argument for OnReady must be a callable function"))
+	}
+
+	glacier.lock.Lock()
+	defer glacier.lock.Unlock()
+
+	if glacier.delayTaskClosed {
+		panic(errors.New("can not call this function since server has been started"))
+	}
+
+	glacier.delayTasks = append(glacier.delayTasks, DelayTask{Func: f})
 }
 
 // BeforeServerStart set a hook func executed before server start
@@ -114,7 +139,7 @@ func (glacier *glacierImpl) Logger(logger log.Logger) infra.Glacier {
 // Singleton add a singleton instance to container
 func (glacier *glacierImpl) Singleton(ins ...interface{}) infra.Glacier {
 	if glacier.status >= Initialized {
-		panic(fmt.Sprintf("can not invoke this method after Glacier has been initialize"))
+		panic("can not invoke this method after Glacier has been initialize")
 	}
 
 	glacier.singletons = append(glacier.singletons, ins...)
@@ -124,7 +149,7 @@ func (glacier *glacierImpl) Singleton(ins ...interface{}) infra.Glacier {
 // Prototype add a prototype to container
 func (glacier *glacierImpl) Prototype(ins ...interface{}) infra.Glacier {
 	if glacier.status >= Initialized {
-		panic(fmt.Sprintf("can not invoke this method after Glacier has been initialize"))
+		panic("can not invoke this method after Glacier has been initialize")
 	}
 
 	glacier.prototypes = append(glacier.prototypes, ins...)
@@ -182,6 +207,7 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 		cc.MustSingleton(func() infra.FlagContext { return cliCtx })
 		cc.MustSingletonOverride(func() infra.Resolver { return cc })
 		cc.MustSingletonOverride(func() infra.Binder { return cc })
+		cc.MustSingletonOverride(func() infra.Hook { return glacier })
 
 		err := glacier.initialize(cc, cliCtx)
 		cc.MustResolve(func(gf graceful.Graceful) {
@@ -401,13 +427,25 @@ func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.T
 			})
 		}
 
-		if glacier.mainFunc != nil {
-			go cc.MustResolve(glacier.mainFunc)
+		if glacier.logger.DebugEnabled() {
+			glacier.logger.Debugf("started glacier application in %v", time.Since(startupTs))
 		}
 
-		if glacier.logger.DebugEnabled() {
-			glacier.logger.Debugf("started glacier application in %v", time.Now().Sub(startupTs))
-		}
+		go func() {
+			glacier.lock.RLock()
+			defer glacier.lock.RUnlock()
+
+			if glacier.mainFunc != nil {
+				cc.MustResolve(glacier.mainFunc)
+			}
+
+			for _, t := range glacier.delayTasks {
+				cc.MustResolve(t.Func)
+			}
+
+			glacier.delayTaskClosed = true
+			glacier.delayTasks = nil
+		}()
 
 		glacier.status = Started
 		return gf.Start()
