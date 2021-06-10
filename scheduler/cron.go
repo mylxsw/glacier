@@ -8,6 +8,7 @@ import (
 
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/infra"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
 )
@@ -16,6 +17,8 @@ import (
 type JobCreator interface {
 	// Add add a cron job
 	Add(name string, plan string, handler interface{}) error
+	// AddAndRunOnServerReady add a cron job, and trigger it immediatly when server is ready
+	AddAndRunOnServerReady(name string, plan string, handler interface{}) error
 }
 
 // Scheduler is a manager object to manage cron jobs
@@ -99,6 +102,21 @@ func NewManager(cc container.Container, logger log.Logger) Scheduler {
 
 func (c *schedulerImpl) DistributeLockManager(lockManager DistributeLockManager) {
 	c.distributeLockManager = lockManager
+}
+
+func (c *schedulerImpl) AddAndRunOnServerReady(name string, plan string, handler interface{}) error {
+	if err := c.Add(name, plan, handler); err != nil {
+		return err
+	}
+
+	hh, ok := handler.(JobHandler)
+	if ok {
+		handler = hh.Handle
+	}
+
+	return c.cc.Resolve(func(hook infra.Hook) {
+		hook.OnServerReady(handler)
+	})
 }
 
 func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error {

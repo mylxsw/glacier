@@ -90,10 +90,10 @@ func (glacier *glacierImpl) BeforeInitialize(f func(c infra.FlagContext) error) 
 	return glacier
 }
 
-// OnReady call a function on server ready
-func (glacier *glacierImpl) OnReady(f interface{}) {
+// OnServerReady call a function on server ready
+func (glacier *glacierImpl) OnServerReady(f interface{}) {
 	if reflect.TypeOf(f).Kind() != reflect.Func {
-		panic(errors.New("argument for OnReady must be a callable function"))
+		panic(errors.New("argument for OnServerReady must be a callable function"))
 	}
 
 	glacier.lock.Lock()

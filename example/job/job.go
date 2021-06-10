@@ -13,14 +13,9 @@ func (j ServiceProvider) Aggregates() []infra.Provider {
 		scheduler.Provider(
 			func(cc infra.Resolver, creator scheduler.JobCreator) {
 				//_ = cr.Add("test-job", "@every 10s", TestJob)
-				_ = creator.Add("test-timeout-job", "@every 5s", scheduler.WithoutOverlap(TestTimeoutJob).SkipCallback(func() {
+				_ = creator.AddAndRunOnServerReady("test-timeout-job", "@every 5s", scheduler.WithoutOverlap(TestTimeoutJob).SkipCallback(func() {
 					log.Errorf("test-timeout-job skipped")
 				}))
-				cc.Resolve(func(hook infra.Hook) {
-					hook.OnReady(func() {
-						log.Debugf("on ready hook called")
-					})
-				})
 			},
 			scheduler.SetDistributeLockManagerOption(func(cc infra.Resolver) scheduler.DistributeLockManager {
 				return NewDistributeLockManager()
