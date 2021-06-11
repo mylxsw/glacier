@@ -1,5 +1,7 @@
 # glacier
 
+[TOC]
+
 glacier is a app framework for rapid service development
 
 Usage:
@@ -27,3 +29,34 @@ Demo:
 	if err := app.Run(os.Args); err != nil {
 		panic(err)
 	}
+
+## 核心概念
+
+### Provider
+
+**Provider** 接口定义如下
+
+```go
+type Provider interface {
+	Register(app Binder)
+	Boot(app Resolver)
+}
+```
+
+
+**Provider** 支持按需加载，要使用此功能，只需要让 **Provider** 实现对象实现 **ModuleLoadPolicy** 接口即可。
+
+```go
+type ModuleLoadPolicy interface {
+	// ShouldLoad 如果返回 true，则加载该 Provider，否则跳过
+	ShouldLoad(c FlagContext) bool
+}
+```
+
+**ModuleLoadPolicy** 接口的 `ShouldLoad` 方法用于控制该 **Provider** 是否加载。
+
+#### DaemonProvider
+
+#### ProviderAggregate
+
+### Service

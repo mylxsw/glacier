@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	asteriaEvent "github.com/mylxsw/asteria/event"
 	"github.com/mylxsw/asteria/level"
@@ -18,6 +19,7 @@ import (
 	"github.com/mylxsw/glacier/example/service"
 	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/glacier/starter/application"
+	"github.com/mylxsw/graceful"
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
 )
@@ -89,7 +91,7 @@ func main() {
 		}
 	})
 
-	app.Main(func(conf *config.Config, publisher event.Publisher) {
+	app.Main(func(conf *config.Config, publisher event.Publisher, gf graceful.Graceful) {
 		if log.DebugEnabled() {
 			log.Debugf("config: %s", conf.Serialize())
 		}
@@ -97,6 +99,9 @@ func main() {
 		for i := 0; i < 10; i++ {
 			publisher.Publish(CronEvent{GoroutineID: uint64(i)})
 		}
+
+		// 5s 后自动关闭服务
+		time.AfterFunc(5*time.Second, gf.Shutdown)
 	})
 
 	if err := app.Run(os.Args); err != nil {

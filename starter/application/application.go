@@ -47,10 +47,9 @@ func Create(version string, flags ...cli.Flag) *Application {
 			Usage: "configuration file path",
 		},
 		altsrc.NewDurationFlag(cli.DurationFlag{
-			Name:   "shutdown_timeout",
-			Usage:  "set a shutdown timeout for each service",
-			EnvVar: "GLACIER_SHUTDOWN_TIMOUT",
-			Value:  5 * time.Second,
+			Name:  "shutdown_timeout",
+			Usage: "set a shutdown timeout for each service",
+			Value: 5 * time.Second,
 		}),
 	}
 
