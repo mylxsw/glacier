@@ -60,3 +60,7 @@ type ModuleLoadPolicy interface {
 #### ProviderAggregate
 
 ### Service
+
+## 第三方框架整合
+
+- [giris](https://github.com/mylxsw/giris): [Iris Web Framework](https://www.iris-go.com/) 适配
