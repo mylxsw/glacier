@@ -6,29 +6,34 @@ glacier is a app framework for rapid service development
 
 Usage:
 
-    go get github.com/mylxsw/glacier
+```bash
+go get github.com/mylxsw/glacier/starter/application
+```
 
 Demo:
 
-	app := application.Create("v1.0")
+```go
+app := application.Create(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]))
 
-	g := app.Glacier()
-	g.WithHttpServer(":19945")
+// 添加命令行参数 flags
+//app.AddStringFlag("listen", ":19945", "http listen addr")
+//app.AddBoolFlag("load-job", false, "")
+//
+// 注册 Provider，Service 等
+//app.Provider(job.ServiceProvider{}, api.ServiceProvider{})
+//app.Service(&service.DemoService{}, &service.Demo2Service{})
+//
+//app.Singleton(func(c infra.FlagContext) *config.Config {
+//    return &config.Config{
+//        Listen:   c.String("listen"),
+//        LoadJob: c.Bool("load-job"),
+//    }
+//})
 
-	g.WebAppExceptionHandler(func(ctx web.Context, err interface{}) web.Response {
-		log.Errorf("stack: %s", debug.Stack())
-		return nil
-	})
-
-	g.Provider(job.ServiceProvider{})
-	g.Provider(api.ServiceProvider{})
-
-	g.Service(&service.DemoService{})
-	g.Service(&service.Demo2Service{})
-
-	if err := app.Run(os.Args); err != nil {
-		panic(err)
-	}
+if err := app.Run(os.Args); err != nil {
+    panic(err)
+}
+```
 
 ## 核心概念
 

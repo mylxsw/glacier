@@ -15,15 +15,15 @@ const (
 	StartupTimeKey string = "startup_time"
 )
 
-// Service is a interface for service
+// Service is an interface for service
 type Service interface {
 	// Init initialize the service
 	Init(resolver Resolver) error
 	// Name return service name
 	Name() string
-	// Start start service, not blocking
+	// Start service, not blocking
 	Start() error
-	// Stop stop the service
+	// Stop the service
 	Stop()
 	// Reload reload service
 	Reload()

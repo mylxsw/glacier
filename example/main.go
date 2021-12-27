@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/mylxsw/glacier"
 	"os"
 	"runtime"
 	"strconv"
@@ -52,22 +53,28 @@ func main() {
 
 	app := application.Create(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]))
 
-	app.AddFlags(altsrc.NewStringFlag(cli.StringFlag{
-		Name:  "listen",
-		Usage: "http listen addr",
-		Value: ":19945",
-	}))
-	app.AddFlags(altsrc.NewBoolFlag(cli.BoolFlag{Name: "load-job"}))
+	app.AddFlags(glacier.StringFlag("listen", ":19945", "http listen addr"))
+	app.AddBoolFlag("load-job", false, "")
 	app.AddFlags(altsrc.NewBoolFlag(cli.BoolFlag{Name: "load-demoservice"}))
 
-	// 设置该选项之后，路由匹配时将会忽略最末尾的 /
-	// 路由 /aaa/bbb  匹配 /aaa/bbb, /aaa/bbb/
-	// 路由 /aaa/bbb/ 匹配 /aaa/bbb, /aaa/bbb/
-	// 默认为 false，匹配规则如下
-	// 路由 /aaa/bbb 只匹配 /aaa/bbb 不匹配 /aaa/bbb/
-	// 路由 /aaa/bbb/ 只匹配 /aaa/bbb/ 不匹配 /aaa/bbb
 	app.Provider(job.ServiceProvider{}, api.ServiceProvider{})
 	app.Service(&service.DemoService{}, &service.Demo2Service{})
+
+	//app.Provider(web.Provider(
+	//	listener.FlagContext("listen"),
+	//	// 设置该选项之后，路由匹配时将会忽略最末尾的 /
+	//	// 路由 /aaa/bbb  匹配 /aaa/bbb, /aaa/bbb/
+	//	// 路由 /aaa/bbb/ 匹配 /aaa/bbb, /aaa/bbb/
+	//	// 默认为 false，匹配规则如下
+	//	// 路由 /aaa/bbb 只匹配 /aaa/bbb 不匹配 /aaa/bbb/
+	//	// 路由 /aaa/bbb/ 只匹配 /aaa/bbb/ 不匹配 /aaa/bbb
+	//	web.SetIgnoreLastSlashOption(true),
+	//	web.SetRouteHandlerOption(func(cc infra.Resolver, r web.Router, mw web.RequestMiddleware) {
+	//		r.Get("/", func(webCtx web.Context) web.Response {
+	//			return webCtx.JSON(web.M{"message": webCtx.Get("name")})
+	//		})
+	//	}),
+	//))
 
 	app.Provider(event.Provider(
 		func(cc infra.Resolver, listener event.Listener) {

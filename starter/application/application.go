@@ -85,7 +85,7 @@ func Create(version string, flags ...cli.Flag) *Application {
 	return _app
 }
 
-// glacierImpl return glacierImpl instance
+// Glacier glacierImpl return glacierImpl instance
 func (application *Application) Glacier() infra.Glacier {
 	return application.glacier
 }
@@ -94,6 +94,40 @@ func (application *Application) Glacier() infra.Glacier {
 func (application *Application) AddFlags(flags ...cli.Flag) *Application {
 	application.cli.Flags = append(application.cli.Flags, flags...)
 	return application
+}
+
+func (application *Application) AddIntFlag(name string, defaultVal int, usage string) *Application {
+	return application.AddFlags(glacier.IntFlag(name, defaultVal, usage))
+}
+func (application *Application) AddInt64Flag(name string, defaultVal int64, usage string) *Application {
+	return application.AddFlags(glacier.Int64Flag(name, defaultVal, usage))
+}
+func (application *Application) AddFloat64Flag(name string, defaultVal float64, usage string) *Application {
+	return application.AddFlags(glacier.Float64Flag(name, defaultVal, usage))
+}
+func (application *Application) AddUintFlag(name string, defaultVal uint, usage string) *Application {
+	return application.AddFlags(glacier.UintFlag(name, defaultVal, usage))
+}
+func (application *Application) AddUint64Flag(name string, defaultVal uint64, usage string) *Application {
+	return application.AddFlags(glacier.Uint64Flag(name, defaultVal, usage))
+}
+func (application *Application) AddStringSliceFlag(name string, defaultVal []string, usage string) *Application {
+	return application.AddFlags(glacier.StringSliceFlag(name, defaultVal, usage))
+}
+func (application *Application) AddIntSliceFlag(name string, defaultVal []int, usage string) *Application {
+	return application.AddFlags(glacier.IntSliceFlag(name, defaultVal, usage))
+}
+func (application *Application) AddInt64SliceFlag(name string, defaultVal []int64, usage string) *Application {
+	return application.AddFlags(glacier.Int64SliceFlag(name, defaultVal, usage))
+}
+func (application *Application) AddStringFlag(name string, defaultVal string, usage string) *Application {
+	return application.AddFlags(glacier.StringFlag(name, defaultVal, usage))
+}
+func (application *Application) AddBoolFlag(name string, defaultVal bool, usage string) *Application {
+	return application.AddFlags(glacier.BoolFlag(name, defaultVal, usage))
+}
+func (application *Application) AddDurationFlag(name string, defaultVal time.Duration, usage string) *Application {
+	return application.AddFlags(glacier.DurationFlag(name, defaultVal, usage))
 }
 
 // Run start glacierImpl server
