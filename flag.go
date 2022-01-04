@@ -6,19 +6,11 @@ import (
 	"time"
 )
 
-func BoolFlag(name string, defaultVal bool, usage string) cli.Flag {
-	return BoolEnvFlag(name, defaultVal, usage, "")
+func BoolFlag(name string, usage string) cli.Flag {
+	return BoolEnvFlag(name, usage, "")
 }
 
-func BoolEnvFlag(name string, defaultVal bool, usage string, envName string) cli.Flag {
-	if defaultVal {
-		return altsrc.NewBoolTFlag(cli.BoolTFlag{
-			Name:   name,
-			Usage:  usage,
-			EnvVar: envName,
-		})
-	}
-
+func BoolEnvFlag(name string, usage string, envName string) cli.Flag {
 	return altsrc.NewBoolFlag(cli.BoolFlag{
 		Name:   name,
 		Usage:  usage,

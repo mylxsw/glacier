@@ -82,6 +82,7 @@ func Create(version string, flags ...cli.Flag) *Application {
 	serverFlags = append(serverFlags, flags...)
 
 	app := cli.NewApp()
+	app.EnableBashCompletion = true
 	app.Version = version
 	app.Before = func(c *cli.Context) error {
 		conf := c.String("conf")
@@ -149,8 +150,8 @@ func (application *Application) AddInt64SliceFlag(name string, defaultVal []int6
 func (application *Application) AddStringFlag(name string, defaultVal string, usage string) *Application {
 	return application.AddFlags(glacier.StringFlag(name, defaultVal, usage))
 }
-func (application *Application) AddBoolFlag(name string, defaultVal bool, usage string) *Application {
-	return application.AddFlags(glacier.BoolFlag(name, defaultVal, usage))
+func (application *Application) AddBoolFlag(name string, usage string) *Application {
+	return application.AddFlags(glacier.BoolFlag(name, usage))
 }
 func (application *Application) AddDurationFlag(name string, defaultVal time.Duration, usage string) *Application {
 	return application.AddFlags(glacier.DurationFlag(name, defaultVal, usage))

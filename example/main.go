@@ -55,7 +55,7 @@ func main() {
 
 func run(app *application.Application) error {
 	app.AddFlags(glacier.StringFlag("listen", ":19945", "http listen addr"))
-	app.AddBoolFlag("load-job", false, "")
+	app.AddBoolFlag("load-job", "")
 	app.AddFlags(altsrc.NewBoolFlag(cli.BoolFlag{Name: "load-demoservice"}))
 
 	app.Provider(job.ServiceProvider{}, api.ServiceProvider{})
