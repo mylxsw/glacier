@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/mylxsw/glacier"
-	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -51,8 +50,10 @@ func main() {
 		}
 	})
 
-	app := application.Create(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]))
+	application.MustStart(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]), run)
+}
 
+func run(app *application.Application) error {
 	app.AddFlags(glacier.StringFlag("listen", ":19945", "http listen addr"))
 	app.AddBoolFlag("load-job", false, "")
 	app.AddFlags(altsrc.NewBoolFlag(cli.BoolFlag{Name: "load-demoservice"}))
@@ -111,9 +112,7 @@ func main() {
 		time.AfterFunc(5*time.Second, gf.Shutdown)
 	})
 
-	if err := app.Run(os.Args); err != nil {
-		panic(err)
-	}
+	return nil
 }
 
 func getGID() uint64 {

@@ -1,6 +1,8 @@
 package application
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/mylxsw/container"
@@ -33,6 +35,30 @@ type Application struct {
 
 func (application *Application) Cli() *cli.App {
 	return application.cli
+}
+
+func MustRun(app *Application) {
+	if err := app.Run(os.Args); err != nil {
+		panic(err)
+	}
+}
+
+func MustStart(version string, init func(app *Application) error) {
+	MustRun(CreateAndInit(version, init))
+}
+
+func CreateAndInit(version string, init func(app *Application) error) *Application {
+	app := Create(version)
+
+	if init == nil {
+		return app
+	}
+
+	if err := init(app); err != nil {
+		panic(fmt.Errorf("application init failed: %v", err))
+	}
+
+	return app
 }
 
 func Create(version string, flags ...cli.Flag) *Application {

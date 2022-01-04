@@ -40,7 +40,10 @@ type Provider interface {
 	// this method is called one by one synchronous
 	// service provider don't autowired in this stage
 	Register(app Binder)
-	// Boot start the module
+}
+
+type ProviderBoot interface {
+	// Boot starts the module
 	// this method is called one by one synchronous after all register methods called
 	// service provider has been autowired in this stage
 	Boot(app Resolver)
@@ -48,7 +51,7 @@ type Provider interface {
 
 type DaemonProvider interface {
 	Provider
-	// Daemon is a async method called after boot
+	// Daemon is an async method called after boot
 	// this method is called asynchronous and concurrent
 	Daemon(ctx context.Context, app Resolver)
 }

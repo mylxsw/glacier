@@ -234,7 +234,9 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 				}
 			}
 
-			p.Boot(cc)
+			if providerBoot, ok := p.(infra.ProviderBoot); ok {
+				providerBoot.Boot(cc)
+			}
 		}
 
 		if glacier.afterProviderBooted != nil {
