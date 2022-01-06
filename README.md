@@ -145,3 +145,4 @@ type ModuleLoadPolicy interface {
 - [Universal Exporter](https://github.com/mylxsw/universal-exporter) 一个通用的 Prometheus 维度工具，目前支持从数据库中查询生成 Metric 数据
 - [Graphviz Server](https://github.com/mylxsw/graphviz-server) 一个 Web 服务，封装了对 Graphviz 的接口调用，实现通过 Web API 的方式生成 Graphviz 图形
 - [MySQL Guard](https://github.com/mylxsw/mysql-guard) 用于 MySQL 长事务检测杀死和死锁告警
+- [Password Server](https://github.com/mylxsw/password-server) 一个生成随机密码的简单 web 服务器
