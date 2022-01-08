@@ -93,6 +93,10 @@ type ModuleLoadPolicy interface {
 
 #### ProviderAggregate
 
+#### Priority
+
+实现 `infra.Priority` 接口的 Provider、Service，会按照 `priority()` 方法的返回值大小依次加载，值越大，加载顺序越靠后，默认的优先级为 `1000`。
+
 ### Web Framework
 
 #### Usage

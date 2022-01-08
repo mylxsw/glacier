@@ -42,6 +42,8 @@ github.com/mylxsw/container v0.0.0-20210518064353-cefb03feb6aa h1:ruKLeEMUH7RWlg
 github.com/mylxsw/container v0.0.0-20210518064353-cefb03feb6aa/go.mod h1:UDbF8EtqT7jB0yDc6g9u4P8ORvw4RbFot1QputpgR5U=
 github.com/mylxsw/container v0.0.0-20210615144611-b872ef1c3ecc h1:z/kY8u3xFWGOVEymAVASTY9TlL6ix8q/oud+2xRGS/E=
 github.com/mylxsw/container v0.0.0-20210615144611-b872ef1c3ecc/go.mod h1:UDbF8EtqT7jB0yDc6g9u4P8ORvw4RbFot1QputpgR5U=
+github.com/mylxsw/container v0.0.0-20220108024426-76a904a1a09b h1:ytPITKYBy7IsqxlmuAq/+SZN/HCnmqJunRGV4wk/YHc=
+github.com/mylxsw/container v0.0.0-20220108024426-76a904a1a09b/go.mod h1:UDbF8EtqT7jB0yDc6g9u4P8ORvw4RbFot1QputpgR5U=
 github.com/mylxsw/graceful v0.0.0-20210318070625-a4a80fb77564 h1:bm9z1TNpmuOY4TutqejxlbNBy5hJaGX+uU5eOC5LUtk=
 github.com/mylxsw/graceful v0.0.0-20210318070625-a4a80fb77564/go.mod h1:8lD0X9U+/IfoW5t8f50k4BcomSznR0PR29ZRUsQ/n0I=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=

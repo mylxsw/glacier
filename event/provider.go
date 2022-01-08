@@ -2,6 +2,7 @@ package event
 
 import (
 	"context"
+	"github.com/mylxsw/asteria/log"
 
 	"github.com/mylxsw/glacier/infra"
 )
@@ -9,6 +10,10 @@ import (
 type provider struct {
 	evtStoreBuilder func(cc infra.Resolver) Store
 	handler         func(cc infra.Resolver, listener Listener)
+}
+
+func (p *provider) Priority() int {
+	return 10
 }
 
 // Provider create a event Provider
@@ -22,6 +27,10 @@ func Provider(handler func(cc infra.Resolver, listener Listener), options ...Opt
 }
 
 func (p *provider) Register(app infra.Binder) {
+	if log.DebugEnabled() {
+		log.Debug("provider github.com/mylxsw/glacier/event.Provider loaded")
+	}
+
 	app.MustSingletonOverride(func(cc infra.Resolver) Store {
 		if p.evtStoreBuilder != nil {
 			return p.evtStoreBuilder(cc)

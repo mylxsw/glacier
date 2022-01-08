@@ -13,6 +13,10 @@ import (
 
 type ServiceProvider struct{}
 
+func (s ServiceProvider) Priority() int {
+	return 100
+}
+
 func (s ServiceProvider) Aggregates() []infra.Provider {
 	return []infra.Provider{
 		web.Provider(
@@ -49,6 +53,8 @@ func (s ServiceProvider) exceptionHandler(ctx web.Context, err interface{}) web.
 	return nil
 }
 
-func (s ServiceProvider) Register(app infra.Binder) {}
+func (s ServiceProvider) Register(app infra.Binder) {
+	log.Debug("provider api.ServiceProvider loaded")
+}
 
 func (s ServiceProvider) Boot(app infra.Resolver) {}

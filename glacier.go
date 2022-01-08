@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"runtime/debug"
+	"sort"
 	"sync"
 	"time"
 
@@ -373,6 +374,7 @@ func (glacier *glacierImpl) servicesFilter(cliCtx infra.FlagContext) []infra.Ser
 		uniqAggregates[st] = v + 1
 	}
 
+	sort.Sort(Services(services))
 	return services
 }
 
@@ -399,6 +401,7 @@ func (glacier *glacierImpl) providersFilter(cliCtx infra.FlagContext) []infra.Pr
 		uniqAggregates[pt] = v + 1
 	}
 
+	sort.Sort(Providers(aggregates))
 	return aggregates
 }
 
@@ -452,4 +455,58 @@ func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.T
 		glacier.status = Started
 		return gf.Start()
 	}
+}
+
+type Providers []infra.Provider
+
+func (p Providers) Len() int {
+	return len(p)
+}
+
+func (p Providers) Less(i, j int) bool {
+	vi, vj := 1000, 1000
+
+	if pi, ok := p[i].(infra.Priority); ok {
+		vi = pi.Priority()
+	}
+	if pj, ok := p[j].(infra.Priority); ok {
+		vj = pj.Priority()
+	}
+
+	if vi == vj {
+		return i < j
+	}
+
+	return vi < vj
+}
+
+func (p Providers) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+
+type Services []infra.Service
+
+func (p Services) Len() int {
+	return len(p)
+}
+
+func (p Services) Less(i, j int) bool {
+	vi, vj := 1000, 1000
+
+	if pi, ok := p[i].(infra.Priority); ok {
+		vi = pi.Priority()
+	}
+	if pj, ok := p[j].(infra.Priority); ok {
+		vj = pj.Priority()
+	}
+
+	if vi == vj {
+		return i < j
+	}
+
+	return vi < vj
+}
+
+func (p Services) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
 }

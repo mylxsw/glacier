@@ -15,11 +15,19 @@ type provider struct {
 	options []Option
 }
 
+func (p *provider) Priority() int {
+	return -1
+}
+
 func Provider(creator func(cc infra.Resolver, creator JobCreator), options ...Option) infra.DaemonProvider {
 	return &provider{creator: creator, options: options}
 }
 
 func (p *provider) Register(app infra.Binder) {
+	if log.DebugEnabled() {
+		log.Debug("provider github.com/mylxsw/glacier/scheduler.Provider loaded")
+	}
+
 	// 定时任务对象
 	app.MustSingletonOverride(func(logger log.Logger) *cronV3.Cron {
 		return cronV3.New(cronV3.WithSeconds(), cronV3.WithLogger(cronLogger{logger: logger}))

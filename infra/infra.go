@@ -42,6 +42,12 @@ type Provider interface {
 	Register(app Binder)
 }
 
+// Priority 优先级接口
+// 实现该接口后，在加载 Provider/Service 时，会按照 Priority 大小依次加载（值越小越先加载）
+type Priority interface {
+	Priority() int
+}
+
 type ProviderBoot interface {
 	// Boot starts the module
 	// this method is called one by one synchronous after all register methods called
@@ -122,4 +128,8 @@ type Resolver container.Resolver
 type Hook interface {
 	// OnServerReady call a function a server ready
 	OnServerReady(f interface{})
+}
+
+func WithCondition(init interface{}, onCondition interface{}) container.Conditional {
+	return container.WithCondition(init, onCondition)
 }

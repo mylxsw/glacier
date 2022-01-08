@@ -29,6 +29,7 @@ func (j ServiceProvider) ShouldLoad(c infra.FlagContext) bool {
 }
 
 func (j ServiceProvider) Register(cc infra.Binder) {
+	log.Debug("provider job.ServiceProvider loaded")
 }
 
 func (j ServiceProvider) Boot(app infra.Resolver) {
