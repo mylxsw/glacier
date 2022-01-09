@@ -37,6 +37,41 @@ func (application *Application) Cli() *cli.App {
 	return application.cli
 }
 
+func (application *Application) WithDescription(desc string) *Application {
+	application.cli.Description = desc
+	return application
+}
+
+func (application *Application) WithName(name string) *Application {
+	application.cli.Name = name
+	return application
+}
+
+func (application *Application) WithUsage(usage string) *Application {
+	application.cli.Usage = usage
+	return application
+}
+
+func (application *Application) WithUsageText(usageText string) *Application {
+	application.cli.UsageText = usageText
+	return application
+}
+
+func (application *Application) WithAuthor(name, email string) *Application {
+	application.cli.Authors = append(application.cli.Authors, cli.Author{Name: name, Email: email})
+	return application
+}
+
+func (application *Application) WithAuthors(authors ...cli.Author) *Application {
+	application.cli.Authors = append(application.cli.Authors, authors...)
+	return application
+}
+
+func (application *Application) WithCLIOptions(fn func(cliAPP *cli.App)) *Application {
+	fn(application.cli)
+	return application
+}
+
 func MustRun(app *Application) {
 	if err := app.Run(os.Args); err != nil {
 		panic(err)

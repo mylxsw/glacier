@@ -54,6 +54,15 @@ func main() {
 }
 
 func run(app *application.Application) error {
+	app.WithDescription("Glacier 框架演示项目").
+		WithName("glacier-example").
+		WithUsage("这是一个示例项目").
+		WithAuthor("管宜尧", "mylxsw@aicode.cc").
+		WithCLIOptions(func(cliAPP *cli.App) {
+			cliAPP.Copyright = "aicode.cc"
+			cliAPP.UsageText = "这是 Usage Text"
+		})
+
 	app.AddFlags(glacier.StringFlag("listen", ":19945", "http listen addr"))
 	app.AddBoolFlag("load-job", "")
 	app.AddFlags(altsrc.NewBoolFlag(cli.BoolFlag{Name: "load-demoservice"}))

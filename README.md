@@ -23,24 +23,6 @@ go get github.com/mylxsw/glacier/starter/application
 ```go
 app := application.Create(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]))
 
-// 添加命令行参数 flags
-//app.AddStringFlag("listen", ":19945", "http listen addr")
-//app.AddBoolFlag("load-job", false, "")
-//
-// 注册 Provider，Service 等
-//app.Provider(job.ServiceProvider{}, api.ServiceProvider{})
-//app.Service(&service.DemoService{}, &service.Demo2Service{})
-//
-//app.Singleton(func(c infra.FlagContext) *config.Config {
-//    return &config.Config{
-//        Listen:   c.String("listen"),
-//        LoadJob: c.Bool("load-job"),
-//    }
-//})
-
-if err := app.Run(os.Args); err != nil {
-    panic(err)
-}
 ```
 
 ## Core Concept
