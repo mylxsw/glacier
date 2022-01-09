@@ -21,17 +21,70 @@ go get github.com/mylxsw/glacier/starter/application
 示例:
 
 ```go
-app := application.Create(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]))
+app := application.Create("v1.0")
+app.AddStringFlag("listen", ":8080", "http listen address")
 
+app.Provider(web.Provider(
+	listener.FlagContext("listen"),
+	web.SetRouteHandlerOption(func(cc infra.Resolver, router web.Router, mw web.RequestMiddleware) {
+		router.Get("/", func(ctx web.Context) web.Response {
+			return ctx.JSON(web.M{})
+		})
+	}),
+))
+
+application.MustRun(app)
 ```
 
 ## Core Concept
 
 ### Dependency Injection
 
+Glacier 框架充分利用了 [container](https://github.com/mylxsw/container) 项目提供的依赖注入支持，在应用提供了功能强大的依赖注入特性。
+
+在使用依赖注入特性时，无论是 `Binder` 还是 `Resolver`，都会有一个名为 `initialize interface{}` 的参数，该参数类型为 `interface{}`，但是实际使用时，它的类型为符合一定规则的函数，后面在 `Binder` 和 `Resolver` 部分将会详细说明。
+
 #### Binder
 
+`infra.Binder` 是一个抽象化之后的接口，用于将实例的创建方法绑定到容器，提供了以下常用方法
+
+- `Prototype(initialize interface{}) error` 原型绑定，每次访问绑定的实例都会基于 `initialize` 函数重新创建新的实例
+- `Singleton(initialize interface{}) error` 单例绑定，每次访问绑定的实例都是同一个，只会在第一次访问的时候创建初始实例
+- `BindValue(key string, value interface{}) error` 将一个具体的值绑定到 `key`
+
+`Prototype` 和 `Singleton` 方法参数 `initialize interface{}` 支持以下两种形式
+
+- 形式1：`func(注入参数列表...) (绑定类型, error)`
+
+	```go
+	binder.Singleton(func() (*sql.DB, error) {
+		return sql.Open("mysql", "user:pwd@tcp(ip:3306)/dbname")
+	})
+	```
+
+- 形式2：`func(注入参数列表...) 绑定类型`
+
+	```go
+	binder.Singleton(func() UserRepo { return &userRepoImpl{} })
+	binder.Singleton(func(db *sql.DB) UserRepo { 
+		// 这里我们创建的 userRepoImpl 对象，依赖 sql.DB 对象，只需要在函数
+		// 参数中，将依赖列举出来，容器会自动完成这些对象的创建
+		return &userRepoImpl{db: db} 
+	})
+	```
+
 #### Resolver
+
+`infra.Resolver` 是一个抽象化的接口，用于通过依赖注入的方式获取实例，提供了以下常用方法
+
+- `Resolve(callback interface{}) error` 
+- `Call(callback interface{}) ([]interface{}, error)`
+- `AutoWire(object interface{}) error` 自动对结构体对象进行依赖注入，object 必须是结构体对象的指针。自动注入字段（公开和私有均支持）需要添加 `autowire` tag，支持以下两种
+	- autowire:"@" 根据字段的类型来注入
+	- autowire:"自定义key" 根据自定义的key来注入（查找名为 key 的绑定）
+
+- `Get(key interface{}) (interface{}, error)`
+
 
 ### Provider
 
