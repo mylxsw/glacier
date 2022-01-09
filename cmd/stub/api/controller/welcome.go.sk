@@ -1,19 +1,19 @@
 package controller
 
 import (
-	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/web"
+	"github.com/mylxsw/glacier/infra"
 )
 
 type WelcomeController struct {
-	cc container.Container
+	resolver infra.Resolver
 }
 
-func NewWelcomeController(cc container.Container) web.Controller {
-	return &WelcomeController{cc: cc}
+func NewWelcomeController(resolver infra.Resolver) web.Controller {
+	return WelcomeController{resolver: resolver}
 }
 
-func (w *WelcomeController) Register(router *web.Router) {
+func (w WelcomeController) Register(router web.Router) {
 	router.Any("/", w.Home).Name("welcome:home")
 }
 
@@ -21,6 +21,6 @@ type WelcomeMessage struct {
 	Version string `json:"version"`
 }
 
-func (w *WelcomeController) Home(ctx web.Context, req web.Request) WelcomeMessage {
-	return WelcomeMessage{Version: w.cc.MustGet("version").(string)}
+func (w WelcomeController) Home(ctx web.Context, req web.Request) WelcomeMessage {
+	return WelcomeMessage{Version: w.resolver.MustGet("version").(string)}
 }

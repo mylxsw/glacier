@@ -3,11 +3,14 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/infra"
 )
 
 type Config struct {
-	{{ if .WithHttpServer }}Listen string `json:"listen"`{{ end }}
+	{{- if eq .WithHttpServer "Y" }}
+	Listen string `json:"listen"`
+	{{ if eq .WithSessionSupport "Y"}}SessionKey string `json:"session_key"`{{ end }}
+	{{ end }}
 }
 
 func (conf *Config) Serialize() string {
@@ -16,6 +19,6 @@ func (conf *Config) Serialize() string {
 }
 
 // Get return config object from container
-func Get(cc container.Container) *Config {
+func Get(cc infra.Resolver) *Config {
 	return cc.MustGet(&Config{}).(*Config)
 }

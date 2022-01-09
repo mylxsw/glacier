@@ -2,17 +2,14 @@ package main
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/gorilla/mux"
 	"github.com/mylxsw/asteria/log"
-	"github.com/mylxsw/glacier"
+	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/glacier/starter/application"
-	"github.com/mylxsw/glacier/web"
-	"github.com/urfave/cli"
-	"github.com/urfave/cli/altsrc"
-    "{{ .Module }}/api"
-    "{{ .Module }}/config"
+	{{- if eq .WithHttpServer "Y" }}
+    "{{ .Package }}/api"
+    {{- end }}
+    "{{ .Package }}/config"
 )
 
 var (
@@ -21,38 +18,37 @@ var (
 )
 
 func main() {
-	app := application.Create(fmt.Sprintf("%s(%s)", Version, GitCommit))
+	app := application.Create(fmt.Sprintf("%s(%s)", Version, GitCommit)).WithName("{{ .ProjectName }}")
+	{{- if ne .AuthorName "" }}
+	app.WithAuthor("{{ .AuthorName }}", "{{ .AuthorEmail }}")
+    {{- end }}
 
-	{{ if .WithHttpServer }}
-	app.AddFlags(altsrc.NewStringFlag(cli.StringFlag{
-        Name:  "listen",
-        Usage: "http listen addr",
-        Value: ":8080",
-    }))
+	{{- if eq .WithHttpServer "Y" }}
+	app.AddStringFlag("listen", ":8080", "http listen addr")
+	{{- if eq .WithSessionSupport "Y" }}
+    app.AddStringFlag("session-key", "49a95f4cdaac9dedbc3298c5f5a7aa83", "Session key")
+    {{- end }}
+    {{- end }}
 
-    app.WithHttpServer()
-	{{ end }}
 
-	app.Singleton(func(c glacier.FlagContext) *config.Config {
+	app.Singleton(func(c infra.FlagContext) *config.Config {
 		return &config.Config{
-			{{ if .WithHttpServer }}Listen: c.String("listen"),{{ end }}
+			{{- if eq .WithHttpServer "Y" }}
+			Listen: c.String("listen"),
+			{{ if eq .WithSessionSupport "Y" }}SessionKey: c.String("session-key"),{{ end }}
+			{{- end }}
 		}
 	})
 
-	{{ if .WithHttpServer }}app.Provider(api.ServiceProvider{}){{ end }}
+	{{- if eq .WithHttpServer "Y" }}
+	app.Provider(api.Provider{})
+	{{- end }}
 
-	app.Main(func(conf *config.Config, router *mux.Router) {
+	app.Main(func(conf *config.Config) {
         if log.DebugEnabled() {
             log.With(conf).Debug("configuration loaded")
-            {{ if .WithHttpServer }}
-            for _, r := range web.GetAllRoutes(router) {
-                log.Debugf("route: %s -> %s | %s | %s", r.Name, r.Methods, r.PathTemplate, r.PathRegexp)
-            }
-            {{ end }}
         }
 	})
 
-	if err := app.Run(os.Args); err != nil {
-		log.Errorf("exit with error: %s", err)
-	}
+    application.MustRun(app)
 }

@@ -1,1 +1,2 @@
-{{ if not .WithHttpServer }}api/{{ end }}
+{{ if ne .WithHttpServer "Y" }}api/{{ end }}
+skeleton.yaml

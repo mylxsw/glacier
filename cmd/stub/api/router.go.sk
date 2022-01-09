@@ -1,24 +1,15 @@
 package api
 
 import (
-	"github.com/mylxsw/asteria/log"
-	"github.com/mylxsw/container"
+	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/glacier/web"
-	"{{ .Module }}/api/controller"
+	"{{ .Package }}/api/controller"
+	"{{ .Package }}/config"
 )
 
-func routers(cc container.Container) func(router *web.Router, mw web.RequestMiddleware) {
-	//conf := cc.MustGet(&config.Config{}).(*config.Config)
-	return func(router *web.Router, mw web.RequestMiddleware) {
-		mws := make([]web.HandlerDecorator, 0)
-		mws = append(mws, mw.AccessLog(log.Module("api")), mw.CORS("*"))
-
-		// TODO add custom middleware here
-
-		router.WithMiddleware(mws...).Controllers(
-			"/api",
-			controller.NewWelcomeController(cc),
-		)
+func controllers(cc infra.Resolver, conf *config.Config) []web.Controller {
+	return []web.Controller{
+		controller.NewWelcomeController(cc),
+		// TODO add your custom controllers here
 	}
 }
-

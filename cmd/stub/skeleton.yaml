@@ -1,0 +1,17 @@
+vars:
+  - name: "ProjectName"
+    desc: "Project Name"
+  - name: "Package"
+    desc: "Package name"
+  - name: "WithHttpServer"
+    desc: "Enable http server support?(Y/N)"
+    default: "N"
+  - name: "WithSessionSupport"
+    desc: "Enable session support?(Y/N)"
+    default: "N"
+  - name: "AuthorName"
+    desc: "Author Name"
+    optional: true
+  - name: "AuthorEmail"
+    desc: "Author Email"
+    optional: true

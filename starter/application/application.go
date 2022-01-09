@@ -108,8 +108,8 @@ func Create(version string, flags ...cli.Flag) *Application {
 			Usage: "configuration file path",
 		},
 		altsrc.NewDurationFlag(cli.DurationFlag{
-			Name:  "shutdown_timeout",
-			Usage: "set a shutdown timeout for each service",
+			Name:  "shutdown-timeout",
+			Usage: "set a shutdown timeout for each module",
 			Value: 5 * time.Second,
 		}),
 	}
