@@ -44,7 +44,7 @@ func main() {
 	app.Provider(api.Provider{})
 	{{- end }}
 
-	app.Main(func(conf *config.Config) {
+	app.Async(func(conf *config.Config) {
         if log.DebugEnabled() {
             log.With(conf).Debug("configuration loaded")
         }
