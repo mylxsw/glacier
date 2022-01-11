@@ -5,7 +5,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/graceful"
 )
@@ -114,7 +113,6 @@ type Glacier interface {
 	// AfterProviderBooted 所有的 providers 都已经完成 boot 之后执行
 	AfterProviderBooted(f interface{}) Glacier
 
-	Logger(logger log.Logger) Glacier
 	Singleton(ins ...interface{}) Glacier
 	Prototype(ins ...interface{}) Glacier
 	ResolveWithError(resolver interface{}) error

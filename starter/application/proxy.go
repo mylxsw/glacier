@@ -1,7 +1,6 @@
 package application
 
 import (
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/graceful"
@@ -76,9 +75,4 @@ func (application *Application) MustResolve(resolver interface{}) {
 
 func (application *Application) Container() container.Container {
 	return application.glacier.Container()
-}
-
-func (application *Application) Logger(logger log.Logger) *Application {
-	application.glacier.Logger(logger)
-	return application
 }

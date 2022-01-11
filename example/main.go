@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"runtime"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/mylxsw/glacier"
@@ -43,7 +42,7 @@ func main() {
 	log.DefaultDynamicModuleName(true)
 	log.AddGlobalFilter(func(filter log.Filter) log.Filter {
 		return func(f asteriaEvent.Event) {
-			if f.Level == level.Debug && strings.HasPrefix(f.Module, "github.com.mylxsw.glacier.cron") {
+			if f.Level == level.Debug && glacier.IsGlacierModuleLog(f.Module) {
 				return
 			}
 
@@ -58,9 +57,18 @@ func main() {
 
 // runOnce 执行一次性任务，执行完毕自动推出
 func runOnce(app *application.Application) error {
-	log.All().LogLevel(level.Error)
+	log.AddGlobalFilter(func(filter log.Filter) log.Filter {
+		return func(f asteriaEvent.Event) {
+			if glacier.IsGlacierModuleLog(f.Module) {
+				return
+			}
+
+			filter(f)
+		}
+	})
 
 	app.Singleton(func() *config.Config {
+		log.Debugf("create config ...")
 		return &config.Config{DB: "demo", Test: "test str"}
 	})
 

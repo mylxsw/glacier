@@ -29,11 +29,11 @@ func (p *provider) Register(app infra.Binder) {
 	}
 
 	// 定时任务对象
-	app.MustSingletonOverride(func(logger log.Logger) *cronV3.Cron {
-		return cronV3.New(cronV3.WithSeconds(), cronV3.WithLogger(cronLogger{logger: logger}))
+	app.MustSingletonOverride(func() *cronV3.Cron {
+		return cronV3.New(cronV3.WithSeconds(), cronV3.WithLogger(cronLogger{}))
 	})
-	app.MustSingletonOverride(func(cc container.Container, logger log.Logger) Scheduler {
-		cr := NewManager(cc, logger)
+	app.MustSingletonOverride(func(cc container.Container) Scheduler {
+		cr := NewManager(cc)
 		for _, opt := range p.options {
 			opt(cc, cr)
 		}
@@ -61,7 +61,6 @@ func (p *provider) Daemon(ctx context.Context, app infra.Resolver) {
 }
 
 type cronLogger struct {
-	logger log.Logger
 }
 
 func (l cronLogger) Info(msg string, keysAndValues ...interface{}) {
@@ -69,7 +68,7 @@ func (l cronLogger) Info(msg string, keysAndValues ...interface{}) {
 }
 
 func (l cronLogger) Error(err error, msg string, keysAndValues ...interface{}) {
-	l.logger.WithFields(log.Fields{
+	log.WithFields(log.Fields{
 		"arguments": keysAndValues,
 	}).Errorf("%s: %v", msg, err)
 }

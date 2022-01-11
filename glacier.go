@@ -33,7 +33,6 @@ type DelayTask struct {
 type glacierImpl struct {
 	version   string
 	container container.Container
-	logger    log.Logger
 
 	delayTasks      []DelayTask
 	delayTaskClosed bool
@@ -133,12 +132,6 @@ func (glacier *glacierImpl) AfterProviderBooted(f interface{}) infra.Glacier {
 	return glacier
 }
 
-// Logger set a log implements
-func (glacier *glacierImpl) Logger(logger log.Logger) infra.Glacier {
-	glacier.logger = logger
-	return glacier
-}
-
 // Singleton add a singleton instance to container
 func (glacier *glacierImpl) Singleton(ins ...interface{}) infra.Glacier {
 	if glacier.status >= Initialized {
@@ -183,13 +176,9 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 			}
 		}
 
-		if glacier.logger == nil {
-			glacier.logger = log.Module("glacier")
-		}
-
 		defer func() {
 			if err := recover(); err != nil {
-				glacier.logger.Criticalf("application initialize failed with a panic, Err: %s, Stack: \n%s", err, debug.Stack())
+				log.Criticalf("application initialize failed with a panic, Err: %s, Stack: \n%s", err, debug.Stack())
 			}
 		}()
 
@@ -264,7 +253,7 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 					gf.AddShutdownHandler(s.Stop)
 					gf.AddReloadHandler(s.Reload)
 					if err := s.Start(); err != nil {
-						glacier.logger.Errorf("service %s has stopped: %v", s.Name(), err)
+						log.Errorf("service %s has stopped: %v", s.Name(), err)
 					}
 				})
 			}(s)
@@ -275,7 +264,7 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 
 		defer cc.MustResolve(func(conf *Config) {
 			if err := recover(); err != nil {
-				glacier.logger.Criticalf("application startup failed, Err: %v, Stack: %s", err, debug.Stack())
+				log.Criticalf("application startup failed, Err: %v, Stack: %s", err, debug.Stack())
 			}
 
 			if conf.ShutdownTimeout > 0 {
@@ -286,16 +275,16 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 				}()
 				select {
 				case <-ok:
-					if glacier.logger.DebugEnabled() {
-						glacier.logger.Debugf("all services has been stopped")
+					if log.DebugEnabled() {
+						log.Debugf("all services has been stopped")
 					}
 				case <-time.After(conf.ShutdownTimeout):
-					glacier.logger.Errorf("shutdown timeout, exit directly")
+					log.Errorf("shutdown timeout, exit directly")
 				}
 			} else {
 				wg.Wait()
-				if glacier.logger.DebugEnabled() {
-					glacier.logger.Debugf("all services has been stopped")
+				if log.DebugEnabled() {
+					log.Debugf("all services has been stopped")
 				}
 			}
 		})
@@ -329,22 +318,22 @@ func (glacier *glacierImpl) buildAsyncJobRunner(wg sync.WaitGroup) func(resolver
 					defer wg2.Done()
 
 					if err := job.Call(resolver); err != nil {
-						glacier.logger.Errorf("async job failed: %v", err)
+						log.Errorf("async job failed: %v", err)
 					}
 				}(job)
 			}
 
-			if glacier.logger.DebugEnabled() {
-				glacier.logger.Debug("async jobs runner stopping...")
+			if log.DebugEnabled() {
+				log.Debug("async jobs runner stopping...")
 			}
 
 			select {
 			case <-done:
-				if glacier.logger.DebugEnabled() {
-					glacier.logger.Debug("async jobs runner stopped: all jobs has been finished")
+				if log.DebugEnabled() {
+					log.Debug("async jobs runner stopped: all jobs has been finished")
 				}
 			case <-time.After(10 * time.Second):
-				glacier.logger.Warning("async jobs runner stopped: timeout")
+				log.Warning("async jobs runner stopped: timeout")
 			}
 		}()
 
@@ -362,7 +351,7 @@ func (glacier *glacierImpl) buildAsyncJobRunner(wg sync.WaitGroup) func(resolver
 func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.FlagContext) error {
 	// 基本配置加载
 	cc.MustSingletonOverride(ConfigLoader)
-	cc.MustSingletonOverride(func() log.Logger { return glacier.logger })
+	cc.MustSingletonOverride(func() log.Logger { return log.Default() })
 
 	// 优雅停机
 	cc.MustSingletonOverride(func(conf *Config) graceful.Graceful {
@@ -420,7 +409,7 @@ func (glacier *glacierImpl) servicesFilter(cliCtx infra.FlagContext) []infra.Ser
 		st := reflect.TypeOf(s)
 		v, ok := uniqAggregates[st]
 		if ok {
-			glacier.logger.WithFields(log.Fields{"count": v + 1}).
+			log.WithFields(log.Fields{"count": v + 1}).
 				Warningf("service %s are loaded more than once", st.Name())
 		}
 
@@ -447,7 +436,7 @@ func (glacier *glacierImpl) providersFilter(cliCtx infra.FlagContext) []infra.Pr
 		pt := reflect.TypeOf(p)
 		v, ok := uniqAggregates[pt]
 		if ok {
-			glacier.logger.WithFields(log.Fields{"count": v + 1}).
+			log.WithFields(log.Fields{"count": v + 1}).
 				Warningf("provider %s %s are loaded more than once", pt.PkgPath(), pt.String())
 		}
 
@@ -485,8 +474,8 @@ func (glacier *glacierImpl) startServer(resolver infra.Resolver, startupTs time.
 			})
 		}
 
-		if glacier.logger.DebugEnabled() {
-			glacier.logger.Debugf("started glacier application in %v", time.Since(startupTs))
+		if log.DebugEnabled() {
+			log.Debugf("started glacier application in %v", time.Since(startupTs))
 		}
 
 		glacier.status = Started

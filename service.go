@@ -25,7 +25,7 @@ func (aj asyncJob) Call(resolver infra.Resolver) error {
 	return resolver.ResolveWithError(aj.fn)
 }
 
-// Async add a async function
+// Async 添加一个异步执行函数
 func (glacier *glacierImpl) Async(fns ...interface{}) {
 	for i, fn := range fns {
 		if reflect.TypeOf(fn).Kind() != reflect.Func {

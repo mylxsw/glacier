@@ -65,7 +65,7 @@ func (app *serverImpl) Start(listener net.Listener) error {
 	}
 
 	app.status = serverStatusStarted
-	return app.cc.ResolveWithError(func(gf graceful.Graceful, logger log.Logger) error {
+	return app.cc.ResolveWithError(func(gf graceful.Graceful) error {
 		srv := &http.Server{
 			Handler:      app.router(app.cc),
 			WriteTimeout: app.conf.HttpWriteTimeout,
@@ -81,26 +81,26 @@ func (app *serverImpl) Start(listener net.Listener) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			if logger.DebugEnabled() {
-				logger.Debugf("prepare to shutdown http server...")
+			if log.DebugEnabled() {
+				log.Debugf("prepare to shutdown http server...")
 			}
 
 			if err := srv.Shutdown(ctx); err != nil {
-				logger.Errorf("shutdown http server failed: %s", err)
+				log.Errorf("shutdown http server failed: %s", err)
 			}
 
-			if logger.WarningEnabled() {
-				logger.Warning("http server has been shutdown")
+			if log.WarningEnabled() {
+				log.Warning("http server has been shutdown")
 			}
 		})
 
-		if logger.DebugEnabled() {
-			logger.Debugf("http server started, listening on %s", listener.Addr())
+		if log.DebugEnabled() {
+			log.Debugf("http server started, listening on %s", listener.Addr())
 		}
 
 		if err := srv.Serve(listener); err != nil {
-			if logger.DebugEnabled() {
-				logger.Debugf("http server stopped: %s", err)
+			if log.DebugEnabled() {
+				log.Debugf("http server stopped: %s", err)
 			}
 
 			if err != http.ErrServerClosed {

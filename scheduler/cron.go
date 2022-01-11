@@ -66,8 +66,7 @@ type schedulerImpl struct {
 
 	distributeLockManager DistributeLockManager
 
-	jobs   map[string]*Job
-	logger log.Logger
+	jobs map[string]*Job
 }
 
 // Job is a job object
@@ -98,8 +97,8 @@ func (job Job) Next(nextNum int) ([]time.Time, error) {
 }
 
 // NewManager create a new Scheduler
-func NewManager(cc container.Container, logger log.Logger) Scheduler {
-	m := schedulerImpl{cc: cc, jobs: make(map[string]*Job), logger: logger}
+func NewManager(cc container.Container) Scheduler {
+	m := schedulerImpl{cc: cc, jobs: make(map[string]*Job)}
 	cc.MustResolve(func(cr *cron.Cron) { m.cr = cr })
 
 	return &m
@@ -151,27 +150,27 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 
 	jobHandler := func() {
 		if c.distributeLockManager != nil && !c.distributeLockManager.HasLock() {
-			if c.logger.DebugEnabled() {
-				c.logger.Debugf("cron job [%s] can not start because it doesn't get the lock", name)
+			if log.DebugEnabled() {
+				log.Debugf("cron job [%s] can not start because it doesn't get the lock", name)
 			}
 			return
 		}
 
-		if c.logger.DebugEnabled() {
-			c.logger.Debugf("cron job [%s] running", name)
+		if log.DebugEnabled() {
+			log.Debugf("cron job [%s] running", name)
 		}
 		startTs := time.Now()
 		defer func() {
 			if err := recover(); err != nil {
-				c.logger.Errorf("cron job [%s] stopped with some errors: %v, elapse %s", name, err, time.Now().Sub(startTs))
+				log.Errorf("cron job [%s] stopped with some errors: %v, elapse %s", name, err, time.Since(startTs))
 			} else {
-				if c.logger.DebugEnabled() {
-					c.logger.Debugf("cron job [%s] stopped, elapse %s", name, time.Now().Sub(startTs))
+				if log.DebugEnabled() {
+					log.Debugf("cron job [%s] stopped, elapse %s", name, time.Since(startTs))
 				}
 			}
 		}()
 		if err := c.cc.ResolveWithError(hh.Handle); err != nil {
-			c.logger.Errorf("cron job [%s] failed, Err: %v, Stack: \n%s", name, err, debug.Stack())
+			log.Errorf("cron job [%s] failed, Err: %v, Stack: \n%s", name, err, debug.Stack())
 		}
 	}
 	id, err := c.cr.AddFunc(plan, jobHandler)
@@ -187,8 +186,8 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 		handler: jobHandler,
 		Paused:  false,
 	}
-	if c.logger.DebugEnabled() {
-		c.logger.Debugf("add job [%s] to cron manager with plan %s", name, plan)
+	if log.DebugEnabled() {
+		log.Debugf("add job [%s] to cron manager with plan %s", name, plan)
 	}
 
 	return nil
@@ -208,8 +207,8 @@ func (c *schedulerImpl) Remove(name string) error {
 		c.cr.Remove(reg.ID)
 	}
 
-	if c.logger.DebugEnabled() {
-		c.logger.Debugf("remove job [%s] from cron manager", name)
+	if log.DebugEnabled() {
+		log.Debugf("remove job [%s] from cron manager", name)
 	}
 	return nil
 }
@@ -230,8 +229,8 @@ func (c *schedulerImpl) Pause(name string) error {
 	c.cr.Remove(reg.ID)
 	reg.Paused = true
 
-	if c.logger.DebugEnabled() {
-		c.logger.Debugf("change job [%s] to paused", name)
+	if log.DebugEnabled() {
+		log.Debugf("change job [%s] to paused", name)
 	}
 
 	return nil
@@ -258,8 +257,8 @@ func (c *schedulerImpl) Continue(name string) error {
 	reg.Paused = false
 	reg.ID = id
 
-	if c.logger.DebugEnabled() {
-		c.logger.Debugf("change job [%s] to continue", name)
+	if log.DebugEnabled() {
+		log.Debugf("change job [%s] to continue", name)
 	}
 
 	return nil
@@ -280,15 +279,15 @@ func (c *schedulerImpl) Start() {
 	if c.distributeLockManager != nil {
 		getDistributeLock := func() {
 			if err := c.distributeLockManager.TryLock(); err != nil {
-				if c.logger.WarningEnabled() {
-					c.logger.Warningf("try to get distribute lock failed: %v", err)
+				if log.WarningEnabled() {
+					log.Warningf("try to get distribute lock failed: %v", err)
 				}
 			}
 		}
 
 		getDistributeLock()
 		if _, err := c.cr.AddFunc("@every 60s", getDistributeLock); err != nil {
-			c.logger.Errorf("initialize cron failed: can not create distribute lock task: %v", err)
+			log.Errorf("initialize cron failed: can not create distribute lock task: %v", err)
 		}
 	}
 
@@ -299,8 +298,8 @@ func (c *schedulerImpl) Stop() {
 	c.cr.Stop()
 	if c.distributeLockManager != nil {
 		if err := c.distributeLockManager.TryUnLock(); err != nil {
-			if c.logger.WarningEnabled() {
-				c.logger.Warningf("try to release distribute lock failed: %v", err)
+			if log.WarningEnabled() {
+				log.Warningf("try to release distribute lock failed: %v", err)
 			}
 		}
 	}
