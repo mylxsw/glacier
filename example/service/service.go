@@ -30,6 +30,7 @@ func (d *DemoService) Start() error {
 	for {
 		select {
 		case <-d.stopped:
+			log.Debug("service DemoService stopped")
 			return nil
 		default:
 			time.Sleep(5 * time.Second)

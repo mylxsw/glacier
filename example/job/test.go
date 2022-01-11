@@ -14,6 +14,6 @@ func TestJob(conf *config.Config) {
 
 func TestTimeoutJob(conf *config.Config) {
 	log.Info("Hello, test timeout job!")
-	<-time.After(30 * time.Second)
+	<-time.After(10 * time.Second)
 	log.Infof("0000000000: %s", conf.DB)
 }

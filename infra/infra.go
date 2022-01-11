@@ -92,6 +92,8 @@ type Glacier interface {
 	Provider(providers ...Provider)
 	// Service 注册一个 Service
 	Service(services ...Service)
+	// Async 注册一个异步任务
+	Async(asyncJobs ...interface{})
 
 	// Graceful 设置优雅停机实现
 	Graceful(builder func() graceful.Graceful) Glacier
@@ -118,8 +120,6 @@ type Glacier interface {
 	ResolveWithError(resolver interface{}) error
 	MustResolve(resolver interface{})
 	Container() container.Container
-	// Main 函数，在 App 启动的最后执行该函数
-	Main(f interface{}) Glacier
 }
 
 type Binder container.Binder

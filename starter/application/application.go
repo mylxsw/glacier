@@ -108,7 +108,7 @@ func Create(version string, flags ...cli.Flag) *Application {
 			Usage: "configuration file path",
 		},
 		altsrc.NewDurationFlag(cli.DurationFlag{
-			Name:  "shutdown-timeout",
+			Name:  glacier.ShutdownTimeoutOption,
 			Usage: "set a shutdown timeout for each module",
 			Value: 5 * time.Second,
 		}),

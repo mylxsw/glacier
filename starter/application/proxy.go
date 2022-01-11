@@ -17,6 +17,11 @@ func (application *Application) Service(services ...infra.Service) *Application 
 	return application
 }
 
+func (application *Application) Async(asyncJobs ...interface{}) *Application {
+	application.glacier.Async(asyncJobs...)
+	return application
+}
+
 func (application *Application) Graceful(builder func() graceful.Graceful) *Application {
 	application.glacier.Graceful(builder)
 	return application
@@ -71,11 +76,6 @@ func (application *Application) MustResolve(resolver interface{}) {
 
 func (application *Application) Container() container.Container {
 	return application.glacier.Container()
-}
-
-func (application *Application) Main(f interface{}) *Application {
-	application.glacier.Main(f)
-	return application
 }
 
 func (application *Application) Logger(logger log.Logger) *Application {

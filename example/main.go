@@ -3,11 +3,12 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/mylxsw/glacier"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/mylxsw/glacier"
 
 	asteriaEvent "github.com/mylxsw/asteria/event"
 	"github.com/mylxsw/asteria/level"
@@ -51,8 +52,28 @@ func main() {
 	})
 
 	application.MustStart(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]), run)
+	// application.MustStart(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]), runOnce)
+
 }
 
+// runOnce 执行一次性任务，执行完毕自动推出
+func runOnce(app *application.Application) error {
+	log.All().LogLevel(level.Error)
+
+	app.Singleton(func() *config.Config {
+		return &config.Config{DB: "demo", Test: "test str"}
+	})
+
+	app.Async(func(gf graceful.Graceful, conf *config.Config) {
+		defer gf.Shutdown()
+
+		fmt.Println(conf.Serialize())
+	})
+
+	return nil
+}
+
+// run 后台持续运行的任务，除非手动触发退出，否则一直运行
 func run(app *application.Application) error {
 	app.WithDescription("Glacier 框架演示项目").
 		WithName("glacier-example").
@@ -108,7 +129,7 @@ func run(app *application.Application) error {
 		}
 	})
 
-	app.Main(func(conf *config.Config, publisher event.Publisher, gf graceful.Graceful) {
+	app.Async(func(conf *config.Config, publisher event.Publisher, gf graceful.Graceful) {
 		if log.DebugEnabled() {
 			log.Debugf("config: %s", conf.Serialize())
 		}
@@ -117,8 +138,8 @@ func run(app *application.Application) error {
 			publisher.Publish(CronEvent{GoroutineID: uint64(i)})
 		}
 
-		// 5s 后自动关闭服务
-		time.AfterFunc(5*time.Second, gf.Shutdown)
+		// 10s 后自动关闭服务
+		time.AfterFunc(10*time.Second, gf.Shutdown)
 	})
 
 	return nil

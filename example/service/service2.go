@@ -26,9 +26,10 @@ func (d *Demo2Service) Start() error {
 	for {
 		select {
 		case <-d.stopped:
+			log.Debug("service Demo2Service stopped")
 			return nil
 		default:
-			time.Sleep(7 * time.Second)
+			time.Sleep(3 * time.Second)
 			log.Infof("hello, world from %s", d.Name())
 		}
 	}

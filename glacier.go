@@ -41,15 +41,16 @@ type glacierImpl struct {
 
 	handler func(cliCtx infra.FlagContext) error
 
-	providers []infra.Provider
-	services  []infra.Service
+	providers       []infra.Provider
+	services        []infra.Service
+	asyncJobs       []asyncJob
+	asyncJobChannel chan asyncJob
 
 	beforeInitialize    func(c infra.FlagContext) error
 	beforeServerStart   func(cc container.Container) error
 	afterServerStart    func(cc infra.Resolver) error
 	beforeServerStop    func(cc infra.Resolver) error
 	afterProviderBooted interface{}
-	mainFunc            interface{}
 
 	gracefulBuilder func() graceful.Graceful
 
@@ -67,6 +68,7 @@ func CreateGlacier(version string) infra.Glacier {
 	glacier.prototypes = make([]interface{}, 0)
 	glacier.providers = make([]infra.Provider, 0)
 	glacier.services = make([]infra.Service, 0)
+	glacier.asyncJobs = make([]asyncJob, 0)
 	glacier.delayTasks = make([]DelayTask, 0)
 	glacier.handler = glacier.createServer()
 	glacier.status = Unknown
@@ -172,12 +174,6 @@ func (glacier *glacierImpl) Container() container.Container {
 	return glacier.container
 }
 
-// Main execute main business logic
-func (glacier *glacierImpl) Main(f interface{}) infra.Glacier {
-	glacier.mainFunc = f
-	return glacier
-}
-
 func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 	startupTs := time.Now()
 	return func(cliCtx infra.FlagContext) error {
@@ -274,6 +270,9 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 			}(s)
 		}
 
+		// add async job processer
+		glacier.delayTasks = append(glacier.delayTasks, DelayTask{Func: glacier.buildAsyncJobRunner(wg)})
+
 		defer cc.MustResolve(func(conf *Config) {
 			if err := recover(); err != nil {
 				glacier.logger.Criticalf("application startup failed, Err: %v, Stack: %s", err, debug.Stack())
@@ -302,6 +301,60 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 		})
 
 		return cc.ResolveWithError(glacier.startServer(cc, startupTs))
+	}
+}
+
+func (glacier *glacierImpl) buildAsyncJobRunner(wg sync.WaitGroup) func(resolver infra.Resolver, gf graceful.Graceful) {
+	return func(resolver infra.Resolver, gf graceful.Graceful) {
+		wg.Add(1)
+
+		glacier.asyncJobChannel = make(chan asyncJob)
+		gf.AddShutdownHandler(func() {
+			close(glacier.asyncJobChannel)
+		})
+
+		var wg2 sync.WaitGroup
+		done := make(chan struct{})
+		go func() {
+			wg2.Wait()
+			close(done)
+		}()
+
+		go func() {
+			defer wg.Done()
+
+			for job := range glacier.asyncJobChannel {
+				wg2.Add(1)
+				go func(job asyncJob) {
+					defer wg2.Done()
+
+					if err := job.Call(resolver); err != nil {
+						glacier.logger.Errorf("async job failed: %v", err)
+					}
+				}(job)
+			}
+
+			if glacier.logger.DebugEnabled() {
+				glacier.logger.Debug("async jobs runner stopping...")
+			}
+
+			select {
+			case <-done:
+				if glacier.logger.DebugEnabled() {
+					glacier.logger.Debug("async jobs runner stopped: all jobs has been finished")
+				}
+			case <-time.After(10 * time.Second):
+				glacier.logger.Warning("async jobs runner stopped: timeout")
+			}
+		}()
+
+		glacier.lock.Lock()
+		defer glacier.lock.Unlock()
+
+		for _, job := range glacier.asyncJobs {
+			glacier.asyncJobChannel <- job
+		}
+		glacier.asyncJobs = nil
 	}
 }
 
@@ -417,18 +470,18 @@ func resolveProviderAggregate(provider infra.Provider) []infra.Provider {
 }
 
 // startServer 启动 Glacier
-func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.Time) func(gf graceful.Graceful) error {
+func (glacier *glacierImpl) startServer(resolver infra.Resolver, startupTs time.Time) func(gf graceful.Graceful) error {
 	return func(gf graceful.Graceful) error {
 		// 服务都启动之后的回调
 		if glacier.afterServerStart != nil {
-			if err := glacier.afterServerStart(cc); err != nil {
+			if err := glacier.afterServerStart(resolver); err != nil {
 				return err
 			}
 		}
 
 		if glacier.beforeServerStop != nil {
 			gf.AddShutdownHandler(func() {
-				_ = glacier.beforeServerStop(cc)
+				_ = glacier.beforeServerStop(resolver)
 			})
 		}
 
@@ -436,23 +489,20 @@ func (glacier *glacierImpl) startServer(cc container.Container, startupTs time.T
 			glacier.logger.Debugf("started glacier application in %v", time.Since(startupTs))
 		}
 
-		go func() {
-			glacier.lock.RLock()
-			defer glacier.lock.RUnlock()
-
-			if glacier.mainFunc != nil {
-				cc.MustResolve(glacier.mainFunc)
-			}
-
-			for _, t := range glacier.delayTasks {
-				cc.MustResolve(t.Func)
-			}
-
-			glacier.delayTaskClosed = true
-			glacier.delayTasks = nil
-		}()
-
 		glacier.status = Started
+
+		delayTasks := make([]DelayTask, 0)
+
+		glacier.lock.Lock()
+		delayTasks = append(delayTasks, glacier.delayTasks...)
+		glacier.delayTaskClosed = true
+		glacier.delayTasks = nil
+		glacier.lock.Unlock()
+
+		for _, t := range delayTasks {
+			go resolver.MustResolve(t.Func)
+		}
+
 		return gf.Start()
 	}
 }

@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	ShutdownTimeoutOption = "shutdown_timeout"
+	ShutdownTimeoutOption = "shutdown-timeout"
 )
 
 type Config struct {
