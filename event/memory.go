@@ -30,14 +30,15 @@ func (eventStore *MemoryEventStore) Listen(evtType string, listener interface{})
 	eventStore.listeners[evtType] = append(eventStore.listeners[evtType], listener)
 }
 
-// Publish publish a event
-func (eventStore *MemoryEventStore) Publish(evt Event) {
+// Publish an event
+func (eventStore *MemoryEventStore) Publish(evt Event) error {
 	if eventStore.isAsyncEvent(evt.Event) {
 		eventStore.asyncEvents <- evt
-		return
+		return nil
 	}
 
 	eventStore.callEvent(evt)
+	return nil
 }
 
 func (eventStore *MemoryEventStore) callEvent(evt Event) {
@@ -48,7 +49,7 @@ func (eventStore *MemoryEventStore) callEvent(evt Event) {
 	}
 }
 
-// isAsyncEvent check whether the event is a async event
+// isAsyncEvent check whether the event is an async event
 func (eventStore *MemoryEventStore) isAsyncEvent(evt interface{}) bool {
 	if eventStore.async {
 		return true

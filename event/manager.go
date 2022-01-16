@@ -47,12 +47,12 @@ func (em *eventManager) Listen(listeners ...interface{}) {
 	}
 }
 
-// Publish a event
-func (em *eventManager) Publish(evt interface{}) {
+// Publish an event
+func (em *eventManager) Publish(evt interface{}) error {
 	em.lock.RLock()
 	defer em.lock.RUnlock()
 
-	em.store.Publish(Event{
+	return em.store.Publish(Event{
 		Name:  fmt.Sprintf("%s", reflect.TypeOf(evt)),
 		Event: evt,
 	})

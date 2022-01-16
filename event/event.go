@@ -6,10 +6,10 @@ type AsyncEvent interface {
 	Async() bool
 }
 
-// Store is a interface for event store
+// Store is an interface for event store
 type Store interface {
 	Listen(eventName string, listener interface{})
-	Publish(evt Event)
+	Publish(evt Event) error
 	SetManager(manager Manager)
 	Start(ctx context.Context) <-chan interface{}
 }
@@ -27,7 +27,7 @@ type Manager interface {
 }
 
 type Publisher interface {
-	Publish(evt interface{})
+	Publish(evt interface{}) error
 }
 
 type Listener interface {
