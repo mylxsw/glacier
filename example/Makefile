@@ -4,7 +4,7 @@ DIR := $(shell pwd)
 LDFLAGS := "-s -w -X main.Version=$(Version) -X main.GitCommit=$(GitCommit)"
 
 run: build
-	./bin/example --shutdown-timeout 5s --load-job --load-demoservice
+	./bin/example --load-job --load-demoservice
 
 build:
 	go build -ldflags $(LDFLAGS) -o bin/example *.go

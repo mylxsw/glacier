@@ -21,7 +21,11 @@ type Config struct {
 // ConfigLoader 框架级配置实例创建
 func ConfigLoader(c infra.FlagContext) *Config {
 	config := &Config{}
+
 	config.ShutdownTimeout = c.Duration(ShutdownTimeoutOption)
+	if config.ShutdownTimeout.Microseconds() == 0 {
+		config.ShutdownTimeout = 15 * time.Second
+	}
 
 	return config
 }

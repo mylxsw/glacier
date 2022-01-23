@@ -53,8 +53,9 @@ type glacierImpl struct {
 
 	gracefulBuilder func() graceful.Graceful
 
-	singletons []interface{}
-	prototypes []interface{}
+	flagContextInit interface{}
+	singletons      []interface{}
+	prototypes      []interface{}
 
 	status Status
 }
@@ -71,6 +72,18 @@ func CreateGlacier(version string) infra.Glacier {
 	glacier.delayTasks = make([]DelayTask, 0)
 	glacier.handler = glacier.createServer()
 	glacier.status = Unknown
+	glacier.flagContextInit = func(flagCtx infra.FlagContext) infra.FlagContext { return flagCtx }
+
+	return glacier
+}
+
+func (glacier *glacierImpl) WithFlagContext(fn interface{}) infra.Glacier {
+	fnType := reflect.TypeOf(fn)
+	if fnType.Kind() != reflect.Func || fnType.NumOut() != 1 || fnType.Out(0) != reflect.TypeOf(infra.FlagContext(nil)) {
+		panic("invalid argument for WithFlagContext: must be a function like `func(...) infra.FlagContext`")
+	}
+
+	glacier.flagContextInit = fn
 
 	return glacier
 }
@@ -81,8 +94,8 @@ func (glacier *glacierImpl) Graceful(builder func() graceful.Graceful) infra.Gla
 	return glacier
 }
 
-func (glacier *glacierImpl) Handler() func(cliContext infra.FlagContext) error {
-	return glacier.handler
+func (glacier *glacierImpl) Main(cliCtx infra.FlagContext) error {
+	return glacier.handler(cliCtx)
 }
 
 // BeforeInitialize set a hook func executed before server initialize
@@ -190,7 +203,16 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 		// 运行信息
 		cc.MustBindValue(infra.VersionKey, glacier.version)
 		cc.MustBindValue(infra.StartupTimeKey, startupTs)
-		cc.MustSingleton(func() infra.FlagContext { return cliCtx })
+		cc.MustSingleton(func() (infra.FlagContext, error) {
+			res, err := cc.CallWithProvider(glacier.flagContextInit, cc.Provider(func() infra.FlagContext {
+				return cliCtx
+			}))
+			if err != nil {
+				return nil, err
+			}
+
+			return res[0].(infra.FlagContext), nil
+		})
 		cc.MustSingletonOverride(func() infra.Resolver { return cc })
 		cc.MustSingletonOverride(func() infra.Binder { return cc })
 		cc.MustSingletonOverride(func() infra.Hook { return glacier })
@@ -259,8 +281,8 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 			}(s)
 		}
 
-		// add async job processer
-		glacier.delayTasks = append(glacier.delayTasks, DelayTask{Func: glacier.buildAsyncJobRunner(wg)})
+		// add async job processor
+		glacier.delayTasks = append(glacier.delayTasks, DelayTask{Func: glacier.buildAsyncJobRunner(&wg)})
 
 		defer cc.MustResolve(func(conf *Config) {
 			if err := recover(); err != nil {
@@ -293,7 +315,7 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 	}
 }
 
-func (glacier *glacierImpl) buildAsyncJobRunner(wg sync.WaitGroup) func(resolver infra.Resolver, gf graceful.Graceful) {
+func (glacier *glacierImpl) buildAsyncJobRunner(wg *sync.WaitGroup) func(resolver infra.Resolver, gf graceful.Graceful) {
 	return func(resolver infra.Resolver, gf graceful.Graceful) {
 		wg.Add(1)
 

@@ -1,152 +1,128 @@
 package glacier
 
 import (
-	"github.com/urfave/cli"
-	"github.com/urfave/cli/altsrc"
 	"time"
 )
 
-func BoolFlag(name string, usage string) cli.Flag {
-	return BoolEnvFlag(name, usage, "")
+type FlagContext struct {
+	data map[string]interface{}
 }
 
-func BoolEnvFlag(name string, usage string, envName string) cli.Flag {
-	return altsrc.NewBoolFlag(cli.BoolFlag{
-		Name:   name,
-		Usage:  usage,
-		EnvVar: envName,
-	})
+func (f *FlagContext) setData(name string, value interface{}) {
+	f.data[name] = value
 }
 
-func StringFlag(name string, defaultVal string, usage string) cli.Flag {
-	return StringEnvFlag(name, defaultVal, usage, "")
+func (f *FlagContext) SetString(name string, value string)          { f.setData(name, value) }
+func (f *FlagContext) SetStringSlice(name string, value []string)   { f.setData(name, value) }
+func (f *FlagContext) SetBool(name string, value bool)              { f.setData(name, value) }
+func (f *FlagContext) SetInt(name string, value int)                { f.setData(name, value) }
+func (f *FlagContext) SetIntSlice(name string, value []int)         { f.setData(name, value) }
+func (f *FlagContext) SetDuration(name string, value time.Duration) { f.setData(name, value) }
+func (f *FlagContext) SetFloat64(name string, value float64)        { f.setData(name, value) }
+
+func (f *FlagContext) String(name string) string {
+	raw, ok := f.data[name]
+	if !ok {
+		return ""
+	}
+
+	val, ok := raw.(string)
+	if !ok {
+		return ""
+	}
+
+	return val
 }
 
-func StringEnvFlag(name string, defaultVal string, usage string, envName string) cli.Flag {
-	return altsrc.NewStringFlag(cli.StringFlag{
-		Name:   name,
-		Usage:  usage,
-		Value:  defaultVal,
-		EnvVar: envName,
-	})
+func (f *FlagContext) StringSlice(name string) []string {
+	raw, ok := f.data[name]
+	if !ok {
+		return []string{}
+	}
+
+	val, ok := raw.([]string)
+	if !ok {
+		return []string{}
+	}
+
+	return val
 }
 
-func DurationFlag(name string, defaultVal time.Duration, usage string) cli.Flag {
-	return DurationEnvFlag(name, defaultVal, usage, "")
+func (f *FlagContext) Bool(name string) bool {
+	raw, ok := f.data[name]
+	if !ok {
+		return false
+	}
+
+	val, ok := raw.(bool)
+	if !ok {
+		return false
+	}
+
+	return val
 }
 
-func DurationEnvFlag(name string, defaultVal time.Duration, usage string, envName string) cli.Flag {
-	return altsrc.NewDurationFlag(cli.DurationFlag{
-		Name:   name,
-		Usage:  usage,
-		EnvVar: envName,
-		Value:  defaultVal,
-	})
+func (f *FlagContext) Int(name string) int {
+	raw, ok := f.data[name]
+	if !ok {
+		return 0
+	}
+
+	val, ok := raw.(int)
+	if !ok {
+		return 0
+	}
+
+	return val
 }
 
-func IntFlag(name string, defaultVal int, usage string) cli.Flag {
-	return IntEnvFlag(name, defaultVal, usage, "")
+func (f *FlagContext) IntSlice(name string) []int {
+	raw, ok := f.data[name]
+	if !ok {
+		return []int{}
+	}
+
+	val, ok := raw.([]int)
+	if !ok {
+		return []int{}
+	}
+
+	return val
 }
 
-func IntEnvFlag(name string, defaultVal int, usage string, envName string) cli.Flag {
-	return altsrc.NewIntFlag(cli.IntFlag{
-		Name:   name,
-		Usage:  usage,
-		EnvVar: envName,
-		Value:  defaultVal,
-	})
+func (f *FlagContext) Duration(name string) time.Duration {
+	raw, ok := f.data[name]
+	if !ok {
+		return 0
+	}
+
+	val, ok := raw.(time.Duration)
+	if !ok {
+		return 0
+	}
+
+	return val
 }
 
-func Int64Flag(name string, defaultVal int64, usage string) cli.Flag {
-	return Int64EnvFlag(name, defaultVal, usage, "")
+func (f *FlagContext) Float64(name string) float64 {
+	raw, ok := f.data[name]
+	if !ok {
+		return 0
+	}
+
+	val, ok := raw.(float64)
+	if !ok {
+		return 0
+	}
+
+	return val
 }
 
-func Int64EnvFlag(name string, defaultVal int64, usage string, envName string) cli.Flag {
-	return altsrc.NewInt64Flag(cli.Int64Flag{
-		Name:   name,
-		Usage:  usage,
-		EnvVar: envName,
-		Value:  defaultVal,
-	})
-}
+func (f *FlagContext) FlagNames() []string {
+	names := make([]string, 0)
+	for k := range f.data {
+		names = append(names, k)
+	}
 
-func Float64Flag(name string, defaultVal float64, usage string) cli.Flag {
-	return Float64EnvFlag(name, defaultVal, usage, "")
-}
-
-func Float64EnvFlag(name string, defaultVal float64, usage string, envName string) cli.Flag {
-	return altsrc.NewFloat64Flag(cli.Float64Flag{
-		Name:   name,
-		Usage:  usage,
-		EnvVar: envName,
-		Value:  defaultVal,
-	})
-}
-
-func UintFlag(name string, defaultVal uint, usage string) cli.Flag {
-	return UintEnvFlag(name, defaultVal, usage, "")
-}
-
-func UintEnvFlag(name string, defaultVal uint, usage string, envName string) cli.Flag {
-	return altsrc.NewUintFlag(cli.UintFlag{
-		Name:   name,
-		Usage:  usage,
-		EnvVar: envName,
-		Value:  defaultVal,
-	})
-}
-
-func Uint64Flag(name string, defaultVal uint64, usage string) cli.Flag {
-	return Uint64EnvFlag(name, defaultVal, usage, "")
-}
-
-func Uint64EnvFlag(name string, defaultVal uint64, usage string, envName string) cli.Flag {
-	return altsrc.NewUint64Flag(cli.Uint64Flag{
-		Name:   name,
-		Usage:  usage,
-		EnvVar: envName,
-		Value:  defaultVal,
-	})
-}
-
-func StringSliceFlag(name string, defaultVal []string, usage string) cli.Flag {
-	return StringSliceEnvFlag(name, defaultVal, usage, "")
-}
-
-func StringSliceEnvFlag(name string, defaultVal []string, usage string, envName string) cli.Flag {
-	defaultValS := cli.StringSlice(defaultVal)
-	return altsrc.NewStringSliceFlag(cli.StringSliceFlag{
-		Name:   name,
-		Usage:  usage,
-		EnvVar: envName,
-		Value:  &defaultValS,
-	})
-}
-
-func IntSliceFlag(name string, defaultVal []int, usage string) cli.Flag {
-	return IntSliceEnvFlag(name, defaultVal, usage, "")
-}
-
-func IntSliceEnvFlag(name string, defaultVal []int, usage string, envName string) cli.Flag {
-	defaultValS := cli.IntSlice(defaultVal)
-	return altsrc.NewIntSliceFlag(cli.IntSliceFlag{
-		Name:   name,
-		Usage:  usage,
-		EnvVar: envName,
-		Value:  &defaultValS,
-	})
-}
-
-func Int64SliceFlag(name string, defaultVal []int64, usage string) cli.Flag {
-	return Int64SliceEnvFlag(name, defaultVal, usage, "")
-}
-
-func Int64SliceEnvFlag(name string, defaultVal []int64, usage string, envName string) cli.Flag {
-	defaultValS := cli.Int64Slice(defaultVal)
-	return altsrc.NewInt64SliceFlag(cli.Int64SliceFlag{
-		Name:   name,
-		Usage:  usage,
-		EnvVar: envName,
-		Value:  &defaultValS,
-	})
+	return names
 }

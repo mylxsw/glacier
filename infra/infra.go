@@ -74,19 +74,18 @@ type FlagContext interface {
 	String(name string) string
 	StringSlice(name string) []string
 	Bool(name string) bool
-	Int64(name string) int64
 	Int(name string) int
 	IntSlice(name string) []int
-	Uint64(name string) uint64
-	Uint(name string) uint
-	Int64Slice(name string) []int64
 	Duration(name string) time.Duration
 	Float64(name string) float64
-	Generic(name string) interface{}
 	FlagNames() (names []string)
 }
 
 type Glacier interface {
+	// WithFlagContext 设置 FlagContext，支持覆盖 FlagContext 默认实现
+	// 参数 fn 只支持 `func(...) infra.FlagContext` 形式
+	WithFlagContext(fn interface{}) Glacier
+
 	// Provider 注册一个模块
 	Provider(providers ...Provider)
 	// Service 注册一个 Service
@@ -100,7 +99,7 @@ type Glacier interface {
 	// OnServerReady call a function a server ready
 	OnServerReady(f interface{})
 
-	Handler() func(cliContext FlagContext) error
+	Main(cliCtx FlagContext) error
 	// BeforeInitialize Glacier 初始化之前执行，一般用于设置一些基本配置，比如日志等
 	BeforeInitialize(f func(c FlagContext) error) Glacier
 

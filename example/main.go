@@ -92,7 +92,9 @@ func run(app *application.Application) error {
 			cliAPP.UsageText = "这是 Usage Text"
 		})
 
-	app.AddFlags(glacier.StringFlag("listen", ":19945", "http listen addr"))
+	app.WithFlagYAMLSupport("conf").WithShutdownTimeoutFlagSupport()
+
+	app.AddFlags(application.StringFlag("listen", ":19945", "http listen addr"))
 	app.AddBoolFlag("load-job", "")
 	app.AddFlags(altsrc.NewBoolFlag(cli.BoolFlag{Name: "load-demoservice"}))
 

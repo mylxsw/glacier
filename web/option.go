@@ -47,7 +47,7 @@ func SetListenerHandlerOption(h ListenerHandler) Option {
 	}
 }
 
-// SetRouteHandlerOption 路由注册 Handler，在该 Handler 中注册 API 路由规则
+// SetRouteHandlerOption 路由注册 Main，在该 Main 中注册 API 路由规则
 func SetRouteHandlerOption(h RouteHandler) Option {
 	return func(cc infra.Resolver, conf *Config) {
 		conf.routeHandler = h
@@ -61,7 +61,7 @@ func SetExceptionHandlerOption(h ExceptionHandler) Option {
 	}
 }
 
-// SetMuxRouteHandlerOption 路由注册 Handler，该方法获取到的是底层的 Gorilla Mux 对象
+// SetMuxRouteHandlerOption 路由注册 Main，该方法获取到的是底层的 Gorilla Mux 对象
 func SetMuxRouteHandlerOption(h MuxRouteHandler) Option {
 	return func(cc infra.Resolver, conf *Config) {
 		conf.muxRouteHandler = h

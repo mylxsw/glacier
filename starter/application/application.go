@@ -5,28 +5,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier"
 	"github.com/mylxsw/glacier/infra"
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
 )
-
-var _app *Application
-
-// App return glacierImpl instance you created
-func App() *Application {
-	if _app == nil {
-		panic("you should create a Glacier application by call Create function first!")
-	}
-
-	return _app
-}
-
-// Container return container instance for glacier
-func Container() container.Container {
-	return App().glacier.Container()
-}
 
 type Application struct {
 	glacier infra.Glacier
@@ -72,6 +55,38 @@ func (application *Application) WithCLIOptions(fn func(cliAPP *cli.App)) *Applic
 	return application
 }
 
+func (application *Application) WithShutdownTimeoutFlagSupport() *Application {
+	return application.AddFlags(altsrc.NewDurationFlag(cli.DurationFlag{
+		Name:  glacier.ShutdownTimeoutOption,
+		Usage: "set a shutdown timeout for each module",
+		Value: 5 * time.Second,
+	}))
+}
+
+func (application *Application) WithFlagYAMLSupport(flagName string) *Application {
+	application.cli.Flags = append(application.cli.Flags, cli.StringFlag{
+		Name:  flagName,
+		Value: "",
+		Usage: "configuration file path",
+	})
+
+	application.cli.Before = func(c *cli.Context) error {
+		conf := c.String(flagName)
+		if conf == "" {
+			return nil
+		}
+
+		inputSource, err := altsrc.NewYamlSourceFromFile(conf)
+		if err != nil {
+			return err
+		}
+
+		return altsrc.ApplyInputSourceValues(c, inputSource, c.App.Flags)
+	}
+
+	return application
+}
+
 func MustRun(app *Application) {
 	if err := app.Run(os.Args); err != nil {
 		panic(err)
@@ -96,55 +111,21 @@ func CreateAndInit(version string, init func(app *Application) error) *Applicati
 	return app
 }
 
-func Create(version string, flags ...cli.Flag) *Application {
-	if _app != nil {
-		panic("a glacier application has been created")
-	}
-
-	serverFlags := []cli.Flag{
-		cli.StringFlag{
-			Name:  "conf",
-			Value: "",
-			Usage: "configuration file path",
-		},
-		altsrc.NewDurationFlag(cli.DurationFlag{
-			Name:  glacier.ShutdownTimeoutOption,
-			Usage: "set a shutdown timeout for each module",
-			Value: 5 * time.Second,
-		}),
-	}
-
-	serverFlags = append(serverFlags, flags...)
-
+func Create(version string) *Application {
 	app := cli.NewApp()
 	app.EnableBashCompletion = true
 	app.Version = version
-	app.Before = func(c *cli.Context) error {
-		conf := c.String("conf")
-		if conf == "" {
-			return nil
-		}
-
-		inputSource, err := altsrc.NewYamlSourceFromFile(conf)
-		if err != nil {
-			return err
-		}
-
-		return altsrc.ApplyInputSourceValues(c, inputSource, c.App.Flags)
-	}
-	app.Flags = serverFlags
+	app.Flags = make([]cli.Flag, 0)
 
 	glacierIns := glacier.CreateGlacier(version)
 	app.Action = func(c *cli.Context) error {
-		return glacierIns.Handler()(c)
+		return glacierIns.Main(c)
 	}
 
-	_app = &Application{
+	return &Application{
 		glacier: glacierIns,
 		cli:     app,
 	}
-
-	return _app
 }
 
 // Glacier glacierImpl return glacierImpl instance
@@ -159,37 +140,25 @@ func (application *Application) AddFlags(flags ...cli.Flag) *Application {
 }
 
 func (application *Application) AddIntFlag(name string, defaultVal int, usage string) *Application {
-	return application.AddFlags(glacier.IntFlag(name, defaultVal, usage))
-}
-func (application *Application) AddInt64Flag(name string, defaultVal int64, usage string) *Application {
-	return application.AddFlags(glacier.Int64Flag(name, defaultVal, usage))
+	return application.AddFlags(IntFlag(name, defaultVal, usage))
 }
 func (application *Application) AddFloat64Flag(name string, defaultVal float64, usage string) *Application {
-	return application.AddFlags(glacier.Float64Flag(name, defaultVal, usage))
-}
-func (application *Application) AddUintFlag(name string, defaultVal uint, usage string) *Application {
-	return application.AddFlags(glacier.UintFlag(name, defaultVal, usage))
-}
-func (application *Application) AddUint64Flag(name string, defaultVal uint64, usage string) *Application {
-	return application.AddFlags(glacier.Uint64Flag(name, defaultVal, usage))
+	return application.AddFlags(Float64Flag(name, defaultVal, usage))
 }
 func (application *Application) AddStringSliceFlag(name string, defaultVal []string, usage string) *Application {
-	return application.AddFlags(glacier.StringSliceFlag(name, defaultVal, usage))
+	return application.AddFlags(StringSliceFlag(name, defaultVal, usage))
 }
 func (application *Application) AddIntSliceFlag(name string, defaultVal []int, usage string) *Application {
-	return application.AddFlags(glacier.IntSliceFlag(name, defaultVal, usage))
-}
-func (application *Application) AddInt64SliceFlag(name string, defaultVal []int64, usage string) *Application {
-	return application.AddFlags(glacier.Int64SliceFlag(name, defaultVal, usage))
+	return application.AddFlags(IntSliceFlag(name, defaultVal, usage))
 }
 func (application *Application) AddStringFlag(name string, defaultVal string, usage string) *Application {
-	return application.AddFlags(glacier.StringFlag(name, defaultVal, usage))
+	return application.AddFlags(StringFlag(name, defaultVal, usage))
 }
 func (application *Application) AddBoolFlag(name string, usage string) *Application {
-	return application.AddFlags(glacier.BoolFlag(name, usage))
+	return application.AddFlags(BoolFlag(name, usage))
 }
 func (application *Application) AddDurationFlag(name string, defaultVal time.Duration, usage string) *Application {
-	return application.AddFlags(glacier.DurationFlag(name, defaultVal, usage))
+	return application.AddFlags(DurationFlag(name, defaultVal, usage))
 }
 
 // Run start glacierImpl server

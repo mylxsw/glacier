@@ -30,7 +30,7 @@ func WithoutOverlap(handler interface{}) *OverlapJobHandler {
 	}
 }
 
-// OverlapJobHandler 是一个 Job Handler，可以避免当前任务执行时间过长时，同一任务同时存在多个运行实例的问题
+// OverlapJobHandler 是一个 Job Main，可以避免当前任务执行时间过长时，同一任务同时存在多个运行实例的问题
 // 当任务还在执行时，下一次调度将会被取消
 type OverlapJobHandler struct {
 	handler      interface{}

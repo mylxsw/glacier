@@ -414,7 +414,7 @@ func (ctx *WebContext) Body() []byte {
 	return ctx.request.Body()
 }
 
-// Set is a proxy to request.Set
+// Set is a proxy to request.setData
 func (ctx *WebContext) Set(key string, value interface{}) {
 	ctx.request.Set(key, value)
 }

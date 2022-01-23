@@ -26,8 +26,8 @@ func (application *Application) Graceful(builder func() graceful.Graceful) *Appl
 	return application
 }
 
-func (application *Application) Handler() func(cliContext infra.FlagContext) error {
-	return application.glacier.Handler()
+func (application *Application) Main(cliCtx infra.FlagContext) error {
+	return application.glacier.Main(cliCtx)
 }
 
 func (application *Application) BeforeInitialize(f func(c infra.FlagContext) error) *Application {
