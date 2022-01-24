@@ -47,10 +47,12 @@ type glacierImpl struct {
 	asyncJobChannel chan asyncJob
 
 	beforeInitialize    func(c infra.FlagContext) error
-	beforeServerStart   func(cc container.Container) error
-	afterServerStart    func(cc infra.Resolver) error
-	beforeServerStop    func(cc infra.Resolver) error
+	afterInitialized    func(resolver infra.Resolver) error
 	afterProviderBooted interface{}
+
+	beforeServerStart func(cc container.Container) error
+	afterServerStart  func(cc infra.Resolver) error
+	beforeServerStop  func(cc infra.Resolver) error
 
 	gracefulBuilder func() graceful.Graceful
 
@@ -103,6 +105,13 @@ func (glacier *glacierImpl) Main(cliCtx infra.FlagContext) error {
 // Usually, we use this method to initialize the log configuration
 func (glacier *glacierImpl) BeforeInitialize(f func(c infra.FlagContext) error) infra.Glacier {
 	glacier.beforeInitialize = f
+	return glacier
+}
+
+// AfterInitialized set a hook func executed after server initialized
+// Usually, we use this method to initialize the log configuration
+func (glacier *glacierImpl) AfterInitialized(f func(resolver infra.Resolver) error) infra.Glacier {
+	glacier.afterInitialized = f
 	return glacier
 }
 
@@ -223,16 +232,34 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 		cc.MustSingletonOverride(func() infra.Resolver { return cc })
 		cc.MustSingletonOverride(func() infra.Binder { return cc })
 		cc.MustSingletonOverride(func() infra.Hook { return glacier })
+		
+		// 基本配置加载
+		cc.MustSingletonOverride(ConfigLoader)
+		cc.MustSingletonOverride(func() log.Logger { return log.Default() })
 
-		err := glacier.initialize(cc, cliCtx)
+		// 优雅停机
+		cc.MustSingletonOverride(func(conf *Config) graceful.Graceful {
+			if glacier.gracefulBuilder != nil {
+				return glacier.gracefulBuilder()
+			}
+			return graceful.NewWithDefault(conf.ShutdownTimeout)
+		})
+
 		cc.MustResolve(func(gf graceful.Graceful) {
 			gf.AddShutdownHandler(cancel)
 		})
+
+		err := glacier.initialize(cc)
 		if err != nil {
 			return err
 		}
 
 		// 服务启动前回调
+		if glacier.afterInitialized != nil {
+			if err := glacier.afterInitialized(cc); err != nil {
+				return err
+			}
+		}
 		if glacier.beforeServerStart != nil {
 			if err := glacier.beforeServerStart(cc); err != nil {
 				return err
@@ -257,6 +284,13 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 		if glacier.afterProviderBooted != nil {
 			if err := cc.ResolveWithError(glacier.afterProviderBooted); err != nil {
 				return err
+			}
+		}
+
+		// initialize all services
+		for _, s := range glacier.services {
+			if err := s.Init(cc); err != nil {
+				return fmt.Errorf("service %s initialize failed: %v", reflect.TypeOf(s).String(), err)
 			}
 		}
 
@@ -377,19 +411,7 @@ func (glacier *glacierImpl) buildAsyncJobRunner(wg *sync.WaitGroup) func(resolve
 }
 
 // initialize 初始化 Glacier
-func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.FlagContext) error {
-	// 基本配置加载
-	cc.MustSingletonOverride(ConfigLoader)
-	cc.MustSingletonOverride(func() log.Logger { return log.Default() })
-
-	// 优雅停机
-	cc.MustSingletonOverride(func(conf *Config) graceful.Graceful {
-		if glacier.gracefulBuilder != nil {
-			return glacier.gracefulBuilder()
-		}
-		return graceful.NewWithDefault(conf.ShutdownTimeout)
-	})
-
+func (glacier *glacierImpl) initialize(cc container.Container) error {
 	// 注册其它对象
 	for _, i := range glacier.singletons {
 		cc.MustSingletonOverride(i)
@@ -416,10 +438,6 @@ func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.Flag
 			if err := cc.AutoWire(s); err != nil {
 				return fmt.Errorf("service %s autowired failed: %v", reflect.TypeOf(s).String(), err)
 			}
-		}
-
-		if err := s.Init(cc); err != nil {
-			return fmt.Errorf("service %s initialize failed: %v", reflect.TypeOf(s).String(), err)
 		}
 	}
 

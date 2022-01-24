@@ -40,6 +40,11 @@ func (application *Application) BeforeInitialize(f func(c infra.FlagContext) err
 	return application
 }
 
+func (application *Application) AfterInitialized(f func(resolver infra.Resolver) error) *Application {
+	application.glacier.AfterInitialized(f)
+	return application
+}
+
 func (application *Application) BeforeServerStart(f func(cc container.Container) error) *Application {
 	application.glacier.BeforeServerStart(f)
 	return application

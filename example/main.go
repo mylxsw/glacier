@@ -67,6 +67,12 @@ func runOnce(app *application.Application) error {
 		}
 	})
 
+	app.AfterInitialized(func(resolver infra.Resolver) error {
+		return resolver.Resolve(func() {
+			log.Debug("server initialized ...")
+		})
+	})
+
 	app.Singleton(func() *config.Config {
 		log.Debugf("create config ...")
 		return &config.Config{DB: "demo", Test: "test str"}
@@ -100,6 +106,12 @@ func run(app *application.Application) error {
 
 	app.Provider(job.ServiceProvider{}, api.ServiceProvider{})
 	app.Service(&service.DemoService{}, &service.Demo2Service{})
+
+	app.AfterInitialized(func(resolver infra.Resolver) error {
+		return resolver.Resolve(func() {
+			log.Debug("server initialized ...")
+		})
+	})
 
 	//app.Provider(web.Provider(
 	//	listener.FlagContext("listen"),
