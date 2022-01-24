@@ -6,6 +6,11 @@ import (
 	"github.com/mylxsw/graceful"
 )
 
+func (application *Application) PreBind(fn func(binder infra.Binder)) *Application {
+	application.glacier.PreBind(fn)
+	return application
+}
+
 func (application *Application) Provider(providers ...infra.Provider) *Application {
 	application.glacier.Provider(providers...)
 	return application

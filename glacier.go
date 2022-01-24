@@ -38,7 +38,8 @@ type glacierImpl struct {
 	delayTaskClosed bool
 	lock            sync.RWMutex
 
-	handler func(cliCtx infra.FlagContext) error
+	handler   func(cliCtx infra.FlagContext) error
+	preBinder func(binder infra.Binder)
 
 	providers       []infra.Provider
 	services        []infra.Service
@@ -162,6 +163,12 @@ func (glacier *glacierImpl) Prototype(ins ...interface{}) infra.Glacier {
 	}
 
 	glacier.prototypes = append(glacier.prototypes, ins...)
+	return glacier
+}
+
+// PreBind 设置预绑定实例，这里会确保在容器中第一次进行对象实例化之前完成实例绑定
+func (glacier *glacierImpl) PreBind(fn func(binder infra.Binder)) infra.Glacier {
+	glacier.preBinder = fn
 	return glacier
 }
 
@@ -392,8 +399,13 @@ func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.Flag
 		cc.MustPrototypeOverride(i)
 	}
 
-	glacier.providers = glacier.providersFilter(cliCtx)
-	glacier.services = glacier.servicesFilter(cliCtx)
+	// 完成预绑定对象的绑定
+	if glacier.preBinder != nil {
+		glacier.preBinder(glacier.container)
+	}
+
+	glacier.providers = glacier.providersFilter()
+	glacier.services = glacier.servicesFilter()
 
 	for _, p := range glacier.providers {
 		p.Register(cc)
@@ -416,10 +428,10 @@ func (glacier *glacierImpl) initialize(cc container.Container, cliCtx infra.Flag
 }
 
 // servicesFilter 预处理 services，排除不需要加载的 services
-func (glacier *glacierImpl) servicesFilter(cliCtx infra.FlagContext) []infra.Service {
+func (glacier *glacierImpl) servicesFilter() []infra.Service {
 	services := make([]infra.Service, 0)
 	for _, s := range glacier.services {
-		if po, ok := s.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
+		if !glacier.shouldLoadModule(reflect.ValueOf(s)) {
 			continue
 		}
 
@@ -442,11 +454,31 @@ func (glacier *glacierImpl) servicesFilter(cliCtx infra.FlagContext) []infra.Ser
 	return services
 }
 
+func (glacier *glacierImpl) shouldLoadModule(pValue reflect.Value) bool {
+	shouldLoadMethod := pValue.MethodByName("ShouldLoad")
+	if shouldLoadMethod.IsValid() && !shouldLoadMethod.IsZero() {
+		res, err := glacier.container.Call(shouldLoadMethod)
+		if err != nil {
+			panic(fmt.Errorf("call %s.ShouldLoad method failed: %v", pValue.Kind().String(), err))
+		}
+
+		if len(res) > 1 {
+			if err, ok := res[1].(error); ok && err != nil {
+				panic(fmt.Errorf("call %s.Should method return an error value: %v", pValue.Kind().String(), err))
+			}
+		}
+
+		return res[0].(bool)
+	}
+
+	return true
+}
+
 // providersFilter 预处理 providers，排除掉不需要加载的 providers
-func (glacier *glacierImpl) providersFilter(cliCtx infra.FlagContext) []infra.Provider {
+func (glacier *glacierImpl) providersFilter() []infra.Provider {
 	aggregates := make([]infra.Provider, 0)
 	for _, p := range glacier.providers {
-		if po, ok := p.(infra.ModuleLoadPolicy); ok && !po.ShouldLoad(cliCtx) {
+		if !glacier.shouldLoadModule(reflect.ValueOf(p)) {
 			continue
 		}
 

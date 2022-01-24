@@ -25,6 +25,7 @@ func (j ServiceProvider) Aggregates() []infra.Provider {
 }
 
 func (j ServiceProvider) ShouldLoad(c infra.FlagContext) bool {
+	log.Debugf("call ShouldLoad for job.ServiceProvider")
 	return c.Bool("load-job")
 }
 

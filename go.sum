@@ -41,6 +41,8 @@ github.com/mylxsw/asteria v0.0.0-20220111063217-62681432d744/go.mod h1:LLAdhjXLJ
 github.com/mylxsw/coll v0.0.0-20200612040853-4275264442f9/go.mod h1:ajdrWwm8dvgQ2BJw5+Z9DA1hw76v1fjD6GpIqjjQ6xo=
 github.com/mylxsw/container v0.0.0-20220108024426-76a904a1a09b h1:ytPITKYBy7IsqxlmuAq/+SZN/HCnmqJunRGV4wk/YHc=
 github.com/mylxsw/container v0.0.0-20220108024426-76a904a1a09b/go.mod h1:UDbF8EtqT7jB0yDc6g9u4P8ORvw4RbFot1QputpgR5U=
+github.com/mylxsw/container v0.0.0-20220124071232-4cf9cc678ad7 h1:WEvbXpsmQYqofbK0NiYy1byqV+u1Cv4/YR9juc2KOAg=
+github.com/mylxsw/container v0.0.0-20220124071232-4cf9cc678ad7/go.mod h1:UDbF8EtqT7jB0yDc6g9u4P8ORvw4RbFot1QputpgR5U=
 github.com/mylxsw/go-utils v0.0.0-20210720060419-1aac8fb9b538 h1:xEgeq92keqHYjn/cNlAi7QTVy1F46bChSp1FmXWNq+I=
 github.com/mylxsw/go-utils v0.0.0-20210720060419-1aac8fb9b538/go.mod h1:qXS/ktGB0Hi3aIPCLKbFX0fsCS6ELg7JqbpQvLSX6ic=
 github.com/mylxsw/graceful v0.0.0-20210318070625-a4a80fb77564 h1:bm9z1TNpmuOY4TutqejxlbNBy5hJaGX+uU5eOC5LUtk=

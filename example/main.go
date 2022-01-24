@@ -10,7 +10,6 @@ import (
 	"github.com/mylxsw/glacier"
 
 	asteriaEvent "github.com/mylxsw/asteria/event"
-	"github.com/mylxsw/asteria/level"
 	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/glacier/event"
 	"github.com/mylxsw/glacier/example/api"
@@ -42,9 +41,10 @@ func main() {
 	log.DefaultDynamicModuleName(true)
 	log.AddGlobalFilter(func(filter log.Filter) log.Filter {
 		return func(f asteriaEvent.Event) {
-			if f.Level == level.Debug && glacier.IsGlacierModuleLog(f.Module) {
-				return
-			}
+			// 是否输出框架级别的debug日志
+			//if f.Level == level.Debug && glacier.IsGlacierModuleLog(f.Module) {
+			//	return
+			//}
 
 			filter(f)
 		}
@@ -132,11 +132,13 @@ func run(app *application.Application) error {
 		}),
 	))
 
-	app.Singleton(func(c infra.FlagContext) *config.Config {
-		return &config.Config{
-			DB:   "xxxxxx",
-			Test: c.String("test"),
-		}
+	app.PreBind(func(binder infra.Binder) {
+		binder.MustSingleton(func(c infra.FlagContext) *config.Config {
+			return &config.Config{
+				DB:   "xxxxxx",
+				Test: c.String("test"),
+			}
+		})
 	})
 
 	app.Async(func(conf *config.Config, publisher event.Publisher, gf graceful.Graceful) {

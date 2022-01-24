@@ -28,12 +28,6 @@ type Service interface {
 	Reload()
 }
 
-// ModuleLoadPolicy 实现该接口用于判断当前模块（Service/Provider/DaemonProvider）是否加载
-type ModuleLoadPolicy interface {
-	// ShouldLoad 如果返回 true，则加载该模块，否则跳过
-	ShouldLoad(c FlagContext) bool
-}
-
 type Provider interface {
 	// Register add some dependency for current module
 	// this method is called one by one synchronous
@@ -99,6 +93,7 @@ type Glacier interface {
 	// OnServerReady call a function a server ready
 	OnServerReady(f interface{})
 
+	// Main 应用入口
 	Main(cliCtx FlagContext) error
 	// BeforeInitialize Glacier 初始化之前执行，一般用于设置一些基本配置，比如日志等
 	BeforeInitialize(f func(c FlagContext) error) Glacier
@@ -112,6 +107,7 @@ type Glacier interface {
 	// AfterProviderBooted 所有的 providers 都已经完成 boot 之后执行
 	AfterProviderBooted(f interface{}) Glacier
 
+	PreBind(fn func(binder Binder)) Glacier
 	Singleton(ins ...interface{}) Glacier
 	Prototype(ins ...interface{}) Glacier
 	ResolveWithError(resolver interface{}) error

@@ -113,16 +113,10 @@ func (p Provider) Register(cc infra.Binder) {
 #### Service
 #### ModuleLoadPolicy 
 
-**Provider** 支持按需加载，要使用此功能，只需要让 **Provider** 实现对象实现 **ModuleLoadPolicy** 接口即可。
+**Provider** 支持按需加载，要使用此功能，只需要让 **Provider** 实现对象实现 **ShouldLoad() bool** 方法即可。`ShouldLoad` 方法用于控制该 **Provider** 是否加载，支持以下几种形式
 
-```go
-type ModuleLoadPolicy interface {
-	// ShouldLoad 如果返回 true，则加载该 Provider，否则跳过
-	ShouldLoad(c FlagContext) bool
-}
-```
-
-**ModuleLoadPolicy** 接口的 `ShouldLoad` 方法用于控制该 **Provider** 是否加载。
+- `func (p Provider) ShouldLoad(...依赖) bool`
+- `func (P Provider) ShouldLoad(...依赖) (bool, error)`
 
 #### DaemonProvider
 
