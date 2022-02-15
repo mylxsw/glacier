@@ -56,7 +56,7 @@ type PlainError struct {
 	code int
 }
 
-// WrapPlainError warps a error only have message and code
+// WrapPlainError warps an error only have message and code
 func WrapPlainError(err error, code int) PlainError {
 	return PlainError{
 		err:  err,

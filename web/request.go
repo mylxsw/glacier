@@ -88,7 +88,7 @@ func (req *HttpRequest) Decode(v interface{}) error {
 	return nil
 }
 
-// Unmarshal unmarshal request body as json object
+// Unmarshal request body as json object
 // result must be reference to a variable
 func (req *HttpRequest) Unmarshal(v interface{}) error {
 	return json.Unmarshal(req.body, v)
@@ -110,7 +110,7 @@ func (req *HttpRequest) Get(key string) interface{} {
 	return gorillaCtx.Get(req.r, key)
 }
 
-// Clear clear all variables in request
+// Clear all variables in request
 func (req *HttpRequest) Clear() {
 	gorillaCtx.Clear(req.r)
 }

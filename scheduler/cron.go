@@ -15,14 +15,14 @@ import (
 
 // JobCreator is a creator for cron job
 type JobCreator interface {
-	// Add add a cron job
+	// Add a cron job
 	Add(name string, plan string, handler interface{}) error
-	// AddAndRunOnServerReady add a cron job, and trigger it immediatly when server is ready
+	// AddAndRunOnServerReady add a cron job, and trigger it immediately when server is ready
 	AddAndRunOnServerReady(name string, plan string, handler interface{}) error
 
 	// MustAdd add a cron job
 	MustAdd(name string, plan string, handler interface{})
-	// MustAddAndRunOnServerReady add a cron job, and trigger it immediatly when server is ready
+	// MustAddAndRunOnServerReady add a cron job, and trigger it immediately when server is ready
 	MustAddAndRunOnServerReady(name string, plan string, handler interface{})
 }
 
@@ -38,22 +38,22 @@ type Scheduler interface {
 	// Info get job info
 	Info(name string) (Job, error)
 
-	// Start start cron manager
+	// Start cron manager
 	Start()
-	// Stop stop cron job manager
+	// Stop cron job manager
 	Stop()
 
 	// DistributeLockManager is a setter method for distribute lock manager
 	DistributeLockManager(lockManager DistributeLockManager)
 }
 
-// DistributeLockManager is a distribute lock manager interface
+// DistributeLockManager is a distributed lock manager interface
 type DistributeLockManager interface {
 	// TryLock try to get lock
 	// this method will be called every 60s
 	// you should set a ttl for lock since unlock method may be not be called in some case
 	TryLock() error
-	// TryUnlock try to release the lock
+	// TryUnLock try to release the lock
 	TryUnLock() error
 	// HasLock return whether manager has lock
 	HasLock() bool

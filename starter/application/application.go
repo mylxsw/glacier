@@ -55,11 +55,11 @@ func (application *Application) WithCLIOptions(fn func(cliAPP *cli.App)) *Applic
 	return application
 }
 
-func (application *Application) WithShutdownTimeoutFlagSupport() *Application {
+func (application *Application) WithShutdownTimeoutFlagSupport(timeout time.Duration) *Application {
 	return application.AddFlags(altsrc.NewDurationFlag(cli.DurationFlag{
 		Name:  glacier.ShutdownTimeoutOption,
 		Usage: "set a shutdown timeout for each module",
-		Value: 5 * time.Second,
+		Value: timeout,
 	}))
 }
 

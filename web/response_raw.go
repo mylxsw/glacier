@@ -17,7 +17,7 @@ func NewRawResponse(response ResponseCreator, handler func(w http.ResponseWriter
 	return &RawResponse{response: response, handler: handler}
 }
 
-// response get real response object
+// Response get real response object
 func (resp *RawResponse) Response() ResponseCreator {
 	return resp.response
 }

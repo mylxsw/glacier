@@ -17,7 +17,7 @@ func Default(listenAddr string) infra.ListenerBuilder {
 	return defaultBuilder{listenAddr: listenAddr}
 }
 
-func (e defaultBuilder) Build(cc infra.Resolver) (net.Listener, error) {
+func (e defaultBuilder) Build(infra.Resolver) (net.Listener, error) {
 	return net.Listen("tcp", e.listenAddr)
 }
 
@@ -44,11 +44,11 @@ type existedBuilder struct {
 	listener net.Listener
 }
 
-// Existed 使用已经创建过的 listener
-func Existed(listener net.Listener) infra.ListenerBuilder {
+// Exist 使用已经创建过的 listener
+func Exist(listener net.Listener) infra.ListenerBuilder {
 	return existedBuilder{listener: listener}
 }
 
-func (e existedBuilder) Build(cc infra.Resolver) (net.Listener, error) {
+func (e existedBuilder) Build(infra.Resolver) (net.Listener, error) {
 	return e.listener, nil
 }

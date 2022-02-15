@@ -18,7 +18,7 @@ func (file *UploadedFile) Extension() string {
 	return segs[len(segs)-1]
 }
 
-// Store store the uploaded file on a filesystem disk.
+// Store the uploaded file on a filesystem disk.
 func (file *UploadedFile) Store(path string) error {
 	if err := os.Rename(file.SavePath, path); err != nil {
 		return err

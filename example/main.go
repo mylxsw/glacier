@@ -98,7 +98,7 @@ func run(app *application.Application) error {
 			cliAPP.UsageText = "这是 Usage Text"
 		})
 
-	app.WithFlagYAMLSupport("conf").WithShutdownTimeoutFlagSupport()
+	app.WithFlagYAMLSupport("conf").WithShutdownTimeoutFlagSupport(5 * time.Second)
 
 	app.AddFlags(application.StringFlag("listen", ":19945", "http listen addr"))
 	app.AddBoolFlag("load-job", "")
