@@ -10,7 +10,7 @@ require (
 	github.com/gorilla/schema v1.2.0
 	github.com/gorilla/sessions v1.2.1
 	github.com/gorilla/websocket v1.4.2
-	github.com/mylxsw/asteria v0.0.0-20220111063217-62681432d744
+	github.com/mylxsw/asteria v0.0.0-20220215024857-ed6a52a3d70d
 	github.com/mylxsw/container v0.0.0-20220124071232-4cf9cc678ad7
 	github.com/mylxsw/go-utils v0.0.0-20210720060419-1aac8fb9b538
 	github.com/mylxsw/graceful v0.0.0-20210318070625-a4a80fb77564
