@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/mylxsw/asteria/filter"
 	"runtime"
 	"strconv"
 	"time"
@@ -39,7 +40,7 @@ func main() {
 
 	//log.DefaultLogLevel(level.Error)
 	log.DefaultDynamicModuleName(true)
-	log.AddGlobalFilter(func(filter log.Filter) log.Filter {
+	log.AddGlobalFilter(func(filter filter.Filter) filter.Filter {
 		return func(f asteriaEvent.Event) {
 			// 是否输出框架级别的debug日志
 			//if f.Level == level.Debug && glacier.IsGlacierModuleLog(f.Module) {
@@ -57,7 +58,7 @@ func main() {
 
 // runOnce 执行一次性任务，执行完毕自动推出
 func runOnce(app *application.Application) error {
-	log.AddGlobalFilter(func(filter log.Filter) log.Filter {
+	log.AddGlobalFilter(func(filter filter.Filter) filter.Filter {
 		return func(f asteriaEvent.Event) {
 			if glacier.IsGlacierModuleLog(f.Module) {
 				return
