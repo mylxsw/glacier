@@ -3,7 +3,6 @@ package application
 import (
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
-	"github.com/mylxsw/graceful"
 )
 
 func (application *Application) PreBind(fn func(binder infra.Binder)) *Application {
@@ -26,7 +25,7 @@ func (application *Application) Async(asyncJobs ...interface{}) *Application {
 	return application
 }
 
-func (application *Application) Graceful(builder func() graceful.Graceful) *Application {
+func (application *Application) Graceful(builder func() infra.Graceful) *Application {
 	application.glacier.Graceful(builder)
 	return application
 }

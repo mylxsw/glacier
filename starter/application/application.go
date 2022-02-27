@@ -87,6 +87,11 @@ func (application *Application) WithFlagYAMLSupport(flagName string) *Applicatio
 	return application
 }
 
+func (application *Application) WithLogger(logger infra.Logger) *Application {
+	application.glacier.SetLogger(logger)
+	return application
+}
+
 func MustRun(app *Application) {
 	if err := app.Run(os.Args); err != nil {
 		panic(err)

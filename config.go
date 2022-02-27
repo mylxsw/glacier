@@ -32,6 +32,10 @@ func ConfigLoader(c infra.FlagContext) *Config {
 
 // IsGlacierModuleLog 判断模块名称是否是 Glacier 框架内部模块
 func IsGlacierModuleLog(module string) bool {
+	if module == "glacier" {
+		return true
+	}
+
 	if strings.HasPrefix(module, "github.com.mylxsw") {
 		return str.HasPrefixes(module, []string{
 			"github.com.mylxsw.glacier",
@@ -50,5 +54,4 @@ func IsGlacierModuleLog(module string) bool {
 	}
 
 	return false
-
 }

@@ -2,11 +2,10 @@ package scheduler
 
 import (
 	"context"
+	"github.com/mylxsw/glacier/log"
 
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
-	"github.com/mylxsw/graceful"
 	cronV3 "github.com/robfig/cron/v3"
 )
 
@@ -24,9 +23,7 @@ func Provider(creator func(cc infra.Resolver, creator JobCreator), options ...Op
 }
 
 func (p *provider) Register(app infra.Binder) {
-	if log.DebugEnabled() {
-		log.Debug("provider github.com/mylxsw/glacier/scheduler.Provider loaded")
-	}
+	log.Debug("provider github.com/mylxsw/glacier/scheduler.Provider loaded")
 
 	// 定时任务对象
 	app.MustSingletonOverride(func() *cronV3.Cron {
@@ -48,13 +45,11 @@ func (p *provider) Boot(app infra.Resolver) {
 }
 
 func (p *provider) Daemon(ctx context.Context, app infra.Resolver) {
-	app.MustResolve(func(gf graceful.Graceful, cr Scheduler, logger log.Logger) {
+	app.MustResolve(func(gf infra.Graceful, cr Scheduler, logger infra.Logger) {
 		gf.AddShutdownHandler(cr.Stop)
 		cr.Start()
 
-		if logger.DebugEnabled() {
-			logger.Debugf("cron task server has been started")
-		}
+		logger.Debugf("cron task server has been started")
 
 		<-ctx.Done()
 	})
@@ -68,9 +63,7 @@ func (l cronLogger) Info(msg string, keysAndValues ...interface{}) {
 }
 
 func (l cronLogger) Error(err error, msg string, keysAndValues ...interface{}) {
-	log.WithFields(log.Fields{
-		"arguments": keysAndValues,
-	}).Errorf("%s: %v", msg, err)
+	log.Errorf("%s: %v", msg, err)
 }
 
 // Option 定时任务配置型

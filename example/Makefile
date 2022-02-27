@@ -1,12 +1,7 @@
-Version := $(shell date "+%Y%m%d%H%M")
-GitCommit := $(shell git rev-parse HEAD)
-DIR := $(shell pwd)
-LDFLAGS := "-s -w -X main.Version=$(Version) -X main.GitCommit=$(GitCommit)"
+run:
+	go run main.go --load-job --load-demoservice
 
-run: build
-	./bin/example --load-job --load-demoservice
+run-once:
+	go run main-once.go
 
-build:
-	go build -ldflags $(LDFLAGS) -o bin/example *.go
-
-.PHONY: run build
+.PHONY: run run-once

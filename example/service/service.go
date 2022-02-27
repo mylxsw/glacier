@@ -1,9 +1,9 @@
 package service
 
 import (
+	"github.com/mylxsw/glacier/log"
 	"time"
 
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/glacier/infra"
 )
 

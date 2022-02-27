@@ -1,8 +1,8 @@
 package job
 
 import (
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/glacier/infra"
+	"github.com/mylxsw/glacier/log"
 	"github.com/mylxsw/glacier/scheduler"
 )
 
@@ -35,12 +35,10 @@ func (j ServiceProvider) Register(cc infra.Binder) {
 
 func (j ServiceProvider) Boot(app infra.Resolver) {
 	app.MustResolve(func(sche scheduler.Scheduler) {
-		if log.DebugEnabled() {
-			job, _ := sche.Info("test-job")
-			nextTs, _ := job.Next(5)
-			for i, nt := range nextTs {
-				log.Debugf("job test-job next %d ---> %s", i, nt)
-			}
+		job, _ := sche.Info("test-job")
+		nextTs, _ := job.Next(5)
+		for i, nt := range nextTs {
+			log.Debugf("job test-job next %d ---> %s", i, nt)
 		}
 	})
 }
@@ -53,16 +51,12 @@ func NewDistributeLockManager() *DistributeLockManager {
 }
 
 func (manager *DistributeLockManager) TryLock() error {
-	if log.DebugEnabled() {
-		log.Debug("try lock ...")
-	}
+	log.Debug("try lock ...")
 	return nil
 }
 
 func (manager *DistributeLockManager) TryUnLock() error {
-	if log.DebugEnabled() {
-		log.Debug("try unlock ...")
-	}
+	log.Debug("try unlock ...")
 	return nil
 }
 

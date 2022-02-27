@@ -2,11 +2,11 @@ package scheduler
 
 import (
 	"fmt"
+	"github.com/mylxsw/glacier/log"
 	"runtime/debug"
 	"sync"
 	"time"
 
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
 	"github.com/pkg/errors"
@@ -150,23 +150,18 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 
 	jobHandler := func() {
 		if c.distributeLockManager != nil && !c.distributeLockManager.HasLock() {
-			if log.DebugEnabled() {
-				log.Debugf("cron job [%s] can not start because it doesn't get the lock", name)
-			}
+			log.Debugf("cron job [%s] can not start because it doesn't get the lock", name)
 			return
 		}
 
-		if log.DebugEnabled() {
-			log.Debugf("cron job [%s] running", name)
-		}
+		log.Debugf("cron job [%s] running", name)
+
 		startTs := time.Now()
 		defer func() {
 			if err := recover(); err != nil {
 				log.Errorf("cron job [%s] stopped with some errors: %v, elapse %s", name, err, time.Since(startTs))
 			} else {
-				if log.DebugEnabled() {
-					log.Debugf("cron job [%s] stopped, elapse %s", name, time.Since(startTs))
-				}
+				log.Debugf("cron job [%s] stopped, elapse %s", name, time.Since(startTs))
 			}
 		}()
 		if err := c.cc.ResolveWithError(hh.Handle); err != nil {
@@ -186,9 +181,7 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 		handler: jobHandler,
 		Paused:  false,
 	}
-	if log.DebugEnabled() {
-		log.Debugf("add job [%s] to cron manager with plan %s", name, plan)
-	}
+	log.Debugf("add job [%s] to cron manager with plan %s", name, plan)
 
 	return nil
 }
@@ -207,9 +200,7 @@ func (c *schedulerImpl) Remove(name string) error {
 		c.cr.Remove(reg.ID)
 	}
 
-	if log.DebugEnabled() {
-		log.Debugf("remove job [%s] from cron manager", name)
-	}
+	log.Debugf("remove job [%s] from cron manager", name)
 	return nil
 }
 
@@ -229,9 +220,7 @@ func (c *schedulerImpl) Pause(name string) error {
 	c.cr.Remove(reg.ID)
 	reg.Paused = true
 
-	if log.DebugEnabled() {
-		log.Debugf("change job [%s] to paused", name)
-	}
+	log.Debugf("change job [%s] to paused", name)
 
 	return nil
 }
@@ -257,9 +246,7 @@ func (c *schedulerImpl) Continue(name string) error {
 	reg.Paused = false
 	reg.ID = id
 
-	if log.DebugEnabled() {
-		log.Debugf("change job [%s] to continue", name)
-	}
+	log.Debugf("change job [%s] to continue", name)
 
 	return nil
 }
@@ -279,9 +266,7 @@ func (c *schedulerImpl) Start() {
 	if c.distributeLockManager != nil {
 		getDistributeLock := func() {
 			if err := c.distributeLockManager.TryLock(); err != nil {
-				if log.WarningEnabled() {
-					log.Warningf("try to get distribute lock failed: %v", err)
-				}
+				log.Warningf("try to get distribute lock failed: %v", err)
 			}
 		}
 
@@ -298,9 +283,7 @@ func (c *schedulerImpl) Stop() {
 	c.cr.Stop()
 	if c.distributeLockManager != nil {
 		if err := c.distributeLockManager.TryUnLock(); err != nil {
-			if log.WarningEnabled() {
-				log.Warningf("try to release distribute lock failed: %v", err)
-			}
+			log.Warningf("try to release distribute lock failed: %v", err)
 		}
 	}
 }

@@ -1,9 +1,9 @@
 package service
 
 import (
+	"github.com/mylxsw/glacier/log"
 	"time"
 
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/glacier/infra"
 )
 
@@ -30,7 +30,7 @@ func (d *Demo2Service) Start() error {
 			return nil
 		default:
 			time.Sleep(3 * time.Second)
-			log.Infof("hello, world from %s", d.Name())
+			log.Debugf("hello, world from %s", d.Name())
 		}
 	}
 }

@@ -1,2 +1,0 @@
-{{ if ne .WithHttpServer "Y" }}api/{{ end }}
-skeleton.yaml

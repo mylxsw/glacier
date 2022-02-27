@@ -2,43 +2,63 @@
 
 [TOC]
 
-Glacier 是一款支持依赖注入的应用开发框架。
+Glacier 是一款支持依赖注入的模块化的应用开发框架，它以 [container](https://github.com/mylxsw/container) 依赖注入容器核心，为 Go 应用开发解决了依赖传递和模块化的问题。
 
-## Feature
+## 特性
 
 - **依赖注入**：通过依赖注入的方式来管理对象的依赖，支持单例、原型对象创建
 - **模块化**：通过 Provider 特性，轻松实现应用的模块化
 - **内置 Web 开发支持**：Glacier 内置了对 Web 应用开发的支持，提供了功能丰富的 API 简化 web 开发
 
-## Usage
+## 使用
 
 创建一个新的项目，使用下面的命令安装 Glacier 开发框架
 
 ```bash
-go get github.com/mylxsw/glacier/starter/application
+go get github.com/mylxsw/glacier
+```
+
+为了简化应用的创建过程，我们一般可以通过 starter 模板来创建应用
+
+```go
+import "github.com/mylxsw/glacier/starter/application"
+...
+
+// 方法一：快捷启动应用
+application.MustStart("1.0", func(app *application.Application) error {
+	// 这里完成应用的初始化
+	// ...
+	return nil
+})
+
+// 方法二： 分步骤启动应用
+app := application.Create("1.0")
+// 应用初始化
+// ...
+application.MustRun(app)
 ```
 
 示例:
 
 ```go
-app := application.Create("v1.0")
-app.AddStringFlag("listen", ":8080", "http listen address")
-
-app.Provider(web.Provider(
-	listener.FlagContext("listen"),
-	web.SetRouteHandlerOption(func(cc infra.Resolver, router web.Router, mw web.RequestMiddleware) {
-		router.Get("/", func(ctx web.Context) web.Response {
-			return ctx.JSON(web.M{})
-		})
-	}),
-))
-
-application.MustRun(app)
+application.MustStart("1.0", func(app *application.Application) error {
+	app.AddStringFlag("listen", ":8080", "http listen address")
+	
+	app.Provider(web.Provider(
+		listener.FlagContext("listen"),
+		web.SetRouteHandlerOption(func(cc infra.Resolver, router web.Router, mw web.RequestMiddleware) {
+			router.Get("/", func(ctx web.Context) web.Response {
+				return ctx.JSON(web.M{})
+			})
+		}),
+	))
+	return nil
+})
 ```
 
-## Core Concept
+## 核心概念
 
-### Dependency Injection
+### 依赖注入
 
 Glacier 框架充分利用了 [container](https://github.com/mylxsw/container) 项目提供的依赖注入支持，在应用提供了功能强大的依赖注入特性。
 
@@ -46,7 +66,7 @@ Glacier 框架充分利用了 [container](https://github.com/mylxsw/container) �
 
 #### Binder
 
-`infra.Binder` 是一个抽象化之后的接口，用于将实例的创建方法绑定到容器，提供了以下常用方法
+`infra.Binder` 是一个对象定义接口，用于将实例的创建方法绑定到依赖注入容器，提供了以下常用方法
 
 - `Prototype(initialize interface{}) error` 原型绑定，每次访问绑定的实例都会基于 `initialize` 函数重新创建新的实例
 - `Singleton(initialize interface{}) error` 单例绑定，每次访问绑定的实例都是同一个，只会在第一次访问的时候创建初始实例
@@ -54,15 +74,16 @@ Glacier 框架充分利用了 [container](https://github.com/mylxsw/container) �
 
 `Prototype` 和 `Singleton` 方法参数 `initialize interface{}` 支持以下两种形式
 
-- 形式1：`func(注入参数列表...) (绑定类型, error)`
+- 形式1：`func(依赖参数列表...) (绑定类型定义, error)`
 
-	```go
-	binder.Singleton(func() (*sql.DB, error) {
-		return sql.Open("mysql", "user:pwd@tcp(ip:3306)/dbname")
-	})
-	```
+  ```go
+  // 这里使用单例方法定义了数据库连接对象的创建方法
+  binder.Singleton(func() (*sql.DB, error) {
+  	return sql.Open("mysql", "user:pwd@tcp(ip:3306)/dbname")
+  })
+  ```
 
-- 形式2：`func(注入参数列表...) 绑定类型`
+- 形式2：`func(注入参数列表...) 绑定类型定义`
 
 	```go
 	binder.Singleton(func() UserRepo { return &userRepoImpl{} })
@@ -75,16 +96,36 @@ Glacier 框架充分利用了 [container](https://github.com/mylxsw/container) �
 
 #### Resolver
 
-`infra.Resolver` 是一个抽象化的接口，用于通过依赖注入的方式获取实例，提供了以下常用方法
+`infra.Resolver` 是对象实例化接口，通过依赖注入的方式获取实例，提供了以下常用方法
 
-- `Resolve(callback interface{}) error` 
-- `Call(callback interface{}) ([]interface{}, error)`
+- `Resolve(callback interface{}) error` 执行 callback 函数，自动为 callback 函数提供所需参数
+- `Call(callback interface{}) ([]interface{}, error)` 执行 callback 函数，自动为 callback 函数提供所需参数，支持返回值，返回参数为 `Call` 的第一个数组参数
 - `AutoWire(object interface{}) error` 自动对结构体对象进行依赖注入，object 必须是结构体对象的指针。自动注入字段（公开和私有均支持）需要添加 `autowire` tag，支持以下两种
 	- autowire:"@" 根据字段的类型来注入
 	- autowire:"自定义key" 根据自定义的key来注入（查找名为 key 的绑定）
-
 - `Get(key interface{}) (interface{}, error)`
 
+```go
+// Resolve
+resolver.Resolve(func(db *sql.DB) {
+  ...
+})
+
+// Call
+resolver.Call(func(userRepo UserRepo) {
+  ...
+})
+
+// AutoWire
+type UserRepo struct {
+  db *sql.DB `autowire:"@"`
+}
+
+userRepo := UserRepo{}
+resolver.AutoWire(&userRepo)
+
+// 现在 userRepo 中的 db 参数已经自动被设置为了数据库连接对象，可以继续执行后续的操作了
+```
 
 ### Provider
 
@@ -93,34 +134,119 @@ Glacier 框架充分利用了 [container](https://github.com/mylxsw/container) �
 ```
 type Provider struct{}
 
-func (p Provider) Register(cc infra.Binder) {
+func (Provider) Register(binder infra.Binder) {
 	
 }
 ```
 
-**Provider** 接口只有一个必须实现的方法 `Register(cc infra.Binder)`，该方法用于注册当前模块的对象到 Container 中，实现依赖注入的支持。以下是 `cc infra.Binder` 支持的常用方法
+**Provider** 接口只有一个必须实现的方法 `Register(binder infra.Binder)`，该方法用于注册当前模块的对象到 Container 中，实现依赖注入的支持。以下是 `binder infra.Binder` 支持的常用方法
 
 - `Prototype(initialize interface{}) error`
 - `Singleton(initialize interface{}) error`
 - `BindValue(key string, value interface{}) error`
 
+例如，我们实现一个基于数据库的用户管理模块 `repo`，该模块包含两个方法
+
+```go
+package repo
+
+type UserRepo struct {
+  db *sql.DB
+}
+
+func (repo *UserRepo) Login(username, password string) (*User, error) {
+  // ...
+}
+
+func(repo *UserRepo) GetUser(username string) (*User, error) {
+  // ...
+}
+```
+
+为了使该模块能够正常工作，我们需要在创建 `UserRepo` 时，提供 `db` 参数，在 Glacier 中，我们可以这样实现
+
+```go
+package repo
+
+type Provider struct {}
+
+func (Provider) Register(binder infra.Binder) {
+  binder.Singleton(func(db *sql.DB) *UserRepo {
+    return &UserRepo {db: db}
+  })
+}
+```
+
+在我们的应用创建时，使用 `app.Provider` 方法注册该模块
+
+```
+app := application.Create("1.0")
+...
+app.MustSingleton(func() (*sql.DB, error) {
+	return sql.Open("mysql", "user:pwd@tcp(ip:3306)/dbname")
+})
+app.Provider(repo.Provider{})
+...
+application.MustRun(app)
+```
+
 #### ProviderBoot
+
+在我们的 Provider 中，默认只需要实现一个接口方法 `Register(binder infra.Binder)` 即可，该方法专用于将模块的实例创建方法注册到 Glacier 框架的容器中。
+
+在 Glaicer 中，还提供了一个 `ProviderBoot` 接口，该接口包含一个 `Boot(resolver Resolver)` 方法，实现该方法的模块，可以在 Glacier 框架启动过程中执行一些模块自有的业务逻辑，该方法在所有的模块全部加载完毕后执行，所有的 `Register` 方法都已经执行完毕，因此，系统中所有的对象都是可用的。
 
 #### DaemonProvider
 
+模块 Provider 的 `Boot` 方法是阻塞执行的，通常用于执行一些在应用启动时需要执行的一些初始化任务，在一个应用中，所有的 Provider 的 `Boot` 方法是串行执行的。
+
+而 `DaemonProvider` 接口则为模块提供了异步执行的能力，模块的 `Daemon(ctx context.Context, resolver infra.Resolver)` 方法是异步执行的，我们可以在这里执行创建 web 服务器等操作。
+
 #### ProviderAggregate
 
+ProviderAggregate 接口为应用提供了一种能够聚合其它模块 Provider 的能力，在 `Aggregate() []Provider`方法中，我们可以定义多个我们当前模块所依赖的模块，在 Glacier 框架启动过程中，会优先加载这里定义的依赖模块，然后再加载我们的当前模块。
+
+我们可以通过 `ProviderAggregate` 来创建我们自己的模块 Provider 来初始化 Glacier 框架内置模块或者其它第三方模块。
+
+```go
+// 创建自定义模块，初始化了 Glacier 框架内置的 Web 框架
+type Provider struct{}
+
+func (s Provider) Aggregates() []infra.Provider {
+	return []infra.Provider{
+		web.Provider(
+			listener.FlagContext("listen"),
+			web.SetRouteHandlerOption(s.routes),
+			web.SetExceptionHandlerOption(func(ctx web.Context, err interface{}) web.Response {
+				log.Errorf("error: %v, call stack: %s", err, debug.Stack())
+				return nil
+			}),
+		),
+	}
+}
+
+func (s Provider) routes(cc infra.Resolver, router web.Router, mw web.RequestMiddleware) {
+	router.Controllers(
+		"/api",
+    // 这里添加控制器
+		controller.NewWelcomeController(cc),
+		controller.NewUserController(cc),
+	)
+}
+
+func (s Provider) Register(app infra.Binder) {}
+```
+
 #### Service
-#### ModuleLoadPolicy 
+
+TODO
+
+#### ModuleLoadPolicy
 
 **Provider** 支持按需加载，要使用此功能，只需要让 **Provider** 实现对象实现 **ShouldLoad() bool** 方法即可。`ShouldLoad` 方法用于控制该 **Provider** 是否加载，支持以下几种形式
 
 - `func (p Provider) ShouldLoad(...依赖) bool`
 - `func (P Provider) ShouldLoad(...依赖) (bool, error)`
-
-#### DaemonProvider
-
-#### ProviderAggregate
 
 #### Priority
 
@@ -144,27 +270,122 @@ func (p Provider) Register(cc infra.Binder) {
 
 ### Event
 
+Glacier 框架提供了一个简单的事件管理模块，可以用于发布和监听应用运行中的事件，进行响应的业务处理。
+
+通过 `event.Provider(handler func(resolver infra.Resolver, listener Listener), options ...Option) infra.Provider ` 来初始化事件管理器。
+
+```go
+app.Provider(event.Provider(
+  func(cc infra.Resolver, listener event.Listener) {
+    listener.Listen(func(event CronEvent) {
+      log.Debug("a new cron task executed")
+      // 执行监听到定时任务执行事件后要触发的操作
+    })
+  },
+  // 设置事件管理器选项
+  event.SetStoreOption(func(cc infra.Resolver) event.Store {
+    // 设置使用默认的内存事件存储
+    return event.NewMemoryEventStore(true, 100)
+  }),
+))
+```
+
+发布事件时，使用 Glacier 框架的依赖注入能力，获取 `event.Publisher` 接口实现
+
+```go
+app.Async(func(publisher event.Publisher) {
+  for i := 0; i < 10; i++ {
+    publisher.Publish(CronEvent{GoroutineID: uint64(i)})
+  }
+})
+```
+
 #### 本地内存作为事件存储后端
+
+Glacier 内置了基于内存的事件存储后端，说有事件的监听器都是同步执行的。
+
+```go
+// 设置事件管理器选项
+event.SetStoreOption(func(cc infra.Resolver) event.Store {
+	// 设置使用默认的内存事件存储
+	return event.NewMemoryEventStore(true, 100)
+})
+```
 
 #### Redis 作为事件存储后端
 
-[redis-event-store](https://github.com/mylxsw/redis-event-store)
+使用内存作为事件存储后端时，当应用异常退出的时候，可能会存在事件的丢失，你可以使用这个基于 Redis 的事件存储后端 [redis-event-store](https://github.com/mylxsw/redis-event-store) 来获得事件的持久化支持。
 
 ### Async Jobs
 
+TODO
+
 ### Crontab
+
+TODO
 
 ### Log
 
+在 Glacier 中，默认使用 [asteria](https://github.com/mylxsw/asteria) 作为日志框架，asteria 是一款功能强大、灵活的结构化日志框架，支持多种日志输出格式以及输出方式，支持为日志信息添加上下文信息。
+
+最简单的方式是通过 `log.SetDefaultLogger(logger infra.Logger)` 方法为 Glacier 框架设置默认的日志处理器，
+
+```go
+// import "github.com/mylxsw/glacier/log"
+
+// 默认设置，使用 asteria 日志框架
+// import asteria "github.com/mylxsw/asteria/log"
+log.SetDefaultLogger(asteria.Module("glacier"))
+// 使用标准库中的日志包，Glacier 对标准库日志包进行了简单封装
+log.SetDefaultLogger(log.StdLogger())
+```
+
+当然，如果使用了 starter 模板项目创建的应用，也可以使用 `WithLogger(logger infra.Logger)` 方法来设置日志处理器。
+
+```go
+app := application.Create("1.0")
+...
+// 设置使用标准库日志包，不输出 DEBUG 日志
+app.WithLogger(log.StdLogger(log.DEBUG))
+...
+```
+
+除了默认的 `asteria` 日志库以及 Glacier 自带的 `StdLogger` 之外，还可以使用其它第三方的日志包，只需要简单的封装，实现 `infra.Logger` 接口即可。
+
+```go
+Debug(v ...interface{})
+Debugf(format string, v ...interface{})
+
+Info(v ...interface{})
+Infof(format string, v ...interface{})
+
+Error(v ...interface{})
+Errorf(format string, v ...interface{})
+
+Warning(v ...interface{})
+Warningf(format string, v ...interface{})
+
+Critical(v ...interface{})
+Criticalf(format string, v ...interface{})
+```
+
 ### Collection
+
+TODO
 
 ### Eloquent ORM
 
-### Others
+TODO
 
-#### 平滑关闭
+### 平滑退出
 
-[graceful](https://github.com/mylxsw/graceful)
+Glacier 支持平滑退出，当我们按下键盘的 `Ctrl+C` 时， Glacier 将会接收到关闭的信号，然后触发应用的关闭行为。默认情况下，我们的应用会立即退出，我们可以通过 starter 模板创建的应用上启用平滑支持选项 `WithShutdownTimeoutFlagSupport(timeout time.Duration)` 来设置默认的平滑退出时间
+
+```go
+app := application.Create("1.0")
+app.WithShutdownTimeoutFlagSupport(5 * time.Second)
+...
+```
 
 ## Third-party integration
 

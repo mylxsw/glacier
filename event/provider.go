@@ -2,9 +2,9 @@ package event
 
 import (
 	"context"
-	"github.com/mylxsw/asteria/log"
 
 	"github.com/mylxsw/glacier/infra"
+	"github.com/mylxsw/glacier/log"
 )
 
 type provider struct {
@@ -17,7 +17,7 @@ func (p *provider) Priority() int {
 }
 
 // Provider create a event Provider
-func Provider(handler func(cc infra.Resolver, listener Listener), options ...Option) infra.Provider {
+func Provider(handler func(resolver infra.Resolver, listener Listener), options ...Option) infra.Provider {
 	p := &provider{handler: handler}
 	for _, opt := range options {
 		opt(p)
@@ -27,9 +27,7 @@ func Provider(handler func(cc infra.Resolver, listener Listener), options ...Opt
 }
 
 func (p *provider) Register(app infra.Binder) {
-	if log.DebugEnabled() {
-		log.Debug("provider github.com/mylxsw/glacier/event.Provider loaded")
-	}
+	log.Debug("provider github.com/mylxsw/glacier/event.Provider loaded")
 
 	app.MustSingletonOverride(func(cc infra.Resolver) Store {
 		if p.evtStoreBuilder != nil {

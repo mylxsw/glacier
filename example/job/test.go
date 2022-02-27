@@ -1,19 +1,19 @@
 package job
 
 import (
+	"github.com/mylxsw/glacier/log"
 	"time"
 
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/glacier/example/config"
 )
 
 func TestJob(conf *config.Config) {
-	log.Info("Hello, test job!")
-	log.Infof("mysql_conn: %s", conf.DB)
+	log.Debug("Hello, test job!")
+	log.Debugf("mysql_conn: %s", conf.DB)
 }
 
 func TestTimeoutJob(conf *config.Config) {
-	log.Info("Hello, test timeout job!")
+	log.Debug("Hello, test timeout job!")
 	<-time.After(10 * time.Second)
-	log.Infof("0000000000: %s", conf.DB)
+	log.Debugf("0000000000: %s", conf.DB)
 }

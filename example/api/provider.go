@@ -1,10 +1,10 @@
 package api
 
 import (
+	"github.com/mylxsw/glacier/log"
 	"runtime/debug"
 
 	"github.com/gorilla/mux"
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/glacier/example/api/controller"
 	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/glacier/listener"
@@ -34,7 +34,7 @@ func (s ServiceProvider) Aggregates() []infra.Provider {
 }
 
 func (s ServiceProvider) router(cc infra.Resolver, router web.Router, mw web.RequestMiddleware) {
-	router.WithMiddleware(mw.AccessLog(log.Module("request"))).
+	router.WithMiddleware(mw.AccessLog(log.Default())).
 		Controllers(
 			"/api",
 			controller.NewWelcomeController(cc),

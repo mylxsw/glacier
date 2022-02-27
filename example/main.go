@@ -2,16 +2,11 @@ package main
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/mylxsw/asteria/filter"
+	"github.com/mylxsw/glacier/log"
 	"runtime"
 	"strconv"
 	"time"
 
-	"github.com/mylxsw/glacier"
-
-	asteriaEvent "github.com/mylxsw/asteria/event"
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/glacier/event"
 	"github.com/mylxsw/glacier/example/api"
 	"github.com/mylxsw/glacier/example/config"
@@ -19,13 +14,9 @@ import (
 	"github.com/mylxsw/glacier/example/service"
 	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/glacier/starter/application"
-	"github.com/mylxsw/graceful"
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
 )
-
-var Version = "1.0"
-var GitCommit = "aabbccddeeffgghhiijjkk"
 
 type CronEvent struct {
 	GoroutineID uint64
@@ -39,53 +30,19 @@ func main() {
 	//log.All().LogFormatter(formatter.NewJSONFormatter())
 
 	//log.DefaultLogLevel(level.Error)
-	log.DefaultDynamicModuleName(true)
-	log.AddGlobalFilter(func(filter filter.Filter) filter.Filter {
-		return func(f asteriaEvent.Event) {
-			// 是否输出框架级别的debug日志
-			//if f.Level == level.Debug && glacier.IsGlacierModuleLog(f.Module) {
-			//	return
-			//}
+	//log.DefaultDynamicModuleName(true)
+	//log.AddGlobalFilter(func(filter filter.Filter) filter.Filter {
+	//	return func(f asteriaEvent.Event) {
+	//		// 是否输出框架级别的debug日志
+	//		//if f.Level == level.Debug && glacier.IsGlacierModuleLog(f.Module) {
+	//		//	return
+	//		//}
+	//
+	//		filter(f)
+	//	}
+	//})
 
-			filter(f)
-		}
-	})
-
-	application.MustStart(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]), run)
-	// application.MustStart(fmt.Sprintf("%s (%s)", Version, GitCommit[:8]), runOnce)
-
-}
-
-// runOnce 执行一次性任务，执行完毕自动推出
-func runOnce(app *application.Application) error {
-	log.AddGlobalFilter(func(filter filter.Filter) filter.Filter {
-		return func(f asteriaEvent.Event) {
-			if glacier.IsGlacierModuleLog(f.Module) {
-				return
-			}
-
-			filter(f)
-		}
-	})
-
-	app.AfterInitialized(func(resolver infra.Resolver) error {
-		return resolver.Resolve(func() {
-			log.Debug("server initialized ...")
-		})
-	})
-
-	app.Singleton(func() *config.Config {
-		log.Debugf("create config ...")
-		return &config.Config{DB: "demo", Test: "test str"}
-	})
-
-	app.Async(func(gf graceful.Graceful, conf *config.Config) {
-		defer gf.Shutdown()
-
-		fmt.Println(conf.Serialize())
-	})
-
-	return nil
+	application.MustStart("1.0", run)
 }
 
 // run 后台持续运行的任务，除非手动触发退出，否则一直运行
@@ -98,6 +55,8 @@ func run(app *application.Application) error {
 			cliAPP.Copyright = "aicode.cc"
 			cliAPP.UsageText = "这是 Usage Text"
 		})
+
+	app.WithLogger(log.StdLogger(log.DEBUG))
 
 	app.WithFlagYAMLSupport("conf").WithShutdownTimeoutFlagSupport(5 * time.Second)
 
@@ -133,11 +92,8 @@ func run(app *application.Application) error {
 	app.Provider(event.Provider(
 		func(cc infra.Resolver, listener event.Listener) {
 			listener.Listen(func(event CronEvent) {
-				if log.DebugEnabled() {
-					log.Debug("a new cron task executed")
-				}
-
-				log.Infof("event processed, listener_goroutine_id=%d, publisher_goroutine_id=%d", getGID(), event.GoroutineID)
+				log.Debug("a new cron task executed")
+				log.Debugf("event processed, listener_goroutine_id=%d, publisher_goroutine_id=%d", getGID(), event.GoroutineID)
 			})
 		},
 		event.SetStoreOption(func(cc infra.Resolver) event.Store {
@@ -154,10 +110,8 @@ func run(app *application.Application) error {
 		})
 	})
 
-	app.Async(func(conf *config.Config, publisher event.Publisher, gf graceful.Graceful) {
-		if log.DebugEnabled() {
-			log.Debugf("config: %s", conf.Serialize())
-		}
+	app.Async(func(conf *config.Config, publisher event.Publisher, gf infra.Graceful) {
+		log.Debugf("config: %s", conf.Serialize())
 
 		for i := 0; i < 10; i++ {
 			publisher.Publish(CronEvent{GoroutineID: uint64(i)})

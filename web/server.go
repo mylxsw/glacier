@@ -2,15 +2,14 @@ package web
 
 import (
 	"context"
+	"github.com/mylxsw/glacier/log"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
-	"github.com/mylxsw/graceful"
 )
 
 type Option func(cc infra.Resolver, conf *Config)
@@ -65,7 +64,7 @@ func (app *serverImpl) Start(listener net.Listener) error {
 	}
 
 	app.status = serverStatusStarted
-	return app.cc.ResolveWithError(func(gf graceful.Graceful) error {
+	return app.cc.ResolveWithError(func(gf infra.Graceful) error {
 		srv := &http.Server{
 			Handler:      app.router(app.cc),
 			WriteTimeout: app.conf.HttpWriteTimeout,
@@ -81,27 +80,19 @@ func (app *serverImpl) Start(listener net.Listener) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			if log.DebugEnabled() {
-				log.Debugf("prepare to shutdown http server...")
-			}
+			log.Debugf("prepare to shutdown http server...")
 
 			if err := srv.Shutdown(ctx); err != nil {
 				log.Errorf("shutdown http server failed: %s", err)
 			}
 
-			if log.WarningEnabled() {
-				log.Warning("http server has been shutdown")
-			}
+			log.Warning("http server has been shutdown")
 		})
 
-		if log.DebugEnabled() {
-			log.Debugf("http server started, listening on %s", listener.Addr())
-		}
+		log.Debugf("http server started, listening on %s", listener.Addr())
 
 		if err := srv.Serve(listener); err != nil {
-			if log.DebugEnabled() {
-				log.Debugf("http server stopped: %s", err)
-			}
+			log.Debugf("http server stopped: %s", err)
 
 			if err != http.ErrServerClosed {
 				gf.Shutdown()

@@ -6,13 +6,20 @@ import (
 	"time"
 
 	"github.com/mylxsw/container"
-	"github.com/mylxsw/graceful"
 )
 
 const (
 	VersionKey     string = "version"
 	StartupTimeKey string = "startup_time"
 )
+
+type Graceful interface {
+	AddReloadHandler(h func())
+	AddShutdownHandler(h func())
+	Reload()
+	Shutdown()
+	Start() error
+}
 
 // Service is an interface for service
 type Service interface {
@@ -32,7 +39,7 @@ type Provider interface {
 	// Register add some dependency for current module
 	// this method is called one by one synchronous
 	// service provider don't autowired in this stage
-	Register(app Binder)
+	Register(binder Binder)
 }
 
 // Priority 优先级接口
@@ -45,14 +52,14 @@ type ProviderBoot interface {
 	// Boot starts the module
 	// this method is called one by one synchronous after all register methods called
 	// service provider has been autowired in this stage
-	Boot(app Resolver)
+	Boot(resolver Resolver)
 }
 
 type DaemonProvider interface {
 	Provider
 	// Daemon is an async method called after boot
 	// this method is called asynchronous and concurrent
-	Daemon(ctx context.Context, app Resolver)
+	Daemon(ctx context.Context, resolver Resolver)
 }
 
 // ProviderAggregate Provider 聚合，所有实现该接口的 Provider 在加载之前将会先加载该集合中的 Provider
@@ -61,7 +68,7 @@ type ProviderAggregate interface {
 }
 
 type ListenerBuilder interface {
-	Build(cc Resolver) (net.Listener, error)
+	Build(resolver Resolver) (net.Listener, error)
 }
 
 type FlagContext interface {
@@ -75,7 +82,24 @@ type FlagContext interface {
 	FlagNames() (names []string)
 }
 
+type Logger interface {
+	Debug(v ...interface{})
+	Debugf(format string, v ...interface{})
+	Info(v ...interface{})
+	Infof(format string, v ...interface{})
+	Error(v ...interface{})
+	Errorf(format string, v ...interface{})
+	Warning(v ...interface{})
+	Warningf(format string, v ...interface{})
+	// Critical 关键性错误，遇到该日志输出时，应用直接退出
+	Critical(v ...interface{})
+	// Criticalf 关键性错误，遇到该日志输出时，应用直接退出
+	Criticalf(format string, v ...interface{})
+}
+
 type Glacier interface {
+	SetLogger(logger Logger) Glacier
+
 	// WithFlagContext 设置 FlagContext，支持覆盖 FlagContext 默认实现
 	// 参数 fn 只支持 `func(...) infra.FlagContext` 形式
 	WithFlagContext(fn interface{}) Glacier
@@ -88,7 +112,7 @@ type Glacier interface {
 	Async(asyncJobs ...interface{})
 
 	// Graceful 设置优雅停机实现
-	Graceful(builder func() graceful.Graceful) Glacier
+	Graceful(builder func() Graceful) Glacier
 
 	// OnServerReady call a function a server ready
 	OnServerReady(f interface{})

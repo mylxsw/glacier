@@ -2,12 +2,12 @@ package web
 
 import (
 	"fmt"
+	"github.com/mylxsw/glacier/infra"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gorilla/sessions"
-	"github.com/mylxsw/asteria/log"
 	"github.com/pkg/errors"
 )
 
@@ -23,21 +23,19 @@ func NewRequestMiddleware() RequestMiddleware {
 }
 
 // AccessLog create a access log middleware
-func (rm RequestMiddleware) AccessLog(logger log.Logger) HandlerDecorator {
+func (rm RequestMiddleware) AccessLog(logger infra.Logger) HandlerDecorator {
 	return func(handler WebHandler) WebHandler {
 		return func(ctx Context) Response {
 			startTs := time.Now()
 			resp := handler(ctx)
 
-			if logger.DebugEnabled() {
-				logger.Debugf(
-					"%s %s [%d] [%.4fms]",
-					ctx.Method(),
-					ctx.Request().Raw().URL.String(),
-					resp.Code(),
-					time.Now().Sub(startTs).Seconds()*1000,
-				)
-			}
+			logger.Debugf(
+				"%s %s [%d] [%.4fms]",
+				ctx.Method(),
+				ctx.Request().Raw().URL.String(),
+				resp.Code(),
+				time.Now().Sub(startTs).Seconds()*1000,
+			)
 
 			return resp
 		}
