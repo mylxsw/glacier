@@ -11,7 +11,7 @@ require (
 	github.com/gorilla/sessions v1.2.1
 	github.com/gorilla/websocket v1.4.2
 	github.com/json-iterator/go v1.1.10 // indirect
-	github.com/mylxsw/asteria v0.0.0-20220220133510-8471fb7d8002
+	github.com/mylxsw/asteria v0.0.0-20220228085827-497b9a829af8
 	github.com/mylxsw/container v0.0.0-20220124071232-4cf9cc678ad7
 	github.com/mylxsw/go-utils v0.0.0-20210720060419-1aac8fb9b538
 	github.com/pkg/errors v0.9.1
