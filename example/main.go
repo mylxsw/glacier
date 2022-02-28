@@ -2,10 +2,11 @@ package main
 
 import (
 	"bytes"
-	"github.com/mylxsw/glacier/log"
 	"runtime"
 	"strconv"
 	"time"
+
+	"github.com/mylxsw/glacier/log"
 
 	"github.com/mylxsw/glacier/event"
 	"github.com/mylxsw/glacier/example/api"

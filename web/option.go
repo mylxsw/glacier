@@ -91,9 +91,9 @@ func SetHttpIdleTimeoutOption(t time.Duration) Option {
 
 // SetOptions 设置 options，设置前可以获取到 infra.Resolver 实例
 func SetOptions(setter func(cc infra.Resolver) []Option) Option {
-	return func(cc infra.Resolver, conf *Config) {
-		for _, opt := range setter(cc) {
-			opt(cc, conf)
+	return func(resolver infra.Resolver, conf *Config) {
+		for _, opt := range setter(resolver) {
+			opt(resolver, conf)
 		}
 	}
 }

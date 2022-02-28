@@ -212,7 +212,7 @@ ProviderAggregate 接口为应用提供了一种能够聚合其它模块 Provide
 // 创建自定义模块，初始化了 Glacier 框架内置的 Web 框架
 type Provider struct{}
 
-func (s Provider) Aggregates() []infra.Provider {
+func (Provider) Aggregates() []infra.Provider {
 	return []infra.Provider{
 		web.Provider(
 			listener.FlagContext("listen"),
@@ -225,7 +225,7 @@ func (s Provider) Aggregates() []infra.Provider {
 	}
 }
 
-func (s Provider) routes(cc infra.Resolver, router web.Router, mw web.RequestMiddleware) {
+func (Provider) routes(cc infra.Resolver, router web.Router, mw web.RequestMiddleware) {
 	router.Controllers(
 		"/api",
     // 这里添加控制器
@@ -234,19 +234,51 @@ func (s Provider) routes(cc infra.Resolver, router web.Router, mw web.RequestMid
 	)
 }
 
-func (s Provider) Register(app infra.Binder) {}
+func (Provider) Register(app infra.Binder) {}
 ```
 
 #### Service
 
-TODO
+在 Glacier 框架中，Service 代表了一个后台模块，Service 会在框架生命周期中持续运行。要实现一个 Service，需要实现 `infra.Service` 接口，包含以下几个方法
+
+- `Init(resolver Resolver) error` 用于 Service 的初始化，注入依赖等
+- `Name() string` 返回当前 Service 的名称
+- `Start() error` 启动 Service，该方法在 Service 执行完毕之前不应该返回
+- `Stop()` 触发 Service 的停止运行
+- `Reload()` 触发 Service 的重新加载
+
+
+在我们的应用创建时，使用 `app.Service` 方法注册 Service
+
+```
+app := application.Create("1.0")
+...
+app.Service(service.Service{})
+...
+application.MustRun(app)
+```
 
 #### ModuleLoadPolicy
 
 **Provider** 支持按需加载，要使用此功能，只需要让 **Provider** 实现对象实现 **ShouldLoad() bool** 方法即可。`ShouldLoad` 方法用于控制该 **Provider** 是否加载，支持以下几种形式
 
-- `func (p Provider) ShouldLoad(...依赖) bool`
-- `func (P Provider) ShouldLoad(...依赖) (bool, error)`
+- `func (Provider) ShouldLoad(...依赖) bool`
+- `func (Provider) ShouldLoad(...依赖) (bool, error)`
+
+示例
+
+```go
+type Provider struct{}
+
+func (Provider) Register(cc infra.Binder) {
+	cc.MustSingletonOverride(New)
+}
+
+// 只有当 config.AuthType == ldap 的时候才会加载当前 Provider
+func (Provider) ShouldLoad(config *config.Server) bool {
+	return str.InIgnoreCase(config.AuthType, []string{"ldap"})
+}
+```
 
 #### Priority
 
@@ -254,9 +286,137 @@ TODO
 
 ### Web Framework
 
+Glacier 是一个应用框架，为了方便 Web 开发，也内置了一个灵活的 Web 应用开发框架。
+
 #### Usage
 
+Glaicer Web 在 Glacier 框架中是一个 DaemonProvider，与其它的模块并无不同。我们通过 `web.Provider(builder infra.ListenerBuilder, options ...Option) infra.DaemonProvider` 方法创建 Web 模块。
+
+参数 `builder` 用于创建 Web 服务的 listener，在 Glaicer 中，有以下几种方式来创建 listener：
+
+- `listener.Default(listenAddr string) infra.ListenerBuilder` 该构建器使用固定的 listenAddr 来创建 listener
+- `listener.FlagContext(flagName string) infra.ListenerBuilder` 该构建器根据命令行选项 flagName 来获取要监听的地址，以此来创建 listener 
+- `listener.Exist(listener net.Listener) infra.ListenerBuilder` 该构建器使用应存在的 listener 来创建
+
+参数 `options` 用于配置 web 服务的行为，包含以下几种常用的配置
+
+- `web.SetRouteHandlerOption(h RouteHandler) Option` 设置路由注册函数，在该函数中注册 API 路由规则
+- `web.SetExceptionHandlerOption(h ExceptionHandler) Option` 设置请求异常处理器
+- `web.SetIgnoreLastSlashOption(ignore bool) Option` 设置路由规则忽略最后的 `/`，默认是不忽略的
+- `web.SetMuxRouteHandlerOption(h MuxRouteHandler) Option` 设置底层的 gorilla Mux 对象，用于对底层的 Gorilla 框架进行直接控制
+- `web.SetHttpWriteTimeoutOption(t time.Duration) Option` 设置 HTTP 写超时时间
+- `web.SetHttpReadTimeoutOption(t time.Duration) Option` 设置 HTTP 读超时时间
+- `web.SetHttpIdleTimeoutOption(t time.Duration) Option` 设置 HTTP 空闲超时时间
+- `web.SetMultipartFormMaxMemoryOption(max int64)` 设置表单解析能够使用的最大内存
+- `web.SetTempFileOption(tempDir, tempFilePattern string) Option` 设置临时文件存储规则
+- `web.SetInitHandlerOption(h InitHandler) Option` 初始化阶段，web 应用对象还没有创建，在这里可以更新 web 配置
+- `web.SetListenerHandlerOption(h ListenerHandler) Option` 服务初始化阶段，web 服务对象已经创建，此时不能再更新 web 配置了
+
+最简单的使用 Web 模块的方式是直接创建 Provider，
+
+```go
+type Password struct {
+	Password string `json:"password"`
+}
+
+app := application.Create("1.0")
+app.AddStringFlag("listen", ":8080", "http listen address")
+
+app.Singleton(func() (*password.Generator, error) {
+	return password.NewGenerator(&password.GeneratorInput{Symbols: "-=.@#$:/+"})
+})
+
+app.Provider(web.Provider(
+	listener.FlagContext("listen"),
+	web.SetRouteHandlerOption(func(cc infra.Resolver, router web.Router, mw web.RequestMiddleware) {
+		// 路由规则
+		router.Get("/simple", func(ctx web.Context, gen *password.Generator) web.Response {
+			return ctx.JSON(web.M{"password": pass})
+		})
+		router.Get("/complex", func(ctx web.Context, gen *password.Generator) Password {
+			return Password{Password: gen.MustGenerate(length, digitParam, symbolParam, false, true)}
+		})
+	}),
+))
+
+application.MustRun(app)
+```
+
+更好地模块化的创建方式是编写一个独立的 Provider 模块
+
+```go
+type Provider struct{}
+
+// Aggregates 实现 infra.ProviderAggregate 接口
+func (Provider) Aggregates() []infra.Provider {
+	return []infra.Provider{
+		web.Provider(
+			confListenerBuilder{},
+			web.SetMuxRouteHandlerOption(s.muxRoutes),
+			web.SetRouteHandlerOption(s.routes),
+			web.SetExceptionHandlerOption(s.exceptionHandler),
+		),
+	}
+}
+
+// Register 实现 infra.Provider 接口
+func (s Provider) Register(app infra.Binder) {}
+
+// exceptionHandler 异常处理器
+func (s Provider) exceptionHandler(ctx web.Context, err interface{}) web.Response {
+	log.Errorf("error: %v, call stack: %s", err, debug.Stack())
+	return ctx.JSONWithCode(web.M{
+		"error": fmt.Sprintf("%v", err),
+	}, http.StatusInternalServerError)
+}
+
+// routes 注册路由规则
+func (s Provider) routes(resolver infra.Resolver, router web.Router, mw web.RequestMiddleware) {
+	mws := make([]web.HandlerDecorator, 0)
+	// 添加 web 中间件
+	mws = append(mws,
+		mw.AccessLog(log.Module("api")),
+		mw.CORS("*"),
+	)
+
+	// 注册控制器，所有的控制器 API 都以 `/api` 作为接口前缀
+	router.WithMiddleware(mws...).Controllers(
+		"/api",
+		controller.NewServerController(resolver),
+		controller.NewClientController(resolver),
+	)
+}
+
+// muxRoutes 调用底层的 gorilla mux 对象来添加路由规则
+func (s Provider) muxRoutes(resolver infra.Resolver, router *mux.Router) {
+	resolver.MustResolve(func() {
+		// 添加 prometheus metrics 支持
+		router.PathPrefix("/metrics").Handler(promhttp.Handler())
+		// 添加健康检查接口支持
+		router.PathPrefix("/health").Handler(HealthCheck{})
+	})
+}
+
+type HealthCheck struct{}
+
+func (h HealthCheck) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+	writer.Header().Add("Content-Type", "application/json")
+	writer.WriteHeader(http.StatusOK)
+	_, _ = writer.Write([]byte(`{"status": "UP"}`))
+}
+
+// 创建自定义的 listener 构建器，从配置对象中读取 listen 地址
+type confListenerBuilder struct{}
+
+func (l confListenerBuilder) Build(resolver infra.Resolver) (net.Listener, error) {
+	return listener.Default(resolver.MustGet((*config.Server)(nil)).(*config.Server).HTTPListen).Build(resolver)
+}
+```
+
 #### Route
+
+#### 控制器
+
 
 #### Request
 
