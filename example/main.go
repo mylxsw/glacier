@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/mylxsw/glacier/log"
+	"github.com/mylxsw/glacier/web"
 
 	"github.com/mylxsw/glacier/event"
-	"github.com/mylxsw/glacier/example/api"
 	"github.com/mylxsw/glacier/example/config"
 	"github.com/mylxsw/glacier/example/job"
 	"github.com/mylxsw/glacier/example/service"
@@ -65,8 +65,15 @@ func run(app *application.Application) error {
 	app.AddBoolFlag("load-job", "")
 	app.AddFlags(altsrc.NewBoolFlag(cli.BoolFlag{Name: "load-demoservice"}))
 
-	app.Provider(job.ServiceProvider{}, api.ServiceProvider{})
+	app.Provider(job.ServiceProvider{})
 	app.Service(&service.DemoService{}, &service.Demo2Service{})
+
+	// app.Provider(api.ServiceProvider{})
+	app.Provider(web.DefaultProvider(func(resolver infra.Resolver, router web.Router, mw web.RequestMiddleware) {
+		router.Get("/", func(ctx web.Context) web.Response {
+			return ctx.JSON(web.M{"hello": ctx.InputWithDefault("name", "world")})
+		})
+	}))
 
 	app.AfterInitialized(func(resolver infra.Resolver) error {
 		return resolver.Resolve(func() {
@@ -118,8 +125,8 @@ func run(app *application.Application) error {
 			publisher.Publish(CronEvent{GoroutineID: uint64(i)})
 		}
 
-		// 10s 后自动关闭服务
-		time.AfterFunc(10*time.Second, gf.Shutdown)
+		// 30s 后自动关闭服务
+		time.AfterFunc(30*time.Second, gf.Shutdown)
 	})
 
 	return nil

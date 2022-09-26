@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/mylxsw/glacier/graceful"
-	"github.com/mylxsw/glacier/log"
 	"reflect"
 	"runtime/debug"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/mylxsw/glacier/graceful"
+	"github.com/mylxsw/glacier/log"
 
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
@@ -47,13 +48,13 @@ type glacierImpl struct {
 	asyncJobs       []asyncJob
 	asyncJobChannel chan asyncJob
 
-	beforeInitialize    func(c infra.FlagContext) error
+	beforeInitialize    func(fc infra.FlagContext) error
 	afterInitialized    func(resolver infra.Resolver) error
 	afterProviderBooted interface{}
 
 	beforeServerStart func(cc container.Container) error
-	afterServerStart  func(cc infra.Resolver) error
-	beforeServerStop  func(cc infra.Resolver) error
+	afterServerStart  func(resolver infra.Resolver) error
+	beforeServerStop  func(resolver infra.Resolver) error
 
 	gracefulBuilder func() infra.Graceful
 
@@ -203,7 +204,7 @@ func (glacier *glacierImpl) Container() container.Container {
 	return glacier.container
 }
 
-func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
+func (glacier *glacierImpl) createServer() func(fc infra.FlagContext) error {
 	startupTs := time.Now()
 	return func(cliCtx infra.FlagContext) error {
 		if glacier.logger != nil {
@@ -338,11 +339,11 @@ func (glacier *glacierImpl) createServer() func(c infra.FlagContext) error {
 
 		defer cc.MustResolve(func(conf *Config) {
 			if err := recover(); err != nil {
-				log.Criticalf("application startup failed, Err: %v, Stack: %s", err, debug.Stack())
+				log.Criticalf("application startup failed, err: %v, stack: %s", err, debug.Stack())
 			}
 
 			if conf.ShutdownTimeout > 0 {
-				ok := make(chan interface{}, 0)
+				ok := make(chan interface{})
 				go func() {
 					wg.Wait()
 					ok <- struct{}{}

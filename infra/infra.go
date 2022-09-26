@@ -120,16 +120,16 @@ type Glacier interface {
 	// Main 应用入口
 	Main(cliCtx FlagContext) error
 	// BeforeInitialize Glacier 初始化之前执行，一般用于设置一些基本配置，比如日志等
-	BeforeInitialize(f func(c FlagContext) error) Glacier
+	BeforeInitialize(f func(fc FlagContext) error) Glacier
 	// AfterInitialized Glacier 初始化之后执行，所有的实例绑定都可以使用了
 	AfterInitialized(f func(resolver Resolver) error) Glacier
 
 	// BeforeServerStart 此时所有对象已经注册完毕，但是服务启动前执行
 	BeforeServerStart(f func(cc container.Container) error) Glacier
 	// AfterServerStart 此时所有服务都已经启动（Main 除外）
-	AfterServerStart(f func(cc Resolver) error) Glacier
+	AfterServerStart(f func(resolver Resolver) error) Glacier
 	// BeforeServerStop 服务停止前的回调
-	BeforeServerStop(f func(cc Resolver) error) Glacier
+	BeforeServerStop(f func(resolver Resolver) error) Glacier
 	// AfterProviderBooted 所有的 providers 都已经完成 boot 之后执行
 	AfterProviderBooted(f interface{}) Glacier
 

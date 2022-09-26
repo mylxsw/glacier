@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+
 	"github.com/mylxsw/glacier/log"
 
 	"github.com/mylxsw/container"
@@ -16,6 +17,14 @@ type provider struct {
 
 func (p *provider) Priority() int {
 	return -1
+}
+
+func DefaultProvider(routeHandler RouteHandler, options ...Option) infra.DaemonProvider {
+	return Provider(listener.FlagContext("listen"), append(options, SetRouteHandlerOption(routeHandler))...)
+}
+
+func DefaultProviderWithListenerBuilder(listenerBuilder infra.ListenerBuilder, routeHandler RouteHandler, options ...Option) infra.DaemonProvider {
+	return Provider(listenerBuilder, append(options, SetRouteHandlerOption(routeHandler))...)
 }
 
 func Provider(builder infra.ListenerBuilder, options ...Option) infra.DaemonProvider {

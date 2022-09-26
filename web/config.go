@@ -9,10 +9,10 @@ import (
 	"github.com/mylxsw/glacier/infra"
 )
 
-type RouteHandler func(cc infra.Resolver, router Router, mw RequestMiddleware)
-type MuxRouteHandler func(cc infra.Resolver, router *mux.Router)
+type RouteHandler func(resolver infra.Resolver, router Router, mw RequestMiddleware)
+type MuxRouteHandler func(resolver infra.Resolver, router *mux.Router)
 type ListenerHandler func(server *http.Server, listener net.Listener)
-type InitHandler func(cc infra.Resolver, webServer Server, conf *Config) error
+type InitHandler func(resolver infra.Resolver, webServer Server, conf *Config) error
 
 type Config struct {
 	routeHandler     RouteHandler
