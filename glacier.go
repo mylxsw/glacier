@@ -346,7 +346,7 @@ func (glacier *glacierImpl) createServer() func(fc infra.FlagContext) error {
 					if srv, ok := s.service.(infra.Stoppable); ok {
 						gf.AddShutdownHandler(srv.Stop)
 					}
-					
+
 					if srv, ok := s.service.(infra.Reloadable); ok {
 						gf.AddReloadHandler(srv.Reload)
 					}
@@ -374,13 +374,17 @@ func (glacier *glacierImpl) createServer() func(fc infra.FlagContext) error {
 				}()
 				select {
 				case <-ok:
-					log.Debugf("all services has been stopped")
+					if infra.DebugEnabled {
+						log.Debugf("all services has been stopped")
+					}
 				case <-time.After(conf.ShutdownTimeout):
 					log.Errorf("shutdown timeout, exit directly")
 				}
 			} else {
 				wg.Wait()
-				log.Debugf("all services has been stopped")
+				if infra.DebugEnabled {
+					log.Debugf("all services has been stopped")
+				}
 			}
 		})
 
@@ -402,14 +406,18 @@ func (glacier *glacierImpl) asyncJobRunner(resolver infra.Resolver, gf infra.Gra
 				}
 			}
 
-			log.Debugf("[async-runner-%d] async job runner stopping...", i)
+			if infra.DebugEnabled {
+				log.Debugf("[async-runner-%d] async job runner stopping...", i)
+			}
 		}(i)
 	}
 
 	glacier.consumeAsyncJobs()
 	wg.Wait()
 
-	log.Debug("all async job runners stopped")
+	if infra.DebugEnabled {
+		log.Debug("all async job runners stopped")
+	}
 }
 
 func (glacier *glacierImpl) consumeAsyncJobs() {
@@ -556,8 +564,9 @@ func (glacier *glacierImpl) startServer(resolver infra.Resolver, startupTs time.
 			})
 		}
 
-		log.Debugf("glacier launched successfully, took %s", time.Since(startupTs))
-
+		if infra.DebugEnabled {
+			log.Debugf("glacier launched successfully, took %s", time.Since(startupTs))
+		}
 		glacier.status = Started
 
 		delayTasks := make([]DelayTask, 0)
@@ -570,21 +579,25 @@ func (glacier *glacierImpl) startServer(resolver infra.Resolver, startupTs time.
 
 		var wg sync.WaitGroup
 		wg.Add(len(delayTasks))
-
-		log.Debug("add delay tasks, count: ", len(delayTasks))
-
+		if infra.DebugEnabled {
+			log.Debug("add delay tasks, count: ", len(delayTasks))
+		}
 		for i, t := range delayTasks {
 			go func(i int, t DelayTask) {
 				defer wg.Done()
 
 				resolver.MustResolve(t.Func)
-				log.Debugf("delay task %d stopped", i)
+				if infra.DebugEnabled {
+					log.Debugf("delay task %d stopped", i)
+				}
 			}(i, t)
 		}
 
 		gf.AddShutdownHandler(func() {
 			wg.Wait()
-			log.Debugf("all delay tasks stopped")
+			if infra.DebugEnabled {
+				log.Debugf("all delay tasks stopped")
+			}
 		})
 
 		return gf.Start()

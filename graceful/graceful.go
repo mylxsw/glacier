@@ -2,13 +2,14 @@ package graceful
 
 import (
 	"fmt"
-	"github.com/mylxsw/glacier/infra"
-	"github.com/mylxsw/glacier/log"
 	"os"
 	"os/signal"
 	"runtime"
 	"sync"
 	"time"
+
+	"github.com/mylxsw/glacier/infra"
+	"github.com/mylxsw/glacier/log"
 )
 
 type SignalHandler func(signalChan chan os.Signal, signals []os.Signal)
@@ -88,13 +89,16 @@ func (gf *gracefulImpl) AddShutdownHandler(h func()) {
 }
 
 func (gf *gracefulImpl) Reload() {
-	log.Debug("graceful reloading...")
+	if infra.DebugEnabled {
+		log.Debug("graceful reloading...")
+	}
 	go gf.reload()
 }
 
 func (gf *gracefulImpl) Shutdown() {
-	log.Debug("graceful closing...")
-
+	if infra.DebugEnabled {
+		log.Debug("graceful closing...")
+	}
 	_ = gf.signalSelf(os.Interrupt)
 }
 
@@ -139,7 +143,9 @@ func (gf *gracefulImpl) shutdown() {
 
 	select {
 	case <-ok:
-		log.Debug("all shutdown handlers executed")
+		if infra.DebugEnabled {
+			log.Debug("all shutdown handlers executed")
+		}
 	case <-time.After(gf.handlerTimeout):
 		log.Errorf("executing shutdown handlers timed out")
 		for i, executed := range handlerExecutedStat {
@@ -187,7 +193,9 @@ func (gf *gracefulImpl) reload() {
 
 	select {
 	case <-ok:
-		log.Debug("all reload handlers executed")
+		if infra.DebugEnabled {
+			log.Debug("all reload handlers executed")
+		}
 	case <-time.After(gf.handlerTimeout):
 		log.Errorf("executing reload handlers timed out")
 		for i, executed := range handlerExecutedStat {

@@ -13,6 +13,11 @@ const (
 	StartupTimeKey string = "startup_time"
 )
 
+var (
+	// DebugEnabled enable debug mode for glacier
+	DebugEnabled = false
+)
+
 type Graceful interface {
 	AddReloadHandler(h func())
 	AddShutdownHandler(h func())

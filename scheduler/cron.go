@@ -2,10 +2,11 @@ package scheduler
 
 import (
 	"fmt"
-	"github.com/mylxsw/glacier/log"
 	"runtime/debug"
 	"sync"
 	"time"
+
+	"github.com/mylxsw/glacier/log"
 
 	"github.com/mylxsw/glacier/infra"
 	"github.com/pkg/errors"
@@ -149,18 +150,24 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 
 	jobHandler := func() {
 		if c.distributeLockManager != nil && !c.distributeLockManager.HasLock() {
-			log.Debugf("cron job [%s] can not start because it doesn't get the lock", name)
+			if infra.DebugEnabled {
+				log.Debugf("cron job [%s] can not start because it doesn't get the lock", name)
+			}
 			return
 		}
 
-		log.Debugf("cron job [%s] running", name)
+		if infra.DebugEnabled {
+			log.Debugf("cron job [%s] running", name)
+		}
 
 		startTs := time.Now()
 		defer func() {
 			if err := recover(); err != nil {
 				log.Errorf("cron job [%s] stopped with some errors: %v, elapse %s", name, err, time.Since(startTs))
 			} else {
-				log.Debugf("cron job [%s] stopped, elapse %s", name, time.Since(startTs))
+				if infra.DebugEnabled {
+					log.Debugf("cron job [%s] stopped, elapse %s", name, time.Since(startTs))
+				}
 			}
 		}()
 		if err := c.resolver.ResolveWithError(hh.Handle); err != nil {
@@ -180,7 +187,10 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 		handler: jobHandler,
 		Paused:  false,
 	}
-	log.Debugf("add job [%s] to cron manager with plan %s", name, plan)
+
+	if infra.DebugEnabled {
+		log.Debugf("add job [%s] to cron manager with plan %s", name, plan)
+	}
 
 	return nil
 }
@@ -199,7 +209,10 @@ func (c *schedulerImpl) Remove(name string) error {
 		c.cr.Remove(reg.ID)
 	}
 
-	log.Debugf("remove job [%s] from cron manager", name)
+	if infra.DebugEnabled {
+		log.Debugf("remove job [%s] from cron manager", name)
+	}
+
 	return nil
 }
 
@@ -219,7 +232,9 @@ func (c *schedulerImpl) Pause(name string) error {
 	c.cr.Remove(reg.ID)
 	reg.Paused = true
 
-	log.Debugf("change job [%s] to paused", name)
+	if infra.DebugEnabled {
+		log.Debugf("change job [%s] to paused", name)
+	}
 
 	return nil
 }
@@ -245,7 +260,9 @@ func (c *schedulerImpl) Continue(name string) error {
 	reg.Paused = false
 	reg.ID = id
 
-	log.Debugf("change job [%s] to continue", name)
+	if infra.DebugEnabled {
+		log.Debugf("change job [%s] to continue", name)
+	}
 
 	return nil
 }

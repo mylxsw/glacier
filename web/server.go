@@ -2,10 +2,11 @@ package web
 
 import (
 	"context"
-	"github.com/mylxsw/glacier/log"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/mylxsw/glacier/log"
 
 	"github.com/gorilla/mux"
 	"github.com/mylxsw/container"
@@ -80,19 +81,27 @@ func (app *serverImpl) Start(listener net.Listener) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			log.Debugf("prepare to shutdown http server...")
+			if infra.DebugEnabled {
+				log.Debugf("prepare to shutdown http server...")
+			}
 
 			if err := srv.Shutdown(ctx); err != nil {
 				log.Errorf("shutdown http server failed: %s", err)
 			}
 
-			log.Warning("http server has been shutdown")
+			if infra.DebugEnabled {
+				log.Debug("http server has been shutdown")
+			}
 		})
 
-		log.Debugf("http server started, listening on %s", listener.Addr())
+		if infra.DebugEnabled {
+			log.Debugf("http server started, listening on %s", listener.Addr())
+		}
 
 		if err := srv.Serve(listener); err != nil {
-			log.Debugf("http server stopped: %s", err)
+			if infra.DebugEnabled {
+				log.Debugf("http server stopped: %s", err)
+			}
 
 			if err != http.ErrServerClosed {
 				gf.Shutdown()

@@ -2,6 +2,7 @@ package scheduler
 
 import (
 	"context"
+
 	"github.com/mylxsw/glacier/log"
 
 	"github.com/mylxsw/glacier/infra"
@@ -22,7 +23,9 @@ func Provider(creator func(cc infra.Resolver, creator JobCreator), options ...Op
 }
 
 func (p *provider) Register(app infra.Binder) {
-	log.Debug("provider github.com/mylxsw/glacier/scheduler.Provider loaded")
+	if infra.DebugEnabled {
+		log.Debug("provider github.com/mylxsw/glacier/scheduler.Provider loaded")
+	}
 
 	// 定时任务对象
 	app.MustSingletonOverride(func() *cronV3.Cron {
@@ -48,7 +51,9 @@ func (p *provider) Daemon(ctx context.Context, app infra.Resolver) {
 		gf.AddShutdownHandler(cr.Stop)
 		cr.Start()
 
-		logger.Debugf("cron task server has been started")
+		if infra.DebugEnabled {
+			logger.Debugf("cron task server has been started")
+		}
 
 		<-ctx.Done()
 	})

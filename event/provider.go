@@ -27,7 +27,9 @@ func Provider(handler func(resolver infra.Resolver, listener Listener), options 
 }
 
 func (p *provider) Register(app infra.Binder) {
-	log.Debug("provider github.com/mylxsw/glacier/event.Provider loaded")
+	if infra.DebugEnabled {
+		log.Debug("provider github.com/mylxsw/glacier/event.Provider loaded")
+	}
 
 	app.MustSingletonOverride(func(cc infra.Resolver) Store {
 		if p.evtStoreBuilder != nil {

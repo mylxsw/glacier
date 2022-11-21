@@ -35,7 +35,9 @@ func Provider(builder infra.ListenerBuilder, options ...Option) infra.DaemonProv
 }
 
 func (p *provider) Register(app infra.Binder) {
-	log.Debug("provider github.com/mylxsw/glacier/web.Provider loaded")
+	if infra.DebugEnabled {
+		log.Debug("provider github.com/mylxsw/glacier/web.Provider loaded")
+	}
 
 	app.MustSingletonOverride(func(cc container.Container) Server {
 		return NewServer(cc, p.options...)
