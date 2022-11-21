@@ -2,6 +2,7 @@ package glacier
 
 import (
 	"fmt"
+	"github.com/mylxsw/go-utils/array"
 	"reflect"
 
 	"github.com/mylxsw/glacier/infra"
@@ -40,7 +41,18 @@ func (glacier *glacierImpl) Service(services ...infra.Service) {
 		validateShouldLoadMethod(reflect.TypeOf(p))
 	}
 
-	glacier.services = append(glacier.services, services...)
+	glacier.services = append(glacier.services, array.Map(services, func(srv infra.Service) serviceRegister {
+		var name string
+		if srvn, ok := srv.(infra.Nameable); ok {
+			name = srvn.Name()
+		}
+
+		if name == "" {
+			name = reflect.TypeOf(srv).String()
+		}
+
+		return serviceRegister{service: srv, name: name}
+	})...)
 }
 
 type asyncJob struct {

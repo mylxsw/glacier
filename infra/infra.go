@@ -23,16 +23,37 @@ type Graceful interface {
 
 // Service is an interface for service
 type Service interface {
-	// Init initialize the service
-	Init(resolver Resolver) error
-	// Name return service name
-	Name() string
 	// Start service, not blocking
 	Start() error
-	// Stop the service
+}
+
+// CompleteService is an interface for a service which implements all service interface
+type CompleteService interface {
+	Service
+	Initializer
+	Stoppable
+	Reloadable
+	Nameable
+}
+
+// Initializer is an interface for service initializer
+type Initializer interface {
+	Init(resolver Resolver) error
+}
+
+// Stoppable is an interface for service that can be stopped
+type Stoppable interface {
 	Stop()
-	// Reload reload service
+}
+
+// Reloadable is an interface for reloadable service
+type Reloadable interface {
 	Reload()
+}
+
+// Nameable is an interface for service/provider name
+type Nameable interface {
+	Name() string
 }
 
 type Provider interface {

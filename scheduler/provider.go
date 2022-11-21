@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/mylxsw/glacier/log"
 
-	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
 	cronV3 "github.com/robfig/cron/v3"
 )
@@ -29,10 +28,10 @@ func (p *provider) Register(app infra.Binder) {
 	app.MustSingletonOverride(func() *cronV3.Cron {
 		return cronV3.New(cronV3.WithSeconds(), cronV3.WithLogger(cronLogger{}))
 	})
-	app.MustSingletonOverride(func(cc container.Container) Scheduler {
-		cr := NewManager(cc)
+	app.MustSingletonOverride(func(resolver infra.Resolver) Scheduler {
+		cr := NewManager(resolver)
 		for _, opt := range p.options {
-			opt(cc, cr)
+			opt(resolver, cr)
 		}
 
 		return cr

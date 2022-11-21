@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
 	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
@@ -60,9 +59,9 @@ type DistributeLockManager interface {
 }
 
 type schedulerImpl struct {
-	lock sync.RWMutex
-	cc   container.Container
-	cr   *cron.Cron
+	lock     sync.RWMutex
+	resolver infra.Resolver
+	cr       *cron.Cron
 
 	distributeLockManager DistributeLockManager
 
@@ -97,9 +96,9 @@ func (job Job) Next(nextNum int) ([]time.Time, error) {
 }
 
 // NewManager create a new Scheduler
-func NewManager(cc container.Container) Scheduler {
-	m := schedulerImpl{cc: cc, jobs: make(map[string]*Job)}
-	cc.MustResolve(func(cr *cron.Cron) { m.cr = cr })
+func NewManager(resolver infra.Resolver) Scheduler {
+	m := schedulerImpl{resolver: resolver, jobs: make(map[string]*Job)}
+	resolver.MustResolve(func(cr *cron.Cron) { m.cr = cr })
 
 	return &m
 }
@@ -124,7 +123,7 @@ func (c *schedulerImpl) AddAndRunOnServerReady(name string, plan string, handler
 		handler = hh.Handle
 	}
 
-	return c.cc.Resolve(func(hook infra.Hook) {
+	return c.resolver.Resolve(func(hook infra.Hook) {
 		hook.OnServerReady(handler)
 	})
 }
@@ -164,7 +163,7 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 				log.Debugf("cron job [%s] stopped, elapse %s", name, time.Since(startTs))
 			}
 		}()
-		if err := c.cc.ResolveWithError(hh.Handle); err != nil {
+		if err := c.resolver.ResolveWithError(hh.Handle); err != nil {
 			log.Errorf("cron job [%s] failed, Err: %v, Stack: \n%s", name, err, debug.Stack())
 		}
 	}

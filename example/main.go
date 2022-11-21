@@ -57,9 +57,9 @@ func run(app *application.Application) error {
 			cliAPP.UsageText = "这是 Usage Text"
 		})
 
-	app.WithLogger(log.StdLogger(log.DEBUG))
+	//app.WithLogger(log.StdLogger(log.DEBUG))
 
-	app.WithFlagYAMLSupport("conf").WithShutdownTimeoutFlagSupport(5 * time.Second)
+	app.WithFlagYAMLSupport("conf").WithShutdownTimeoutFlagSupport(3 * time.Second)
 
 	app.AddFlags(application.StringFlag("listen", ":19945", "http listen addr"))
 	app.AddBoolFlag("load-job", "")
@@ -126,7 +126,7 @@ func run(app *application.Application) error {
 		}
 
 		// 30s 后自动关闭服务
-		time.AfterFunc(30*time.Second, gf.Shutdown)
+		go time.AfterFunc(30*time.Second, gf.Shutdown)
 	})
 
 	return nil

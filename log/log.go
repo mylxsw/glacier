@@ -1,12 +1,11 @@
 package log
 
 import (
-	"github.com/mylxsw/asteria/log"
 	"github.com/mylxsw/glacier/infra"
 	"sync"
 )
 
-var defaultLogger infra.Logger = log.Module("glacier")
+var defaultLogger = StdLogger()
 var lock sync.RWMutex
 
 func SetDefaultLogger(logger infra.Logger) {

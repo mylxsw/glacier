@@ -122,7 +122,7 @@ func Create(version string) *Application {
 	app.Version = version
 	app.Flags = make([]cli.Flag, 0)
 
-	glacierIns := glacier.CreateGlacier(version)
+	glacierIns := glacier.CreateGlacier(version, 3)
 	app.Action = func(c *cli.Context) error {
 		return glacierIns.Main(c)
 	}
