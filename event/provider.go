@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/mylxsw/glacier/infra"
-	"github.com/mylxsw/glacier/log"
 )
 
 type provider struct {
@@ -27,10 +26,6 @@ func Provider(handler func(resolver infra.Resolver, listener Listener), options 
 }
 
 func (p *provider) Register(app infra.Binder) {
-	if infra.DEBUG {
-		log.Debug("provider github.com/mylxsw/glacier/event.Provider loaded")
-	}
-
 	app.MustSingletonOverride(func(cc infra.Resolver) Store {
 		if p.evtStoreBuilder != nil {
 			return p.evtStoreBuilder(cc)

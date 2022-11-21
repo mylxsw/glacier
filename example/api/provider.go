@@ -44,17 +44,17 @@ func (s ServiceProvider) router(cc infra.Resolver, router web.Router, mw web.Req
 
 func (s ServiceProvider) muxRouteHandler(cc infra.Resolver, router *mux.Router) {
 	for _, r := range web.GetAllRoutes(router) {
-		log.Debugf("route: %s -> %s | %s | %s", r.Name, r.Methods, r.PathTemplate, r.PathRegexp)
+		log.Debugf("[example] route: %s -> %s | %s | %s", r.Name, r.Methods, r.PathTemplate, r.PathRegexp)
 	}
 }
 
 func (s ServiceProvider) exceptionHandler(ctx web.Context, err interface{}) web.Response {
-	log.Errorf("stack: %s", debug.Stack())
+	log.Errorf("[example] stack: %s", debug.Stack())
 	return nil
 }
 
 func (s ServiceProvider) Register(app infra.Binder) {
-	log.Debug("provider api.ServiceProvider loaded")
+	log.Debug("[example] provider api.ServiceProvider loaded")
 }
 
 func (s ServiceProvider) Boot(app infra.Resolver) {}

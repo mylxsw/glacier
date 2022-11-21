@@ -90,14 +90,14 @@ func (gf *gracefulImpl) AddShutdownHandler(h func()) {
 
 func (gf *gracefulImpl) Reload() {
 	if infra.DEBUG {
-		log.Debug("graceful reloading...")
+		log.Debug("[glacier] graceful reloading...")
 	}
 	go gf.reload()
 }
 
 func (gf *gracefulImpl) Shutdown() {
 	if infra.DEBUG {
-		log.Debug("graceful closing...")
+		log.Debug("[glacier] graceful closing...")
 	}
 	_ = gf.signalSelf(os.Interrupt)
 }
@@ -108,6 +108,8 @@ func (gf *gracefulImpl) signalSelf(sig os.Signal) error {
 }
 
 func (gf *gracefulImpl) shutdown() {
+	startTs := time.Now()
+
 	gf.lock.Lock()
 	defer gf.lock.Unlock()
 
@@ -120,9 +122,18 @@ func (gf *gracefulImpl) shutdown() {
 	wg.Add(len(gf.shutdownHandlers))
 	for i := len(gf.shutdownHandlers) - 1; i >= 0; i-- {
 		go func(i int, handler Handler) {
+			startTs := time.Now()
+			if infra.DEBUG {
+				log.Debugf("[glacier] executing shutdown handler [%s]", handler.String())
+			}
+
 			defer func() {
 				if err := recover(); err != nil {
-					log.Errorf("executing shutdown handler [%s] failed: %s", handler.String(), err)
+					log.Errorf("[glacier] executing shutdown handler [%s] failed: %s", handler.String(), err)
+				}
+
+				if infra.DEBUG {
+					log.Debugf("[glacier] shutdown handler [%s] finished, took %s", handler.String(), time.Since(startTs).String())
 				}
 
 				handlerExecutedStat[i] = true
@@ -144,21 +155,23 @@ func (gf *gracefulImpl) shutdown() {
 	select {
 	case <-ok:
 		if infra.DEBUG {
-			log.Debug("all shutdown handlers executed")
+			log.Debug("[glacier] all shutdown handlers executed, took %s", time.Since(startTs))
 		}
 	case <-time.After(gf.handlerTimeout):
-		log.Errorf("executing shutdown handlers timed out")
+		log.Errorf("[glacier] executing shutdown handlers timed out, took %s", time.Since(startTs))
 		for i, executed := range handlerExecutedStat {
 			if executed {
 				continue
 			}
 
-			log.Errorf("shutdown handler [%s] may not executed", gf.shutdownHandlers[i].String())
+			log.Errorf("[glacier] shutdown handler [%s] may not finished", gf.shutdownHandlers[i].String())
 		}
 	}
 }
 
 func (gf *gracefulImpl) reload() {
+	startTs := time.Now()
+
 	gf.lock.Lock()
 	defer gf.lock.Unlock()
 
@@ -171,10 +184,20 @@ func (gf *gracefulImpl) reload() {
 	wg.Add(len(gf.reloadHandlers))
 	for i := len(gf.reloadHandlers) - 1; i >= 0; i-- {
 		go func(i int, handler Handler) {
+			startTs := time.Now()
+			if infra.DEBUG {
+				log.Debugf("[glacier] executing reload handler [%s]", handler.String())
+			}
+
 			defer func() {
 				if err := recover(); err != nil {
-					log.Errorf("executing reload handler failed: %s", err)
+					log.Errorf("[glacier] executing reload handler failed: %s", err)
 				}
+
+				if infra.DEBUG {
+					log.Debugf("[glacier] reload handler [%s] finished, took %s", handler.String(), time.Since(startTs).String())
+				}
+
 				handlerExecutedStat[i] = true
 				wg.Done()
 			}()
@@ -194,16 +217,16 @@ func (gf *gracefulImpl) reload() {
 	select {
 	case <-ok:
 		if infra.DEBUG {
-			log.Debug("all reload handlers executed")
+			log.Debug("[glacier] all reload handlers executed, took %s", time.Since(startTs))
 		}
 	case <-time.After(gf.handlerTimeout):
-		log.Errorf("executing reload handlers timed out")
+		log.Errorf("[glacier] executing reload handlers timed out, took %s", time.Since(startTs))
 		for i, executed := range handlerExecutedStat {
 			if executed {
 				continue
 			}
 
-			log.Errorf("reload handler [%s] may not executed", gf.shutdownHandlers[i].String())
+			log.Errorf("[glacier] reload handler [%s] may not finished", gf.shutdownHandlers[i].String())
 		}
 	}
 }
@@ -219,14 +242,18 @@ func (gf *gracefulImpl) Start() error {
 
 		for _, s := range gf.shutdownSignals {
 			if s == sig {
-				log.Warningf("shutdown signal received: %s", sig.String())
+				if infra.WARN {
+					log.Warningf("[glacier] shutdown signal received: %s", sig.String())
+				}
 				goto FINAL
 			}
 		}
 
 		for _, s := range gf.reloadSignals {
 			if s == sig {
-				log.Warningf("reload signal received: %s", sig.String())
+				if infra.WARN {
+					log.Warningf("[glacier] reload signal received: %s", sig.String())
+				}
 				gf.reload()
 				break
 			}

@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
@@ -264,13 +264,11 @@ func (req *HttpRequest) File(key string) (*UploadedFile, error) {
 		_ = file.Close()
 	}()
 
-	tempFile, err := ioutil.TempFile(req.conf.TempDir, req.conf.TempFilePattern)
+	tempFile, err := os.CreateTemp(req.conf.TempDir, req.conf.TempFilePattern)
 	if err != nil {
 		return nil, fmt.Errorf("can not create temporary file %s", err.Error())
 	}
-	defer func() {
-		_ = tempFile.Close()
-	}()
+	defer tempFile.Close()
 
 	if _, err := io.Copy(tempFile, file); err != nil {
 		return nil, err

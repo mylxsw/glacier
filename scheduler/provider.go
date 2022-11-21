@@ -23,10 +23,6 @@ func Provider(creator func(cc infra.Resolver, creator JobCreator), options ...Op
 }
 
 func (p *provider) Register(app infra.Binder) {
-	if infra.DEBUG {
-		log.Debug("provider github.com/mylxsw/glacier/scheduler.Provider loaded")
-	}
-
 	// 定时任务对象
 	app.MustSingletonOverride(func() *cronV3.Cron {
 		return cronV3.New(cronV3.WithSeconds(), cronV3.WithLogger(cronLogger{}))
@@ -52,7 +48,7 @@ func (p *provider) Daemon(ctx context.Context, app infra.Resolver) {
 		cr.Start()
 
 		if infra.DEBUG {
-			logger.Debugf("cron task server has been started")
+			logger.Debugf("[glacier] scheduler has been started")
 		}
 
 		<-ctx.Done()
@@ -67,7 +63,7 @@ func (l cronLogger) Info(msg string, keysAndValues ...interface{}) {
 }
 
 func (l cronLogger) Error(err error, msg string, keysAndValues ...interface{}) {
-	log.Errorf("%s: %v", msg, err)
+	log.Errorf("[glacier] %s: %v", msg, err)
 }
 
 // Option 定时任务配置型

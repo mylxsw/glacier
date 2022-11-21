@@ -22,19 +22,19 @@ func NewRequestMiddleware() RequestMiddleware {
 	return RequestMiddleware{}
 }
 
-// AccessLog create a access log middleware
+// AccessLog create an access log middleware
 func (rm RequestMiddleware) AccessLog(logger infra.Logger) HandlerDecorator {
 	return func(handler WebHandler) WebHandler {
 		return func(ctx Context) Response {
 			startTs := time.Now()
 			resp := handler(ctx)
 
-			logger.Debugf(
-				"%s %s [%d] [%.4fms]",
+			logger.Infof(
+				"[glacier] %s %s [%d] [%.4fms]",
 				ctx.Method(),
 				ctx.Request().Raw().URL.String(),
 				resp.Code(),
-				time.Now().Sub(startTs).Seconds()*1000,
+				time.Since(startTs).Seconds()*1000,
 			)
 
 			return resp
@@ -62,7 +62,7 @@ func (rm RequestMiddleware) CustomAccessLog(fn func(cal CustomAccessLog)) Handle
 				Method:       ctx.Method(),
 				URL:          ctx.Request().Raw().URL.String(),
 				ResponseCode: resp.Code(),
-				Elapse:       time.Now().Sub(startTs),
+				Elapse:       time.Since(startTs),
 			})
 
 			return resp

@@ -45,7 +45,7 @@ func main() {
 
 	infra.DEBUG = true
 
-	application.MustStart("1.0", run)
+	application.MustStart("1.0", 3, run)
 }
 
 // run 后台持续运行的任务，除非手动触发退出，否则一直运行
@@ -61,7 +61,7 @@ func run(app *application.Application) error {
 
 	//app.WithLogger(log.StdLogger(log.DEBUG))
 
-	app.WithFlagYAMLSupport("conf").WithShutdownTimeoutFlagSupport(3 * time.Second)
+	app.WithYAMLFlag("conf").WithShutdownTimeoutFlagSupport(3 * time.Second)
 
 	app.AddFlags(application.StringFlag("listen", ":19945", "http listen addr"))
 	app.AddBoolFlag("load-job", "")
@@ -79,7 +79,7 @@ func run(app *application.Application) error {
 
 	app.AfterInitialized(func(resolver infra.Resolver) error {
 		return resolver.Resolve(func() {
-			log.Debug("server initialized ...")
+			log.Debug("[example] server initialized ...")
 		})
 	})
 
@@ -102,8 +102,8 @@ func run(app *application.Application) error {
 	app.Provider(event.Provider(
 		func(cc infra.Resolver, listener event.Listener) {
 			listener.Listen(func(event CronEvent) {
-				log.Debug("a new cron task executed")
-				log.Debugf("event processed, listener_goroutine_id=%d, publisher_goroutine_id=%d", getGID(), event.GoroutineID)
+				log.Debug("[example] a new cron task executed")
+				log.Debugf("[example] event processed, listener_goroutine_id=%d, publisher_goroutine_id=%d", getGID(), event.GoroutineID)
 			})
 		},
 		event.SetStoreOption(func(cc infra.Resolver) event.Store {
@@ -121,7 +121,7 @@ func run(app *application.Application) error {
 	})
 
 	app.Async(func(conf *config.Config, publisher event.Publisher, gf infra.Graceful) {
-		log.Debugf("config: %s", conf.Serialize())
+		log.Debugf("[example] config: %s", conf.Serialize())
 
 		for i := 0; i < 10; i++ {
 			publisher.Publish(CronEvent{GoroutineID: uint64(i)})

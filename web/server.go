@@ -82,25 +82,25 @@ func (app *serverImpl) Start(listener net.Listener) error {
 			defer cancel()
 
 			if infra.DEBUG {
-				log.Debugf("prepare to shutdown http server...")
+				log.Debugf("[glacier] prepare to shutdown http server...")
 			}
 
 			if err := srv.Shutdown(ctx); err != nil {
-				log.Errorf("shutdown http server failed: %s", err)
+				log.Errorf("[glacier] shutdown http server failed: %s", err)
 			}
 
 			if infra.DEBUG {
-				log.Debug("http server has been shutdown")
+				log.Debug("[glacier] http server has been shutdown")
 			}
 		})
 
 		if infra.DEBUG {
-			log.Debugf("http server started, listening on %s", listener.Addr())
+			log.Debugf("[glacier] http server started, listening on %s", listener.Addr())
 		}
 
 		if err := srv.Serve(listener); err != nil {
 			if infra.DEBUG {
-				log.Debugf("http server stopped: %s", err)
+				log.Debugf("[glacier] http server stopped: %s", err)
 			}
 
 			if err != http.ErrServerClosed {

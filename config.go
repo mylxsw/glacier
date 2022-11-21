@@ -1,6 +1,7 @@
 package glacier
 
 import (
+	"github.com/mylxsw/glacier/log"
 	"strings"
 	"time"
 
@@ -15,7 +16,11 @@ const (
 
 // Config 框架级配置
 type Config struct {
-	ShutdownTimeout time.Duration
+	ShutdownTimeout time.Duration `json:"shutdown_timeout"`
+}
+
+func (c Config) String() string {
+	return "[" + "shutdown_timeout: " + c.ShutdownTimeout.String() + "]"
 }
 
 // ConfigLoader 框架级配置实例创建
@@ -25,6 +30,10 @@ func ConfigLoader(c infra.FlagContext) *Config {
 	config.ShutdownTimeout = c.Duration(ShutdownTimeoutOption)
 	if config.ShutdownTimeout.Microseconds() == 0 {
 		config.ShutdownTimeout = 15 * time.Second
+	}
+
+	if infra.DEBUG {
+		log.Debugf("[glacier] framework config loaded: %v", config.String())
 	}
 
 	return config

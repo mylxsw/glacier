@@ -3,8 +3,6 @@ package web
 import (
 	"context"
 
-	"github.com/mylxsw/glacier/log"
-
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/glacier/listener"
@@ -35,10 +33,6 @@ func Provider(builder infra.ListenerBuilder, options ...Option) infra.DaemonProv
 }
 
 func (p *provider) Register(app infra.Binder) {
-	if infra.DEBUG {
-		log.Debug("provider github.com/mylxsw/glacier/web.Provider loaded")
-	}
-
 	app.MustSingletonOverride(func(cc container.Container) Server {
 		return NewServer(cc, p.options...)
 	})

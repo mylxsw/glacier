@@ -140,7 +140,7 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 	defer c.lock.Unlock()
 
 	if reg, existed := c.jobs[name]; existed {
-		return fmt.Errorf("job with name [%s] has existed: %d | %s", name, reg.ID, reg.Plan)
+		return fmt.Errorf("job with name [%s] already existed: %d | %s", name, reg.ID, reg.Plan)
 	}
 
 	hh, ok := handler.(JobHandler)
@@ -151,33 +151,33 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 	jobHandler := func() {
 		if c.distributeLockManager != nil && !c.distributeLockManager.HasLock() {
 			if infra.DEBUG {
-				log.Debugf("cron job [%s] can not start because it doesn't get the lock", name)
+				log.Debugf("[glacier] cron job [%s] can not start because it doesn't get the lock", name)
 			}
 			return
 		}
 
 		if infra.DEBUG {
-			log.Debugf("cron job [%s] running", name)
+			log.Debugf("[glacier] cron job [%s] running", name)
 		}
 
 		startTs := time.Now()
 		defer func() {
 			if err := recover(); err != nil {
-				log.Errorf("cron job [%s] stopped with some errors: %v, elapse %s", name, err, time.Since(startTs))
+				log.Errorf("[glacier] cron job [%s] stopped with some errors: %v, took %s", name, err, time.Since(startTs))
 			} else {
 				if infra.DEBUG {
-					log.Debugf("cron job [%s] stopped, elapse %s", name, time.Since(startTs))
+					log.Debugf("[glacier] cron job [%s] stopped, took %s", name, time.Since(startTs))
 				}
 			}
 		}()
 		if err := c.resolver.ResolveWithError(hh.Handle); err != nil {
-			log.Errorf("cron job [%s] failed, Err: %v, Stack: \n%s", name, err, debug.Stack())
+			log.Errorf("[glacier] cron job [%s] failed, Err: %v, Stack: \n%s", name, err, debug.Stack())
 		}
 	}
 	id, err := c.cr.AddFunc(plan, jobHandler)
 
 	if err != nil {
-		return errors.Wrap(err, "add cron job failed")
+		return errors.Wrap(err, "[glacier] add cron job failed")
 	}
 
 	c.jobs[name] = &Job{
@@ -189,7 +189,7 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 	}
 
 	if infra.DEBUG {
-		log.Debugf("add job [%s] to cron manager with plan %s", name, plan)
+		log.Debugf("[glacier] add job [%s] to scheduler(%s)", name, plan)
 	}
 
 	return nil
@@ -201,7 +201,7 @@ func (c *schedulerImpl) Remove(name string) error {
 
 	reg, exist := c.jobs[name]
 	if !exist {
-		return errors.Errorf("job with name [%s] not found", name)
+		return errors.Errorf("[glacier] job with name [%s] not found", name)
 	}
 
 	delete(c.jobs, name)
@@ -210,7 +210,7 @@ func (c *schedulerImpl) Remove(name string) error {
 	}
 
 	if infra.DEBUG {
-		log.Debugf("remove job [%s] from cron manager", name)
+		log.Debugf("[glacier] remove job [%s] from scheduler", name)
 	}
 
 	return nil
@@ -222,7 +222,7 @@ func (c *schedulerImpl) Pause(name string) error {
 
 	reg, exist := c.jobs[name]
 	if !exist {
-		return errors.Errorf("job with name [%s] not found", name)
+		return errors.Errorf("[glacier] job with name [%s] not found", name)
 	}
 
 	if reg.Paused {
@@ -233,7 +233,7 @@ func (c *schedulerImpl) Pause(name string) error {
 	reg.Paused = true
 
 	if infra.DEBUG {
-		log.Debugf("change job [%s] to paused", name)
+		log.Debugf("[glacier] change job [%s] to paused", name)
 	}
 
 	return nil
@@ -245,7 +245,7 @@ func (c *schedulerImpl) Continue(name string) error {
 
 	reg, exist := c.jobs[name]
 	if !exist {
-		return errors.Errorf("job with name [%s] not found", name)
+		return errors.Errorf("[glacier] job with name [%s] not found", name)
 	}
 
 	if !reg.Paused {
@@ -254,14 +254,14 @@ func (c *schedulerImpl) Continue(name string) error {
 
 	id, err := c.cr.AddFunc(reg.Plan, reg.handler)
 	if err != nil {
-		return errors.Wrap(err, "change job from paused to continue failed")
+		return errors.Wrap(err, "[glacier] change job from paused to continue failed")
 	}
 
 	reg.Paused = false
 	reg.ID = id
 
 	if infra.DEBUG {
-		log.Debugf("change job [%s] to continue", name)
+		log.Debugf("[glacier] change job [%s] to continue", name)
 	}
 
 	return nil
@@ -275,20 +275,22 @@ func (c *schedulerImpl) Info(name string) (Job, error) {
 		return *job, nil
 	}
 
-	return Job{}, fmt.Errorf("job with name [%s] not found", name)
+	return Job{}, fmt.Errorf("[glacier] job with name [%s] not found", name)
 }
 
 func (c *schedulerImpl) Start() {
 	if c.distributeLockManager != nil {
 		getDistributeLock := func() {
 			if err := c.distributeLockManager.TryLock(); err != nil {
-				log.Warningf("try to get distribute lock failed: %v", err)
+				if infra.WARN {
+					log.Warningf("[glacier] try to get distribute lock failed: %v", err)
+				}
 			}
 		}
 
 		getDistributeLock()
 		if _, err := c.cr.AddFunc("@every 60s", getDistributeLock); err != nil {
-			log.Errorf("initialize cron failed: can not create distribute lock task: %v", err)
+			log.Errorf("[glacier] initialize scheduler failed: can not create distribute lock task: %v", err)
 		}
 	}
 
@@ -299,7 +301,9 @@ func (c *schedulerImpl) Stop() {
 	c.cr.Stop()
 	if c.distributeLockManager != nil {
 		if err := c.distributeLockManager.TryUnLock(); err != nil {
-			log.Warningf("try to release distribute lock failed: %v", err)
+			if infra.WARN {
+				log.Warningf("[glacier] try to release distribute lock failed: %v", err)
+			}
 		}
 	}
 }

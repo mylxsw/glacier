@@ -32,15 +32,15 @@ func (em *eventManager) Listen(listeners ...interface{}) {
 	for _, listener := range listeners {
 		listenerType := reflect.TypeOf(listener)
 		if listenerType.Kind() != reflect.Func {
-			panic("listener must be a function")
+			panic("[glacier] listener must be a function")
 		}
 
 		if listenerType.NumIn() != 1 {
-			panic("listener must be a function with only one arguemnt")
+			panic("[glacier] listener must be a function with only one argument")
 		}
 
 		if listenerType.In(0).Kind() != reflect.Struct {
-			panic("listener must be a function with only on argument of type struct")
+			panic("[glacier] listener must be a function with only on argument of type struct")
 		}
 
 		em.store.Listen(fmt.Sprintf("%s", listenerType.In(0)), listener)

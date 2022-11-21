@@ -13,7 +13,7 @@ type DemoService struct {
 }
 
 func (d *DemoService) ShouldLoad(c infra.FlagContext) bool {
-	return c.Bool("load-demoservice")
+	return c.Bool("[example] load-demoservice")
 }
 
 func (d *DemoService) Init(cc infra.Resolver) error {
@@ -30,11 +30,11 @@ func (d *DemoService) Start() error {
 	for {
 		select {
 		case <-d.stopped:
-			log.Debug("service DemoService stopped")
+			log.Debug("[example] service DemoService stopped")
 			return nil
 		default:
 			time.Sleep(5 * time.Second)
-			log.Errorf("hello, world from %s", d.Name())
+			log.Errorf("[example] hello, world from %s", d.Name())
 		}
 	}
 }
