@@ -81,7 +81,7 @@ func (app *serverImpl) Start(listener net.Listener) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 
-			if infra.DebugEnabled {
+			if infra.DEBUG {
 				log.Debugf("prepare to shutdown http server...")
 			}
 
@@ -89,17 +89,17 @@ func (app *serverImpl) Start(listener net.Listener) error {
 				log.Errorf("shutdown http server failed: %s", err)
 			}
 
-			if infra.DebugEnabled {
+			if infra.DEBUG {
 				log.Debug("http server has been shutdown")
 			}
 		})
 
-		if infra.DebugEnabled {
+		if infra.DEBUG {
 			log.Debugf("http server started, listening on %s", listener.Addr())
 		}
 
 		if err := srv.Serve(listener); err != nil {
-			if infra.DebugEnabled {
+			if infra.DEBUG {
 				log.Debugf("http server stopped: %s", err)
 			}
 

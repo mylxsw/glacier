@@ -14,8 +14,8 @@ const (
 )
 
 var (
-	// DebugEnabled enable debug mode for glacier
-	DebugEnabled = false
+	// DEBUG enable debug mode for glacier
+	DEBUG = false
 )
 
 type Graceful interface {

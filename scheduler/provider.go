@@ -23,7 +23,7 @@ func Provider(creator func(cc infra.Resolver, creator JobCreator), options ...Op
 }
 
 func (p *provider) Register(app infra.Binder) {
-	if infra.DebugEnabled {
+	if infra.DEBUG {
 		log.Debug("provider github.com/mylxsw/glacier/scheduler.Provider loaded")
 	}
 
@@ -51,7 +51,7 @@ func (p *provider) Daemon(ctx context.Context, app infra.Resolver) {
 		gf.AddShutdownHandler(cr.Stop)
 		cr.Start()
 
-		if infra.DebugEnabled {
+		if infra.DEBUG {
 			logger.Debugf("cron task server has been started")
 		}
 

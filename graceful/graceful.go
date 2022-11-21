@@ -89,14 +89,14 @@ func (gf *gracefulImpl) AddShutdownHandler(h func()) {
 }
 
 func (gf *gracefulImpl) Reload() {
-	if infra.DebugEnabled {
+	if infra.DEBUG {
 		log.Debug("graceful reloading...")
 	}
 	go gf.reload()
 }
 
 func (gf *gracefulImpl) Shutdown() {
-	if infra.DebugEnabled {
+	if infra.DEBUG {
 		log.Debug("graceful closing...")
 	}
 	_ = gf.signalSelf(os.Interrupt)
@@ -143,7 +143,7 @@ func (gf *gracefulImpl) shutdown() {
 
 	select {
 	case <-ok:
-		if infra.DebugEnabled {
+		if infra.DEBUG {
 			log.Debug("all shutdown handlers executed")
 		}
 	case <-time.After(gf.handlerTimeout):
@@ -193,7 +193,7 @@ func (gf *gracefulImpl) reload() {
 
 	select {
 	case <-ok:
-		if infra.DebugEnabled {
+		if infra.DEBUG {
 			log.Debug("all reload handlers executed")
 		}
 	case <-time.After(gf.handlerTimeout):

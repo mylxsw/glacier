@@ -27,7 +27,7 @@ func Provider(handler func(resolver infra.Resolver, listener Listener), options 
 }
 
 func (p *provider) Register(app infra.Binder) {
-	if infra.DebugEnabled {
+	if infra.DEBUG {
 		log.Debug("provider github.com/mylxsw/glacier/event.Provider loaded")
 	}
 

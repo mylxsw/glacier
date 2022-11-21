@@ -43,7 +43,7 @@ func main() {
 	//	}
 	//})
 
-	infra.DebugEnabled = true
+	infra.DEBUG = true
 
 	application.MustStart("1.0", run)
 }

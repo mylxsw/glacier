@@ -150,13 +150,13 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 
 	jobHandler := func() {
 		if c.distributeLockManager != nil && !c.distributeLockManager.HasLock() {
-			if infra.DebugEnabled {
+			if infra.DEBUG {
 				log.Debugf("cron job [%s] can not start because it doesn't get the lock", name)
 			}
 			return
 		}
 
-		if infra.DebugEnabled {
+		if infra.DEBUG {
 			log.Debugf("cron job [%s] running", name)
 		}
 
@@ -165,7 +165,7 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 			if err := recover(); err != nil {
 				log.Errorf("cron job [%s] stopped with some errors: %v, elapse %s", name, err, time.Since(startTs))
 			} else {
-				if infra.DebugEnabled {
+				if infra.DEBUG {
 					log.Debugf("cron job [%s] stopped, elapse %s", name, time.Since(startTs))
 				}
 			}
@@ -188,7 +188,7 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 		Paused:  false,
 	}
 
-	if infra.DebugEnabled {
+	if infra.DEBUG {
 		log.Debugf("add job [%s] to cron manager with plan %s", name, plan)
 	}
 
@@ -209,7 +209,7 @@ func (c *schedulerImpl) Remove(name string) error {
 		c.cr.Remove(reg.ID)
 	}
 
-	if infra.DebugEnabled {
+	if infra.DEBUG {
 		log.Debugf("remove job [%s] from cron manager", name)
 	}
 
@@ -232,7 +232,7 @@ func (c *schedulerImpl) Pause(name string) error {
 	c.cr.Remove(reg.ID)
 	reg.Paused = true
 
-	if infra.DebugEnabled {
+	if infra.DEBUG {
 		log.Debugf("change job [%s] to paused", name)
 	}
 
@@ -260,7 +260,7 @@ func (c *schedulerImpl) Continue(name string) error {
 	reg.Paused = false
 	reg.ID = id
 
-	if infra.DebugEnabled {
+	if infra.DEBUG {
 		log.Debugf("change job [%s] to continue", name)
 	}
 

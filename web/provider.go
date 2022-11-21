@@ -35,7 +35,7 @@ func Provider(builder infra.ListenerBuilder, options ...Option) infra.DaemonProv
 }
 
 func (p *provider) Register(app infra.Binder) {
-	if infra.DebugEnabled {
+	if infra.DEBUG {
 		log.Debug("provider github.com/mylxsw/glacier/web.Provider loaded")
 	}
 

@@ -374,7 +374,7 @@ func (glacier *glacierImpl) createServer() func(fc infra.FlagContext) error {
 				}()
 				select {
 				case <-ok:
-					if infra.DebugEnabled {
+					if infra.DEBUG {
 						log.Debugf("all services has been stopped")
 					}
 				case <-time.After(conf.ShutdownTimeout):
@@ -382,7 +382,7 @@ func (glacier *glacierImpl) createServer() func(fc infra.FlagContext) error {
 				}
 			} else {
 				wg.Wait()
-				if infra.DebugEnabled {
+				if infra.DEBUG {
 					log.Debugf("all services has been stopped")
 				}
 			}
@@ -406,7 +406,7 @@ func (glacier *glacierImpl) asyncJobRunner(resolver infra.Resolver, gf infra.Gra
 				}
 			}
 
-			if infra.DebugEnabled {
+			if infra.DEBUG {
 				log.Debugf("[async-runner-%d] async job runner stopping...", i)
 			}
 		}(i)
@@ -415,7 +415,7 @@ func (glacier *glacierImpl) asyncJobRunner(resolver infra.Resolver, gf infra.Gra
 	glacier.consumeAsyncJobs()
 	wg.Wait()
 
-	if infra.DebugEnabled {
+	if infra.DEBUG {
 		log.Debug("all async job runners stopped")
 	}
 }
@@ -564,7 +564,7 @@ func (glacier *glacierImpl) startServer(resolver infra.Resolver, startupTs time.
 			})
 		}
 
-		if infra.DebugEnabled {
+		if infra.DEBUG {
 			log.Debugf("glacier launched successfully, took %s", time.Since(startupTs))
 		}
 		glacier.status = Started
@@ -579,7 +579,7 @@ func (glacier *glacierImpl) startServer(resolver infra.Resolver, startupTs time.
 
 		var wg sync.WaitGroup
 		wg.Add(len(delayTasks))
-		if infra.DebugEnabled {
+		if infra.DEBUG {
 			log.Debug("add delay tasks, count: ", len(delayTasks))
 		}
 		for i, t := range delayTasks {
@@ -587,7 +587,7 @@ func (glacier *glacierImpl) startServer(resolver infra.Resolver, startupTs time.
 				defer wg.Done()
 
 				resolver.MustResolve(t.Func)
-				if infra.DebugEnabled {
+				if infra.DEBUG {
 					log.Debugf("delay task %d stopped", i)
 				}
 			}(i, t)
@@ -595,7 +595,7 @@ func (glacier *glacierImpl) startServer(resolver infra.Resolver, startupTs time.
 
 		gf.AddShutdownHandler(func() {
 			wg.Wait()
-			if infra.DebugEnabled {
+			if infra.DEBUG {
 				log.Debugf("all delay tasks stopped")
 			}
 		})
