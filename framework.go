@@ -39,8 +39,9 @@ type framework struct {
 	singletons      []interface{}
 	prototypes      []interface{}
 
-	status Status
-	nodes  infra.GraphvizNodes
+	status   Status
+	nodes    infra.GraphvizNodes
+	nodeLock sync.Mutex
 }
 
 // New a new framework server
@@ -65,6 +66,9 @@ func New(version string, asyncJobRunnerCount int) infra.Glacier {
 }
 
 func (impl *framework) pushGraphvizNode(name string, async bool, parent ...*infra.GraphvizNode) *infra.GraphvizNode {
+	impl.nodeLock.Lock()
+	defer impl.nodeLock.Unlock()
+
 	if len(parent) == 0 {
 		parentNode := impl.nodes[len(impl.nodes)-1]
 		if parentNode.Type != infra.GraphvizNodeTypeNode {

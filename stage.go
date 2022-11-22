@@ -117,7 +117,9 @@ func (impl *framework) Start(flagCtx infra.FlagContext) error {
 
 		if infra.DEBUG && infra.PrintGraph {
 			impl.pushGraphvizNode("shutdownStage", false).Type = infra.GraphvizNodeTypeClusterEnd
+			impl.nodeLock.Lock()
 			fmt.Println(impl.nodes.Draw())
+			impl.nodeLock.Unlock()
 		}
 	}()
 
