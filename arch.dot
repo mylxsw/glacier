@@ -8,6 +8,7 @@ digraph G {
     "add prototypes to container" -> "update framework status to Initialized";
     "invoke preBind hook" [fillcolor = "darkturquoise"]
     "update framework status to Initialized" -> "invoke preBind hook";
+    "register providers" [fillcolor = "chartreuse"]
     "invoke preBind hook" -> "register providers";
     "register providers" -> "register provider .:*scheduler.provider";
     "register providers" -> "register provider .:*web.provider";
@@ -17,9 +18,11 @@ digraph G {
     "register provider .:*web.provider" -> "register providers done";
     "register provider .:*event.provider" -> "register providers done";
     "register provider github.com/mylxsw/glacier/example/job:job.ServiceProvider" -> "register providers done";
+    "register services" [fillcolor = "chartreuse"]
     "register providers done" -> "register services";
     "register services" -> "register service .:*service.Demo2Service";
     "register service .:*service.Demo2Service" -> "register services done";
+    "start async runners" [fillcolor = "chartreuse"]
     "register services done" -> "start async runners";
     "start async runners" -> "start async runner 0";
     "start async runners" -> "start async runner 1";
@@ -27,7 +30,9 @@ digraph G {
     "start async runner 0" -> "all async runners started";
     "start async runner 1" -> "all async runners started";
     "start async runner 2" -> "all async runners started";
+    "init services" [fillcolor = "chartreuse"]
     "all async runners started" -> "init services";
+    "booting providers" [fillcolor = "chartreuse"]
     "init services" -> "booting providers";
     "booting providers" -> "booting provider: .:*scheduler.provider";
     "booting providers" -> "booting provider: .:*web.provider";
@@ -37,6 +42,7 @@ digraph G {
     "booting provider: .:*web.provider" -> "all providers booted";
     "booting provider: .:*event.provider" -> "all providers booted";
     "booting provider: github.com/mylxsw/glacier/example/job:job.ServiceProvider" -> "all providers booted";
+    "start daemon providers" [fillcolor = "chartreuse"]
     "all providers booted" -> "start daemon providers";
     "start daemon providers" -> "start daemon provider: .:*scheduler.provider";
     "start daemon providers" -> "start daemon provider: .:*web.provider";
@@ -44,6 +50,7 @@ digraph G {
     "start daemon provider: .:*scheduler.provider" -> "all daemon providers started";
     "start daemon provider: .:*web.provider" -> "all daemon providers started";
     "start daemon provider: .:*event.provider" -> "all daemon providers started";
+    "start services" [fillcolor = "chartreuse"]
     "all daemon providers started" -> "start services";
     "start services" -> "start service .:*service.Demo2Service";
     "start service .:*service.Demo2Service" -> "update framework status to Started";

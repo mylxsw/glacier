@@ -400,6 +400,7 @@ func (impl *framework) startDaemonProviders(ctx context.Context, wg *sync.WaitGr
 	var childGraphNodes []*infra.GraphNode
 	if infra.DEBUG && daemonServiceProviderCount > 0 {
 		parentGraphNode = impl.createGraphNode("start daemon providers", false)
+		parentGraphNode.Color = infra.GraphNodeColorGreen
 	}
 
 	// 如果是 DaemonProvider，需要在单独的 Goroutine 执行，一般都是阻塞执行的
@@ -436,6 +437,7 @@ func (impl *framework) bootProviders() error {
 	var childGraphNodes []*infra.GraphNode
 	if infra.DEBUG {
 		parentGraphNode = impl.createGraphNode("booting providers", false)
+		parentGraphNode.Color = infra.GraphNodeColorGreen
 	}
 
 	var bootedProviderCount int
@@ -469,6 +471,7 @@ func (impl *framework) initServices() error {
 	var childGraphNodes []*infra.GraphNode
 	if infra.DEBUG && len(impl.services) > 0 {
 		parentGraphNode = impl.createGraphNode("init services", false)
+		parentGraphNode.Color = infra.GraphNodeColorGreen
 	}
 	// initialize all services
 	var initializedServicesCount int
@@ -501,6 +504,7 @@ func (impl *framework) startServices(ctx context.Context, wg *sync.WaitGroup) er
 	var childGraphNodes []*infra.GraphNode
 	if infra.DEBUG && len(impl.services) > 0 {
 		parentGraphNode = impl.createGraphNode("start services", false)
+		parentGraphNode.Color = infra.GraphNodeColorGreen
 	}
 
 	var startedServicesCount int
@@ -551,6 +555,7 @@ func (impl *framework) startAsyncRunners() <-chan interface{} {
 
 	if infra.DEBUG {
 		parentGraphNode = impl.createGraphNode("start async runners", true)
+		parentGraphNode.Color = infra.GraphNodeColorGreen
 	}
 
 	impl.asyncJobChannel = make(chan asyncJob)
@@ -618,6 +623,7 @@ func (impl *framework) registerProviders() error {
 	var childGraphNodes []*infra.GraphNode
 	if infra.DEBUG && len(impl.providers) > 0 {
 		parentGraphNode = impl.createGraphNode("register providers", false)
+		parentGraphNode.Color = infra.GraphNodeColorGreen
 	}
 
 	impl.providers = impl.providersFilter()
@@ -643,6 +649,7 @@ func (impl *framework) registerServices() error {
 	var childGraphNodes []*infra.GraphNode
 	if infra.DEBUG && len(impl.services) > 0 {
 		parentGraphNode = impl.createGraphNode("register services", false)
+		parentGraphNode.Color = infra.GraphNodeColorGreen
 	}
 
 	impl.services = impl.servicesFilter()
