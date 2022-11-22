@@ -197,7 +197,17 @@ func (impl *framework) MustResolve(resolver interface{}) {
 }
 
 // Container return container instance
-func (impl *framework) Container() container.Container {
+func (impl *framework) Container() infra.Container {
+	return impl.cc
+}
+
+// Resolver return container instance
+func (impl *framework) Resolver() infra.Resolver {
+	return impl.cc
+}
+
+// Binder return container instance
+func (impl *framework) Binder() infra.Binder {
 	return impl.cc
 }
 
@@ -218,24 +228,23 @@ func (impl *framework) buildFlagContext(cliCtx infra.FlagContext) func() (infra.
 func (impl *framework) createServer() func(fc infra.FlagContext) error {
 	startupTs := time.Now()
 	return func(cliCtx infra.FlagContext) error {
+		// 执行初始化钩子，用于在框架运行前执行一系列的前置操作
+		if impl.init != nil {
+			if infra.DEBUG {
+				impl.createGraphNode("invoke init hook", false).Color = infra.GraphNodeColorBlue
+			}
+
+			if err := impl.init(cliCtx); err != nil {
+				return err
+			}
+		}
+
 		// 初始化日志实现
 		if impl.logger != nil {
 			if infra.DEBUG {
 				impl.createGraphNode("init logger", false)
 			}
 			log.SetDefaultLogger(impl.logger)
-		}
-
-		// 执行初始化钩子，用于在框架运行前执行一系列的前置操作
-		if impl.init != nil {
-			if infra.DEBUG {
-				impl.createGraphNode("invoke init hook", false).Color = infra.GraphNodeColorBlue
-				log.Debug("[glacier] call beforeInitialize hook")
-			}
-
-			if err := impl.init(cliCtx); err != nil {
-				return err
-			}
 		}
 
 		// 全局异常处理

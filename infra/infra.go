@@ -159,9 +159,12 @@ type Glacier interface {
 	Prototype(ins ...interface{}) Glacier
 	ResolveWithError(resolver interface{}) error
 	MustResolve(resolver interface{})
-	Container() container.Container
+	Container() Container
+	Resolver() Resolver
+	Binder() Binder
 }
 
+type Container container.Container
 type Binder container.Binder
 type Resolver container.Resolver
 

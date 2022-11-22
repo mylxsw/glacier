@@ -1,7 +1,6 @@
 package app
 
 import (
-	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
 )
 
@@ -66,6 +65,13 @@ func (app *App) MustResolve(resolver interface{}) {
 	app.gcr.MustResolve(resolver)
 }
 
-func (app *App) Container() container.Container {
+func (app *App) Container() infra.Container {
+	return app.gcr.Container()
+}
+
+func (app *App) Resolver() infra.Resolver {
+	return app.gcr.Container()
+}
+func (app *App) Binder() infra.Binder {
 	return app.gcr.Container()
 }
