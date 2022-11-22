@@ -2,14 +2,15 @@ digraph G {
     node [shape = "box" style = "filled,rounded" fillcolor = "gold"]
     "invoke init hook" [fillcolor = "darkturquoise"]
     "start" -> "invoke init hook";
-    "invoke init hook" -> "create container";
+    "invoke init hook" -> "init logger";
+    "init logger" -> "create container";
     "create container" -> "add singletons to container";
     "add singletons to container" -> "add prototypes to container";
-    "add prototypes to container" -> "update framework status to Initialized";
     "invoke preBind hook" [fillcolor = "darkturquoise"]
-    "update framework status to Initialized" -> "invoke preBind hook";
+    "add prototypes to container" -> "invoke preBind hook";
+    "invoke preBind hook" -> "update framework status to Initialized";
     "register providers" [fillcolor = "chartreuse"]
-    "invoke preBind hook" -> "register providers";
+    "update framework status to Initialized" -> "register providers";
     "register providers" -> "register provider .:*scheduler.provider";
     "register providers" -> "register provider .:*web.provider";
     "register providers" -> "register provider .:*event.provider";
@@ -61,6 +62,81 @@ digraph G {
     "invoke beforeServerStop hook" [fillcolor = "darkturquoise"]
     "launched" -> "invoke beforeServerStop hook";
     "invoke beforeServerStop hook" -> "all async runners stopped";
-    "all async runners stopped" -> "cancel framework context";
-    "cancel framework context" -> "shutdown";
+    "all async runners stopped" -> "shutdown";
+    subgraph cluster_ {
+        label = ""
+        style = "rounded,dashed,filled"
+        color = "deepskyblue"
+        fillcolor = "aliceblue"
+    }
+    subgraph cluster_initStage {
+        label = "initStage"
+        style = "rounded,dashed,filled"
+        color = "deepskyblue"
+        fillcolor = "aliceblue"
+        "invoke init hook"
+        "init logger"
+    }
+    subgraph cluster_diBindStage {
+        label = "diBindStage"
+        style = "rounded,dashed,filled"
+        color = "deepskyblue"
+        fillcolor = "aliceblue"
+        "create container"
+        "add singletons to container"
+        "add prototypes to container"
+        "invoke preBind hook"
+    }
+    subgraph cluster_bootStage {
+        label = "bootStage"
+        style = "rounded,dashed,filled"
+        color = "deepskyblue"
+        fillcolor = "aliceblue"
+        "register providers"
+        "register provider .:*scheduler.provider"
+        "register provider .:*web.provider"
+        "register provider .:*event.provider"
+        "register provider github.com/mylxsw/glacier/example/job:job.ServiceProvider"
+        "register providers done"
+        "register services"
+        "register service .:*service.Demo2Service"
+        "register services done"
+        "start async runners"
+        "start async runner 0"
+        "start async runner 1"
+        "start async runner 2"
+        "all async runners started"
+        "init services"
+        "booting providers"
+        "booting provider: .:*scheduler.provider"
+        "booting provider: .:*web.provider"
+        "booting provider: .:*event.provider"
+        "booting provider: github.com/mylxsw/glacier/example/job:job.ServiceProvider"
+        "all providers booted"
+        "start daemon providers"
+        "start daemon provider: .:*scheduler.provider"
+        "start daemon provider: .:*web.provider"
+        "start daemon provider: .:*event.provider"
+        "all daemon providers started"
+        "start services"
+        "start service .:*service.Demo2Service"
+    }
+    subgraph cluster_readyStage {
+        label = "readyStage"
+        style = "rounded,dashed,filled"
+        color = "deepskyblue"
+        fillcolor = "aliceblue"
+        "invoke onServerReady hooks"
+        "invoke onServerReady hook: .:func(infra.Resolver) error"
+        "launched"
+    }
+    subgraph cluster_shutdownStage {
+        label = "shutdownStage"
+        style = "rounded,dashed,filled"
+        color = "deepskyblue"
+        fillcolor = "aliceblue"
+        "invoke beforeServerStop hook"
+        "all async runners stopped"
+        "shutdown"
+    }
 }

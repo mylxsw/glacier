@@ -2,33 +2,80 @@ package infra
 
 import "fmt"
 
-type GraphNode struct {
+type GraphvizNode struct {
 	Name       string
-	Color      GraphNodeColor
-	ParentNode []*GraphNode
+	Style      GraphvizNodeStyle
+	ParentNode []*GraphvizNode
 	Async      bool
+	Type       GraphvizNodeType
 }
 
-type GraphNodes []*GraphNode
+type GraphvizNodes []*GraphvizNode
 
-func (nodes GraphNodes) Draw() string {
-	graph := "digraph G {\n    node [shape = \"box\" style = \"filled,rounded\" fillcolor = \"gold\"]\n"
+func (nodes GraphvizNodes) Draw() string {
+	graph := `digraph G {
+    node [shape = "box" style = "filled,rounded" fillcolor = "gold"]
+`
+	clusters := make(map[string][]string)
+	var cluster []string
+	var clusterName string
 	for _, node := range nodes {
-		if node.Color != "" {
-			graph += fmt.Sprintf("    \"%s\" [fillcolor = \"%s\"]\n", node.Name, node.Color)
+		if node.Type == GraphvizNodeTypeClusterStart {
+			cluster = make([]string, 0)
+			clusterName = node.Name
+			continue
+		}
+
+		if node.Type == GraphvizNodeTypeClusterEnd {
+			clusters[clusterName] = cluster
+			clusterName = ""
+			cluster = nil
+			continue
+		}
+
+		if cluster != nil {
+			cluster = append(cluster, node.Name)
+		}
+
+		if node.Style != "" {
+			graph += fmt.Sprintf("    \"%s\" %s\n", node.Name, node.Style)
 		}
 		for _, parent := range node.ParentNode {
 			graph += fmt.Sprintf("    \"%s\" -> \"%s\";\n", parent.Name, node.Name)
 		}
 	}
+
+	for name, cluster := range clusters {
+		graph += fmt.Sprintf(`    subgraph cluster_%s {
+        label = "%s"
+        style = "rounded,dashed,filled"
+        color = "deepskyblue"
+        fillcolor = "aliceblue" 
+`, name, name)
+
+		for _, node := range cluster {
+			graph += fmt.Sprintf("        \"%s\"\n", node)
+		}
+
+		graph += "    }\n"
+	}
+
 	graph += "}"
 	return graph
 }
 
-type GraphNodeColor string
+type GraphvizNodeStyle string
 
 const (
-	GraphNodeColorRed   GraphNodeColor = "red"
-	GraphNodeColorBlue  GraphNodeColor = "darkturquoise"
-	GraphNodeColorGreen GraphNodeColor = "chartreuse"
+	GraphvizNodeStyleError     GraphvizNodeStyle = `[fillcolor = "red"]`
+	GraphvizNodeStyleHook      GraphvizNodeStyle = `[fillcolor = "darkturquoise"]`
+	GraphvizNodeStyleImportant GraphvizNodeStyle = `[fillcolor = "chartreuse"]`
+)
+
+type GraphvizNodeType string
+
+const (
+	GraphvizNodeTypeNode         GraphvizNodeType = "node"
+	GraphvizNodeTypeClusterStart GraphvizNodeType = "cluster_start"
+	GraphvizNodeTypeClusterEnd   GraphvizNodeType = "cluster_end"
 )

@@ -2,7 +2,23 @@ package glacier
 
 import (
 	"time"
+
+	"github.com/mylxsw/glacier/infra"
 )
+
+func (impl *framework) buildFlagContext(cliCtx infra.FlagContext) func() (infra.FlagContext, error) {
+	return func() (infra.FlagContext, error) {
+		res, err := impl.cc.CallWithProvider(impl.flagContextInit, impl.cc.Provider(func() infra.FlagContext {
+			return cliCtx
+		}))
+
+		if err != nil {
+			return nil, err
+		}
+
+		return res[0].(infra.FlagContext), nil
+	}
+}
 
 type FlagContext struct {
 	data map[string]interface{}

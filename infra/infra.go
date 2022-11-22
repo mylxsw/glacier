@@ -25,6 +25,8 @@ var (
 type Graceful interface {
 	AddReloadHandler(h func())
 	AddShutdownHandler(h func())
+	// AddPreShutdownHandler 在所有服务停止之前执行，用于执行一些清理操作，该操作会阻塞服务停止，直到该操作完成，不受超时时间限制
+	AddPreShutdownHandler(h func())
 	Reload()
 	Shutdown()
 	Start() error

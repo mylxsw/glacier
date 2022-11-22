@@ -181,17 +181,17 @@ func (Provider) Register(binder infra.Binder) {
 }
 ```
 
-在我们的应用创建时，使用 `app.Provider` 方法注册该模块
+在我们的应用创建时，使用 `ins.Provider` 方法注册该模块
 
 ```
-app := application.Create("1.0")
+ins := app.Default("1.0")
 ...
-app.MustSingleton(func() (*sql.DB, error) {
+ins.MustSingleton(func() (*sql.DB, error) {
 	return sql.Open("mysql", "user:pwd@tcp(ip:3306)/dbname")
 })
-app.Provider(repo.Provider{})
+ins.Provider(repo.Provider{})
 ...
-application.MustRun(app)
+app.MustRun(ins)
 ```
 
 #### ProviderBoot
@@ -325,14 +325,14 @@ type Password struct {
 	Password string `json:"password"`
 }
 
-app := application.Create("1.0")
-app.AddStringFlag("listen", ":8080", "http listen address")
+ins := app.Default("1.0")
+ins.AddStringFlag("listen", ":8080", "http listen address")
 
-app.Singleton(func() (*password.Generator, error) {
+ins.Singleton(func() (*password.Generator, error) {
 	return password.NewGenerator(&password.GeneratorInput{Symbols: "-=.@#$:/+"})
 })
 
-app.Provider(web.Provider(
+ins.Provider(web.Provider(
 	listener.FlagContext("listen"),
 	web.SetRouteHandlerOption(func(cc infra.Resolver, router web.Router, mw web.RequestMiddleware) {
 		// 路由规则
@@ -345,7 +345,7 @@ app.Provider(web.Provider(
 	}),
 ))
 
-application.MustRun(app)
+app.MustRun(ins)
 ```
 
 更好地模块化的创建方式是编写一个独立的 Provider 模块

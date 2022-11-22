@@ -60,9 +60,9 @@ func run(ins *app.App) error {
 			cliAPP.UsageText = "这是 Usage Text"
 		})
 
-	//app.WithLogger(log.StdLogger(log.DEBUG))
+	ins.WithLogger(log.StdLogger())
 
-	ins.WithYAMLFlag("conf").WithShutdownTimeoutFlagSupport(3 * time.Second)
+	ins.WithYAMLFlag("conf").WithShutdownTimeoutFlag(3 * time.Second)
 
 	ins.AddFlags(app.StringFlag("listen", ":19945", "http listen addr"))
 	ins.AddBoolFlag("load-job", "")
@@ -131,8 +131,8 @@ func run(ins *app.App) error {
 			publisher.Publish(CronEvent{GoroutineID: uint64(i)})
 		}
 
-		// 30s 后自动关闭服务
-		go time.AfterFunc(30*time.Second, gf.Shutdown)
+		// 10s 后自动关闭服务
+		go time.AfterFunc(10*time.Second, gf.Shutdown)
 	})
 
 	return nil

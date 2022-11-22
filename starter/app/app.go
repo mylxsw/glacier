@@ -55,7 +55,7 @@ func (app *App) WithCLIOptions(fn func(cliAPP *cli.App)) *App {
 	return app
 }
 
-func (app *App) WithShutdownTimeoutFlagSupport(timeout time.Duration) *App {
+func (app *App) WithShutdownTimeoutFlag(timeout time.Duration) *App {
 	return app.AddFlags(altsrc.NewDurationFlag(cli.DurationFlag{
 		Name:  glacier.ShutdownTimeoutOption,
 		Usage: "set a shutdown timeout for each module",
@@ -116,13 +116,17 @@ func CreateAndInit(version string, asyncRunnerCount int, init func(app *App) err
 	return app
 }
 
+func Default(version string) *App {
+	return Create(version, 3)
+}
+
 func Create(version string, asyncRunnerCount int) *App {
 	app := cli.NewApp()
 	app.EnableBashCompletion = true
 	app.Version = version
 	app.Flags = make([]cli.Flag, 0)
 
-	glacierIns := glacier.CreateGlacier(version, asyncRunnerCount)
+	glacierIns := glacier.New(version, asyncRunnerCount)
 	app.Action = func(c *cli.Context) error {
 		return glacierIns.Start(c)
 	}

@@ -1,8 +1,9 @@
 package service
 
 import (
-	"github.com/mylxsw/glacier/log"
 	"time"
+
+	"github.com/mylxsw/glacier/log"
 
 	"github.com/mylxsw/glacier/infra"
 )
@@ -18,7 +19,7 @@ func (d *DemoService) ShouldLoad(c infra.FlagContext) bool {
 
 func (d *DemoService) Init(cc infra.Resolver) error {
 	d.cc = cc
-	d.stopped = make(chan interface{}, 0)
+	d.stopped = make(chan interface{})
 	return nil
 }
 
@@ -33,7 +34,7 @@ func (d *DemoService) Start() error {
 			log.Debug("[example] service DemoService stopped")
 			return nil
 		default:
-			time.Sleep(5 * time.Second)
+			time.Sleep(3 * time.Second)
 			log.Errorf("[example] hello, world from %s", d.Name())
 		}
 	}

@@ -24,9 +24,10 @@ type gracefulImpl struct {
 
 	signalChan chan os.Signal
 
-	signalHandler    SignalHandler
-	reloadHandlers   []Handler
-	shutdownHandlers []Handler
+	signalHandler       SignalHandler
+	reloadHandlers      []Handler
+	shutdownHandlers    []Handler
+	preShutdownHandlers []Handler
 }
 
 type Handler struct {
@@ -73,6 +74,21 @@ func (gf *gracefulImpl) AddReloadHandler(h func()) {
 	gf.reloadHandlers = append(gf.reloadHandlers, handler)
 }
 
+func (gf *gracefulImpl) AddPreShutdownHandler(h func()) {
+	handler := Handler{handler: h}
+	pc, f, line, ok := runtime.Caller(1)
+	if ok {
+		handler.packagePath = runtime.FuncForPC(pc).Name()
+		handler.filename = f
+		handler.line = line
+	}
+
+	gf.lock.Lock()
+	defer gf.lock.Unlock()
+
+	gf.preShutdownHandlers = append(gf.preShutdownHandlers, handler)
+}
+
 func (gf *gracefulImpl) AddShutdownHandler(h func()) {
 	handler := Handler{handler: h}
 	pc, f, line, ok := runtime.Caller(1)
@@ -113,6 +129,14 @@ func (gf *gracefulImpl) shutdown() {
 	gf.lock.Lock()
 	defer gf.lock.Unlock()
 
+	for _, handler := range gf.preShutdownHandlers {
+		if infra.DEBUG {
+			log.Debugf("[glacier] pre shutdown handler: %s", handler.String())
+		}
+
+		handler.handler()
+	}
+
 	handlerExecutedStat := make([]bool, len(gf.shutdownHandlers))
 	for i := len(gf.shutdownHandlers) - 1; i >= 0; i-- {
 		handlerExecutedStat[i] = false
@@ -144,7 +168,7 @@ func (gf *gracefulImpl) shutdown() {
 		}(i, gf.shutdownHandlers[i])
 	}
 
-	ok := make(chan interface{}, 0)
+	ok := make(chan interface{})
 	defer close(ok)
 
 	go func() {
@@ -206,7 +230,7 @@ func (gf *gracefulImpl) reload() {
 		}(i, gf.reloadHandlers[i])
 	}
 
-	ok := make(chan interface{}, 0)
+	ok := make(chan interface{})
 	defer close(ok)
 
 	go func() {
