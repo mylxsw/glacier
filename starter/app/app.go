@@ -1,4 +1,4 @@
-package application
+package app
 
 import (
 	"fmt"
@@ -11,51 +11,51 @@ import (
 	"github.com/urfave/cli/altsrc"
 )
 
-type Application struct {
+type App struct {
 	gcr infra.Glacier
 	cli *cli.App
 }
 
-func (app *Application) Cli() *cli.App {
+func (app *App) Cli() *cli.App {
 	return app.cli
 }
 
-func (app *Application) WithDescription(desc string) *Application {
+func (app *App) WithDescription(desc string) *App {
 	app.cli.Description = desc
 	return app
 }
 
-func (app *Application) WithName(name string) *Application {
+func (app *App) WithName(name string) *App {
 	app.cli.Name = name
 	return app
 }
 
-func (app *Application) WithUsage(usage string) *Application {
+func (app *App) WithUsage(usage string) *App {
 	app.cli.Usage = usage
 	return app
 }
 
-func (app *Application) WithUsageText(usageText string) *Application {
+func (app *App) WithUsageText(usageText string) *App {
 	app.cli.UsageText = usageText
 	return app
 }
 
-func (app *Application) WithAuthor(name, email string) *Application {
+func (app *App) WithAuthor(name, email string) *App {
 	app.cli.Authors = append(app.cli.Authors, cli.Author{Name: name, Email: email})
 	return app
 }
 
-func (app *Application) WithAuthors(authors ...cli.Author) *Application {
+func (app *App) WithAuthors(authors ...cli.Author) *App {
 	app.cli.Authors = append(app.cli.Authors, authors...)
 	return app
 }
 
-func (app *Application) WithCLIOptions(fn func(cliAPP *cli.App)) *Application {
+func (app *App) WithCLIOptions(fn func(cliAPP *cli.App)) *App {
 	fn(app.cli)
 	return app
 }
 
-func (app *Application) WithShutdownTimeoutFlagSupport(timeout time.Duration) *Application {
+func (app *App) WithShutdownTimeoutFlagSupport(timeout time.Duration) *App {
 	return app.AddFlags(altsrc.NewDurationFlag(cli.DurationFlag{
 		Name:  glacier.ShutdownTimeoutOption,
 		Usage: "set a shutdown timeout for each module",
@@ -63,7 +63,7 @@ func (app *Application) WithShutdownTimeoutFlagSupport(timeout time.Duration) *A
 	}))
 }
 
-func (app *Application) WithYAMLFlag(flagName string) *Application {
+func (app *App) WithYAMLFlag(flagName string) *App {
 	app.cli.Flags = append(app.cli.Flags, cli.StringFlag{
 		Name:  flagName,
 		Value: "",
@@ -87,22 +87,22 @@ func (app *Application) WithYAMLFlag(flagName string) *Application {
 	return app
 }
 
-func (app *Application) WithLogger(logger infra.Logger) *Application {
+func (app *App) WithLogger(logger infra.Logger) *App {
 	app.gcr.SetLogger(logger)
 	return app
 }
 
-func MustRun(app *Application) {
+func MustRun(app *App) {
 	if err := app.Run(os.Args); err != nil {
 		panic(err)
 	}
 }
 
-func MustStart(version string, asyncRunnerCount int, init func(app *Application) error) {
+func MustStart(version string, asyncRunnerCount int, init func(app *App) error) {
 	MustRun(CreateAndInit(version, asyncRunnerCount, init))
 }
 
-func CreateAndInit(version string, asyncRunnerCount int, init func(app *Application) error) *Application {
+func CreateAndInit(version string, asyncRunnerCount int, init func(app *App) error) *App {
 	app := Create(version, asyncRunnerCount)
 
 	if init == nil {
@@ -116,7 +116,7 @@ func CreateAndInit(version string, asyncRunnerCount int, init func(app *Applicat
 	return app
 }
 
-func Create(version string, asyncRunnerCount int) *Application {
+func Create(version string, asyncRunnerCount int) *App {
 	app := cli.NewApp()
 	app.EnableBashCompletion = true
 	app.Version = version
@@ -124,49 +124,49 @@ func Create(version string, asyncRunnerCount int) *Application {
 
 	glacierIns := glacier.CreateGlacier(version, asyncRunnerCount)
 	app.Action = func(c *cli.Context) error {
-		return glacierIns.Main(c)
+		return glacierIns.Start(c)
 	}
 
-	return &Application{
+	return &App{
 		gcr: glacierIns,
 		cli: app,
 	}
 }
 
 // Glacier glacierImpl return glacierImpl instance
-func (app *Application) Glacier() infra.Glacier {
+func (app *App) Glacier() infra.Glacier {
 	return app.gcr
 }
 
 // AddFlags add flags to cli
-func (app *Application) AddFlags(flags ...cli.Flag) *Application {
+func (app *App) AddFlags(flags ...cli.Flag) *App {
 	app.cli.Flags = append(app.cli.Flags, flags...)
 	return app
 }
 
-func (app *Application) AddIntFlag(name string, defaultVal int, usage string) *Application {
+func (app *App) AddIntFlag(name string, defaultVal int, usage string) *App {
 	return app.AddFlags(IntFlag(name, defaultVal, usage))
 }
-func (app *Application) AddFloat64Flag(name string, defaultVal float64, usage string) *Application {
+func (app *App) AddFloat64Flag(name string, defaultVal float64, usage string) *App {
 	return app.AddFlags(Float64Flag(name, defaultVal, usage))
 }
-func (app *Application) AddStringSliceFlag(name string, defaultVal []string, usage string) *Application {
+func (app *App) AddStringSliceFlag(name string, defaultVal []string, usage string) *App {
 	return app.AddFlags(StringSliceFlag(name, defaultVal, usage))
 }
-func (app *Application) AddIntSliceFlag(name string, defaultVal []int, usage string) *Application {
+func (app *App) AddIntSliceFlag(name string, defaultVal []int, usage string) *App {
 	return app.AddFlags(IntSliceFlag(name, defaultVal, usage))
 }
-func (app *Application) AddStringFlag(name string, defaultVal string, usage string) *Application {
+func (app *App) AddStringFlag(name string, defaultVal string, usage string) *App {
 	return app.AddFlags(StringFlag(name, defaultVal, usage))
 }
-func (app *Application) AddBoolFlag(name string, usage string) *Application {
+func (app *App) AddBoolFlag(name string, usage string) *App {
 	return app.AddFlags(BoolFlag(name, usage))
 }
-func (app *Application) AddDurationFlag(name string, defaultVal time.Duration, usage string) *Application {
+func (app *App) AddDurationFlag(name string, defaultVal time.Duration, usage string) *App {
 	return app.AddFlags(DurationFlag(name, defaultVal, usage))
 }
 
 // Run start glacierImpl server
-func (app *Application) Run(args []string) error {
+func (app *App) Run(args []string) error {
 	return app.cli.Run(args)
 }

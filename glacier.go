@@ -2,7 +2,6 @@ package glacier
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"reflect"
 	"runtime/debug"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/mylxsw/glacier/graceful"
 	"github.com/mylxsw/glacier/log"
+	"github.com/mylxsw/go-utils/array"
 
 	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
@@ -19,29 +19,42 @@ import (
 // Status 当前 Glacier 的状态
 type Status int
 
+func (s Status) String() string {
+	switch s {
+	case Initialized:
+		return "Initialized"
+	case Started:
+		return "Started"
+	}
+
+	return "Unknown"
+}
+
 const (
 	Unknown     Status = 0
 	Initialized Status = 1
 	Started     Status = 2
 )
 
-type DelayTask struct {
-	Func interface{}
+type namedFunc struct {
+	name string
+	fn   interface{}
+}
+
+func newNamedFunc(fn interface{}) namedFunc {
+	return namedFunc{fn: fn, name: resolveNameable(fn)}
 }
 
 // framework is the Glacier framework
 type framework struct {
 	version string
 
-	container container.Container
-	logger    infra.Logger
+	cc     container.Container
+	logger infra.Logger
 
-	delayTasks      []DelayTask
-	delayTaskClosed bool
-	lock            sync.RWMutex
+	lock sync.RWMutex
 
-	handler   func(cliCtx infra.FlagContext) error
-	preBinder func(binder infra.Binder)
+	handler func(cliCtx infra.FlagContext) error
 
 	providers []*providerEntry
 	services  []*serviceEntry
@@ -51,13 +64,10 @@ type framework struct {
 	asyncJobs        []asyncJob
 	asyncJobChannel  chan asyncJob
 
-	beforeInitialize    func(fc infra.FlagContext) error
-	afterInitialized    func(resolver infra.Resolver) error
-	afterProviderBooted interface{}
-
-	beforeServerStart func(cc container.Container) error
-	afterServerStart  func(resolver infra.Resolver) error
-	beforeServerStop  func(resolver infra.Resolver) error
+	init               func(fc infra.FlagContext) error
+	preBinder          func(binder infra.Binder)
+	beforeServerStop   func(resolver infra.Resolver) error
+	onServerReadyHooks []namedFunc
 
 	gracefulBuilder func() infra.Graceful
 
@@ -65,26 +75,30 @@ type framework struct {
 	singletons      []interface{}
 	prototypes      []interface{}
 
-	status Status
+	status     Status
+	graphNodes infra.GraphNodes
 }
 
 // CreateGlacier a new framework server
 func CreateGlacier(version string, asyncJobRunnerCount int) infra.Glacier {
-	glacier := &framework{}
-	glacier.version = version
-	glacier.singletons = make([]interface{}, 0)
-	glacier.prototypes = make([]interface{}, 0)
-	glacier.providers = make([]*providerEntry, 0)
-	glacier.services = make([]*serviceEntry, 0)
-	glacier.asyncJobs = make([]asyncJob, 0)
-	glacier.delayTasks = make([]DelayTask, 0)
-	glacier.asyncJobChannel = make(chan asyncJob)
-	glacier.asyncRunnerCount = asyncJobRunnerCount
-	glacier.handler = glacier.createServer()
-	glacier.status = Unknown
-	glacier.flagContextInit = func(flagCtx infra.FlagContext) infra.FlagContext { return flagCtx }
+	impl := &framework{}
+	impl.version = version
+	impl.singletons = make([]interface{}, 0)
+	impl.prototypes = make([]interface{}, 0)
+	impl.providers = make([]*providerEntry, 0)
+	impl.services = make([]*serviceEntry, 0)
+	impl.asyncJobs = make([]asyncJob, 0)
+	impl.asyncRunnerCount = asyncJobRunnerCount
+	impl.handler = impl.createServer()
+	impl.status = Unknown
+	impl.flagContextInit = func(flagCtx infra.FlagContext) infra.FlagContext { return flagCtx }
 
-	return glacier
+	if infra.DEBUG {
+		impl.graphNodes = make(infra.GraphNodes, 0)
+		impl.graphNodes = append(impl.graphNodes, &infra.GraphNode{Name: "start"})
+	}
+
+	return impl
 }
 
 func (impl *framework) WithFlagContext(fn interface{}) infra.Glacier {
@@ -104,7 +118,7 @@ func (impl *framework) Graceful(builder func() infra.Graceful) infra.Glacier {
 	return impl
 }
 
-func (impl *framework) Main(cliCtx infra.FlagContext) error {
+func (impl *framework) Start(cliCtx infra.FlagContext) error {
 	return impl.handler(cliCtx)
 }
 
@@ -114,57 +128,35 @@ func (impl *framework) SetLogger(logger infra.Logger) infra.Glacier {
 	return impl
 }
 
-// BeforeInitialize set a hook func executed before server initialize
+// Init set a hook func executed before server initialize
 // Usually, we use this method to initialize the log configuration
-func (impl *framework) BeforeInitialize(f func(c infra.FlagContext) error) infra.Glacier {
-	impl.beforeInitialize = f
-	return impl
-}
-
-// AfterInitialized set a hook func executed after server initialized
-// Usually, we use this method to initialize the log configuration
-func (impl *framework) AfterInitialized(f func(resolver infra.Resolver) error) infra.Glacier {
-	impl.afterInitialized = f
+func (impl *framework) Init(f func(c infra.FlagContext) error) infra.Glacier {
+	impl.init = f
 	return impl
 }
 
 // OnServerReady call a function on server ready
-func (impl *framework) OnServerReady(f interface{}) {
-	if reflect.TypeOf(f).Kind() != reflect.Func {
-		panic(errors.New("[glacier] argument for OnServerReady must be a callable function"))
-	}
-
+func (impl *framework) OnServerReady(ffs ...interface{}) {
 	impl.lock.Lock()
 	defer impl.lock.Unlock()
 
-	if impl.delayTaskClosed {
-		panic(errors.New("[glacier] can not call this function since server has been started"))
+	if impl.status == Started {
+		panic(fmt.Errorf("[glacier] can not call OnServerReady since server has been started"))
 	}
 
-	impl.delayTasks = append(impl.delayTasks, DelayTask{Func: f})
-}
+	for _, f := range ffs {
+		fn := newNamedFunc(f)
+		if reflect.TypeOf(f).Kind() != reflect.Func {
+			panic(fmt.Errorf("[glacier] argument for OnServerReady [%s] must be a callable function", fn.name))
+		}
 
-// BeforeServerStart set a hook func executed before server start
-func (impl *framework) BeforeServerStart(f func(cc container.Container) error) infra.Glacier {
-	impl.beforeServerStart = f
-	return impl
-}
-
-// AfterServerStart set a hook func executed after server started
-func (impl *framework) AfterServerStart(f func(cc infra.Resolver) error) infra.Glacier {
-	impl.afterServerStart = f
-	return impl
+		impl.onServerReadyHooks = append(impl.onServerReadyHooks, fn)
+	}
 }
 
 // BeforeServerStop set a hook func executed before server stop
 func (impl *framework) BeforeServerStop(f func(cc infra.Resolver) error) infra.Glacier {
 	impl.beforeServerStop = f
-	return impl
-}
-
-// AfterProviderBooted set a hook func executed after all providers has been booted
-func (impl *framework) AfterProviderBooted(f interface{}) infra.Glacier {
-	impl.afterProviderBooted = f
 	return impl
 }
 
@@ -196,227 +188,176 @@ func (impl *framework) PreBind(fn func(binder infra.Binder)) infra.Glacier {
 
 // ResolveWithError is a proxy to container's ResolveWithError function
 func (impl *framework) ResolveWithError(resolver interface{}) error {
-	return impl.container.ResolveWithError(resolver)
+	return impl.cc.ResolveWithError(resolver)
 }
 
 // MustResolve is a proxy to container's MustResolve function
 func (impl *framework) MustResolve(resolver interface{}) {
-	impl.container.MustResolve(resolver)
+	impl.cc.MustResolve(resolver)
 }
 
 // Container return container instance
 func (impl *framework) Container() container.Container {
-	return impl.container
+	return impl.cc
+}
+
+func (impl *framework) buildFlagContext(cliCtx infra.FlagContext) func() (infra.FlagContext, error) {
+	return func() (infra.FlagContext, error) {
+		res, err := impl.cc.CallWithProvider(impl.flagContextInit, impl.cc.Provider(func() infra.FlagContext {
+			return cliCtx
+		}))
+
+		if err != nil {
+			return nil, err
+		}
+
+		return res[0].(infra.FlagContext), nil
+	}
 }
 
 func (impl *framework) createServer() func(fc infra.FlagContext) error {
 	startupTs := time.Now()
 	return func(cliCtx infra.FlagContext) error {
+		// 初始化日志实现
 		if impl.logger != nil {
+			if infra.DEBUG {
+				impl.createGraphNode("init logger", false)
+			}
 			log.SetDefaultLogger(impl.logger)
 		}
 
-		if impl.beforeInitialize != nil {
+		// 执行初始化钩子，用于在框架运行前执行一系列的前置操作
+		if impl.init != nil {
 			if infra.DEBUG {
+				impl.createGraphNode("invoke init hook", false).Color = infra.GraphNodeColorBlue
 				log.Debug("[glacier] call beforeInitialize hook")
 			}
 
-			if err := impl.beforeInitialize(cliCtx); err != nil {
+			if err := impl.init(cliCtx); err != nil {
 				return err
 			}
 		}
 
+		// 全局异常处理
 		defer func() {
 			if err := recover(); err != nil {
+				if infra.DEBUG {
+					impl.createGraphNode("global panic recover", false).Color = infra.GraphNodeColorRed
+				}
 				log.Criticalf("[glacier] application initialize failed with a panic, Err: %s, Stack: \n%s", err, debug.Stack())
 			}
 		}()
 
 		// 创建容器
+		if infra.DEBUG {
+			impl.createGraphNode("create container", false)
+		}
+
 		ctx, cancel := context.WithCancel(context.Background())
-		cc := container.NewWithContext(ctx)
-		impl.container = cc
+		impl.cc = container.NewWithContext(ctx)
 
-		// 运行信息
-		cc.MustBindValue(infra.VersionKey, impl.version)
-		cc.MustBindValue(infra.StartupTimeKey, startupTs)
-		cc.MustSingleton(func() (infra.FlagContext, error) {
-			res, err := cc.CallWithProvider(impl.flagContextInit, cc.Provider(func() infra.FlagContext {
-				return cliCtx
-			}))
-			if err != nil {
-				return nil, err
-			}
-
-			return res[0].(infra.FlagContext), nil
-		})
-		cc.MustSingletonOverride(func() infra.Resolver { return cc })
-		cc.MustSingletonOverride(func() infra.Binder { return cc })
-		cc.MustSingletonOverride(func() infra.Hook { return impl })
+		impl.cc.MustBindValue(infra.VersionKey, impl.version)
+		impl.cc.MustBindValue(infra.StartupTimeKey, startupTs)
+		impl.cc.MustSingleton(impl.buildFlagContext(cliCtx))
+		impl.cc.MustSingletonOverride(func() infra.Resolver { return impl.cc })
+		impl.cc.MustSingletonOverride(func() infra.Binder { return impl.cc })
+		impl.cc.MustSingletonOverride(func() infra.Hook { return impl })
 
 		// 基本配置加载
-		cc.MustSingletonOverride(ConfigLoader)
-		cc.MustSingletonOverride(log.Default)
+		impl.cc.MustSingletonOverride(ConfigLoader)
+		impl.cc.MustSingletonOverride(log.Default)
 
 		// 优雅停机
-		cc.MustSingletonOverride(func(conf *Config) infra.Graceful {
+		impl.cc.MustSingletonOverride(func(conf *Config) infra.Graceful {
 			if impl.gracefulBuilder != nil {
 				return impl.gracefulBuilder()
 			}
 			return graceful.NewWithDefault(conf.ShutdownTimeout)
 		})
 
-		cc.MustResolve(func(gf infra.Graceful) {
-			gf.AddShutdownHandler(cancel)
+		impl.cc.MustResolve(func(gf infra.Graceful) {
 			gf.AddShutdownHandler(func() {
-				close(impl.asyncJobChannel)
+				if infra.DEBUG {
+					impl.createGraphNode("cancel framework context", false)
+				}
+				cancel()
 			})
 		})
 
-		err := impl.initialize(cc)
-		if err != nil {
+		// 注册全局对象
+		if infra.DEBUG {
+			impl.createGraphNode("add singletons to container", false)
+		}
+		for _, i := range impl.singletons {
+			impl.cc.MustSingletonOverride(i)
+		}
+
+		if infra.DEBUG {
+			impl.createGraphNode("add prototypes to container", false)
+		}
+		for _, i := range impl.prototypes {
+			impl.cc.MustPrototypeOverride(i)
+		}
+
+		impl.updateServerStatus(Initialized)
+
+		// 完成预绑定对象的绑定
+		if impl.preBinder != nil {
+			if infra.DEBUG {
+				impl.createGraphNode("invoke preBind hook", false).Color = infra.GraphNodeColorBlue
+				log.Debugf("[glacier] invoke pre-bind hook")
+			}
+			impl.preBinder(impl.cc)
+		}
+
+		// 注册 Providers & Services
+		if err := impl.registerProviders(); err != nil {
 			return err
 		}
 
-		// 服务启动前回调
-		if impl.afterInitialized != nil {
-			if infra.DEBUG {
-				log.Debugf("[glacier] call afterInitialized hook")
-			}
-			if err := impl.afterInitialized(cc); err != nil {
-				return err
-			}
-		}
-		if impl.beforeServerStart != nil {
-			if infra.DEBUG {
-				log.Debugf("[glacier] call beforeServerStart hook")
-			}
-			if err := impl.beforeServerStart(cc); err != nil {
-				return err
-			}
+		if err := impl.registerServices(); err != nil {
+			return err
 		}
 
-		// 初始化 Provider
 		var wg sync.WaitGroup
-		var bootedProviderCount int
-		for _, p := range impl.providers {
-			if reflect.ValueOf(p.provider).Kind() == reflect.Ptr {
-				if err := cc.AutoWire(p); err != nil {
-					return fmt.Errorf("[glacier] can not autowire provider: %v", err)
-				}
-			}
 
-			if providerBoot, ok := p.provider.(infra.ProviderBoot); ok {
-				if infra.DEBUG {
-					log.Debugf("[glacier] booting provider %s", p.Name())
-				}
-				bootedProviderCount++
-				providerBoot.Boot(cc)
-			}
+		// 启动 asyncRunners
+		stop := impl.startAsyncRunners()
+		impl.consumeAsyncJobs()
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-stop
+		}()
+
+		// 初始化 Services
+		if err := impl.initServices(); err != nil {
+			return err
 		}
 
-		if infra.DEBUG && bootedProviderCount > 0 {
-			log.Debugf("[glacier] all providers has been booted, total %d", bootedProviderCount)
+		// 启动 Providers
+		if err := impl.bootProviders(); err != nil {
+			return err
 		}
 
-		if impl.afterProviderBooted != nil {
-			if infra.DEBUG {
-				log.Debugf("[glacier] invoke afterProviderBooted hook")
-			}
-
-			if err := cc.ResolveWithError(impl.afterProviderBooted); err != nil {
-				return err
-			}
+		// 启动 Daemon Providers
+		if err := impl.startDaemonProviders(ctx, &wg); err != nil {
+			return err
 		}
 
-		// initialize all services
-		var initializedServicesCount int
-		for _, s := range impl.services {
-			if srv, ok := s.service.(infra.Initializer); ok {
-				if infra.DEBUG {
-					log.Debugf("[glacier] initialize service %s", s.Name())
-				}
-
-				initializedServicesCount++
-				if err := srv.Init(cc); err != nil {
-					return fmt.Errorf("[glacier] service %s initialize failed: %v", s.Name(), err)
-				}
-			}
+		// 启动 Services
+		if err := impl.startServices(ctx, &wg); err != nil {
+			return err
 		}
 
-		if infra.DEBUG && initializedServicesCount > 0 {
-			log.Debugf("[glacier] all services has been initialized, total %d", initializedServicesCount)
-		}
-
-		// 如果是 DaemonProvider，需要在单独的 Goroutine 执行，一般都是阻塞执行的
-		var daemonServiceProviderCount int
-		for _, p := range impl.providers {
-			if pp, ok := p.provider.(infra.DaemonProvider); ok {
-				wg.Add(1)
-				daemonServiceProviderCount++
-
-				if infra.DEBUG {
-					log.Debugf("[glacier] run daemon provider %s", p.Name())
-				}
-
-				go func(pp infra.DaemonProvider) {
-					defer wg.Done()
-					pp.Daemon(ctx, cc)
-
-					if infra.DEBUG {
-						log.Debugf("[glacier] daemon provider %s has been stopped", p.Name())
-					}
-				}(pp)
-			}
-		}
-
-		if infra.DEBUG && daemonServiceProviderCount > 0 {
-			log.Debugf("[glacier] all daemon providers has been started, total %d", daemonServiceProviderCount)
-		}
-
-		// start services
-		var startedServicesCount int
-		for _, s := range impl.services {
-			wg.Add(1)
-			go func(s *serviceEntry) {
-				defer wg.Done()
-
-				cc.MustResolve(func(gf infra.Graceful) {
-					if srv, ok := s.service.(infra.Stoppable); ok {
-						gf.AddShutdownHandler(srv.Stop)
-					}
-
-					if srv, ok := s.service.(infra.Reloadable); ok {
-						gf.AddReloadHandler(srv.Reload)
-					}
-
-					if infra.DEBUG {
-						log.Debugf("[glacier] service %s starting ...", s.Name())
-					}
-
-					startedServicesCount++
-					if err := s.service.Start(); err != nil {
-						log.Errorf("[glacier] service %s stopped with error: %v", s.Name(), err)
-						return
-					}
-
-					if infra.DEBUG {
-						log.Debugf("[glacier] service %s stopped", s.Name())
-					}
-				})
-			}(s)
-		}
-
-		if infra.DEBUG && startedServicesCount > 0 {
-			log.Debugf("[glacier] all services has been started, total %d", startedServicesCount)
-		}
-
-		// add async job processor
-		impl.delayTasks = append(impl.delayTasks, DelayTask{Func: impl.startAsyncRunners})
-
-		defer cc.MustResolve(func(conf *Config) {
+		defer impl.cc.MustResolve(func(conf *Config) {
 			if err := recover(); err != nil {
 				log.Criticalf("[glacier] application startup failed, err: %v, stack: %s", err, debug.Stack())
+			}
+
+			if infra.DEBUG {
+				impl.createGraphNode("shutdown", false)
 			}
 
 			if conf.ShutdownTimeout > 0 {
@@ -439,22 +380,200 @@ func (impl *framework) createServer() func(fc infra.FlagContext) error {
 					log.Debugf("[glacier] all modules has been stopped")
 				}
 			}
+
+			if infra.DEBUG && infra.PrintGraph {
+				fmt.Println(impl.graphNodes.Draw())
+			}
 		})
 
-		return cc.ResolveWithError(impl.startServer(cc, startupTs))
+		return impl.cc.ResolveWithError(impl.startServer(impl.cc, startupTs))
 	}
 }
 
-func (impl *framework) startAsyncRunners(resolver infra.Resolver, gf infra.Graceful) {
+func (impl *framework) startDaemonProviders(ctx context.Context, wg *sync.WaitGroup) error {
+	daemonServiceProviderCount := len(array.Filter(impl.providers, func(p *providerEntry) bool {
+		_, ok := p.provider.(infra.DaemonProvider)
+		return ok
+	}))
+
+	var parentGraphNode *infra.GraphNode
+	var childGraphNodes []*infra.GraphNode
+	if infra.DEBUG && daemonServiceProviderCount > 0 {
+		parentGraphNode = impl.createGraphNode("start daemon providers", false)
+	}
+
+	// 如果是 DaemonProvider，需要在单独的 Goroutine 执行，一般都是阻塞执行的
+	for _, p := range impl.providers {
+		if pp, ok := p.provider.(infra.DaemonProvider); ok {
+			wg.Add(1)
+
+			if infra.DEBUG {
+				childGraphNodes = append(childGraphNodes, impl.createGraphNode(fmt.Sprintf("start daemon provider: %s", p.name), true, parentGraphNode))
+				log.Debugf("[glacier] daemon provider %s starting ...", p.Name())
+			}
+
+			go func(pp infra.DaemonProvider) {
+				defer wg.Done()
+				pp.Daemon(ctx, impl.cc)
+
+				if infra.DEBUG {
+					log.Debugf("[glacier] daemon provider %s has been stopped", p.Name())
+				}
+			}(pp)
+		}
+	}
+
+	if infra.DEBUG && daemonServiceProviderCount > 0 {
+		impl.createGraphNode("all daemon providers started", false, childGraphNodes...)
+		log.Debugf("[glacier] all daemon providers has been started, total %d", daemonServiceProviderCount)
+	}
+
+	return nil
+}
+
+func (impl *framework) bootProviders() error {
+	var parentGraphNode *infra.GraphNode
+	var childGraphNodes []*infra.GraphNode
+	if infra.DEBUG {
+		parentGraphNode = impl.createGraphNode("booting providers", false)
+	}
+
+	var bootedProviderCount int
+	for _, p := range impl.providers {
+		if reflect.ValueOf(p.provider).Kind() == reflect.Ptr {
+			if err := impl.cc.AutoWire(p); err != nil {
+				return fmt.Errorf("[glacier] can not autowire provider: %v", err)
+			}
+		}
+
+		if providerBoot, ok := p.provider.(infra.ProviderBoot); ok {
+			if infra.DEBUG {
+				childGraphNodes = append(childGraphNodes, impl.createGraphNode(fmt.Sprintf("booting provider: %s", p.name), false, parentGraphNode))
+				log.Debugf("[glacier] booting provider %s", p.Name())
+			}
+			bootedProviderCount++
+			providerBoot.Boot(impl.cc)
+		}
+	}
+
+	if infra.DEBUG && bootedProviderCount > 0 {
+		impl.createGraphNode("all providers booted", false, childGraphNodes...)
+		log.Debugf("[glacier] all providers has been booted, total %d", bootedProviderCount)
+	}
+
+	return nil
+}
+
+func (impl *framework) initServices() error {
+	var parentGraphNode *infra.GraphNode
+	var childGraphNodes []*infra.GraphNode
+	if infra.DEBUG && len(impl.services) > 0 {
+		parentGraphNode = impl.createGraphNode("init services", false)
+	}
+	// initialize all services
+	var initializedServicesCount int
+	for _, s := range impl.services {
+		if srv, ok := s.service.(infra.Initializer); ok {
+			if infra.DEBUG {
+				childGraphNodes = append(childGraphNodes, impl.createGraphNode(fmt.Sprintf("init service %s", s.Name()), false, parentGraphNode))
+				log.Debugf("[glacier] initialize service %s", s.Name())
+			}
+
+			initializedServicesCount++
+			if err := srv.Init(impl.cc); err != nil {
+				return fmt.Errorf("[glacier] service %s initialize failed: %v", s.Name(), err)
+			}
+		}
+	}
+
+	if infra.DEBUG && initializedServicesCount > 0 {
+		impl.createGraphNode("all services has been initialized", false, childGraphNodes...)
+		log.Debugf("[glacier] all services has been initialized, total %d", initializedServicesCount)
+	}
+
+	return nil
+}
+
+func (impl *framework) startServices(ctx context.Context, wg *sync.WaitGroup) error {
+	wg.Add(len(impl.services))
+
+	var parentGraphNode *infra.GraphNode
+	var childGraphNodes []*infra.GraphNode
+	if infra.DEBUG && len(impl.services) > 0 {
+		parentGraphNode = impl.createGraphNode("start services", false)
+	}
+
+	var startedServicesCount int
+	for _, s := range impl.services {
+		if infra.DEBUG {
+			childGraphNodes = append(childGraphNodes, impl.createGraphNode(fmt.Sprintf("start service %s", s.Name()), true, parentGraphNode))
+			log.Debugf("[glacier] service %s starting ...", s.Name())
+		}
+
+		go func(s *serviceEntry) {
+			defer wg.Done()
+
+			impl.cc.MustResolve(func(gf infra.Graceful) {
+				if srv, ok := s.service.(infra.Stoppable); ok {
+					gf.AddShutdownHandler(srv.Stop)
+				}
+
+				if srv, ok := s.service.(infra.Reloadable); ok {
+					gf.AddReloadHandler(srv.Reload)
+				}
+
+				startedServicesCount++
+				if err := s.service.Start(); err != nil {
+					log.Errorf("[glacier] service %s stopped with error: %v", s.Name(), err)
+					return
+				}
+
+				if infra.DEBUG {
+					log.Debugf("[glacier] service %s stopped", s.Name())
+				}
+			})
+		}(s)
+	}
+
+	if infra.DEBUG && startedServicesCount > 0 {
+		impl.createGraphNode("all services has been started", false, childGraphNodes...)
+		log.Debugf("[glacier] all services has been started, total %d", startedServicesCount)
+	}
+
+	return nil
+}
+
+func (impl *framework) startAsyncRunners() <-chan interface{} {
+	stop := make(chan interface{})
+
+	var parentGraphNode *infra.GraphNode
+	var childGraphNodes []*infra.GraphNode
+
+	if infra.DEBUG {
+		parentGraphNode = impl.createGraphNode("start async runners", true)
+	}
+
+	impl.asyncJobChannel = make(chan asyncJob)
+	impl.cc.MustResolve(func(gf infra.Graceful) {
+		gf.AddShutdownHandler(func() {
+			close(impl.asyncJobChannel)
+		})
+	})
+
 	var wg sync.WaitGroup
 	wg.Add(impl.asyncRunnerCount)
 
 	for i := 0; i < impl.asyncRunnerCount; i++ {
+		if infra.DEBUG {
+			childGraphNodes = append(childGraphNodes, impl.createGraphNode(fmt.Sprintf("start async runner %d", i), false, parentGraphNode))
+			log.Debugf("[glacier] async runner %d starting ...", i)
+		}
+
 		go func(i int) {
 			defer wg.Done()
 
 			for job := range impl.asyncJobChannel {
-				if err := job.Call(resolver); err != nil {
+				if err := job.Call(impl.cc); err != nil {
 					log.Errorf("[glacier] async runner [async-runner-%d] failed: %v", i, err)
 				}
 			}
@@ -465,12 +584,22 @@ func (impl *framework) startAsyncRunners(resolver infra.Resolver, gf infra.Grace
 		}(i)
 	}
 
-	impl.consumeAsyncJobs()
-	wg.Wait()
-
 	if infra.DEBUG {
-		log.Debug("[glacier] all async runners stopped")
+		impl.createGraphNode("all async runners started", false, childGraphNodes...)
 	}
+
+	go func() {
+		wg.Wait()
+
+		if infra.DEBUG {
+			impl.createGraphNode("all async runners stopped", false)
+			log.Debug("[glacier] all async runners stopped")
+		}
+
+		close(stop)
+	}()
+
+	return stop
 }
 
 func (impl *framework) consumeAsyncJobs() {
@@ -483,109 +612,128 @@ func (impl *framework) consumeAsyncJobs() {
 	impl.asyncJobs = nil
 }
 
-// initialize 初始化 Glacier
-func (impl *framework) initialize(cc container.Container) error {
-	// 注册其它对象
-	for _, i := range impl.singletons {
-		cc.MustSingletonOverride(i)
-	}
-
-	for _, i := range impl.prototypes {
-		cc.MustPrototypeOverride(i)
-	}
-
-	// 完成预绑定对象的绑定
-	if impl.preBinder != nil {
-		if infra.DEBUG {
-			log.Debugf("[glacier] invoke pre-bind hook")
-		}
-
-		impl.preBinder(impl.container)
+// registerProviders 注册所有的 Providers
+func (impl *framework) registerProviders() error {
+	var parentGraphNode *infra.GraphNode
+	var childGraphNodes []*infra.GraphNode
+	if infra.DEBUG && len(impl.providers) > 0 {
+		parentGraphNode = impl.createGraphNode("register providers", false)
 	}
 
 	impl.providers = impl.providersFilter()
-	impl.services = impl.servicesFilter()
-
 	for _, p := range impl.providers {
 		if infra.DEBUG {
+			childGraphNodes = append(childGraphNodes, impl.createGraphNode(fmt.Sprintf("register provider %s", p.Name()), false, parentGraphNode))
 			log.Debugf("[glacier] register provider %s", p.Name())
 		}
-		p.provider.Register(cc)
+		p.provider.Register(impl.cc)
 	}
 
 	if infra.DEBUG && len(impl.providers) > 0 {
+		impl.createGraphNode("register providers done", false, childGraphNodes...)
 		log.Debugf("[glacier] all providers registered, total %d", len(impl.providers))
 	}
 
+	return nil
+}
+
+// registerServices 注册所有的 Services
+func (impl *framework) registerServices() error {
+	var parentGraphNode *infra.GraphNode
+	var childGraphNodes []*infra.GraphNode
+	if infra.DEBUG && len(impl.services) > 0 {
+		parentGraphNode = impl.createGraphNode("register services", false)
+	}
+
+	impl.services = impl.servicesFilter()
 	for _, s := range impl.services {
+		if infra.DEBUG {
+			childGraphNodes = append(childGraphNodes, impl.createGraphNode(fmt.Sprintf("register service %s", s.Name()), false, parentGraphNode))
+		}
 		if reflect.ValueOf(s).Kind() == reflect.Ptr {
-			if err := cc.AutoWire(s); err != nil {
+			if err := impl.cc.AutoWire(s); err != nil {
 				return fmt.Errorf("[glacier] service %s autowired failed: %v", reflect.TypeOf(s).String(), err)
 			}
 		}
 	}
 
-	impl.status = Initialized
+	if infra.DEBUG && len(impl.services) > 0 {
+		impl.createGraphNode("register services done", false, childGraphNodes...)
+	}
+
 	return nil
 }
 
 // startServer 启动 Glacier
 func (impl *framework) startServer(resolver infra.Resolver, startupTs time.Time) func(gf infra.Graceful) error {
 	return func(gf infra.Graceful) error {
-		// 服务都启动之后的回调
-		if impl.afterServerStart != nil {
-			if infra.DEBUG {
-				log.Debugf("[glacier] invoke afterServerStart hook")
-			}
-			if err := impl.afterServerStart(resolver); err != nil {
-				return err
-			}
-		}
-
+		// 设置服务关闭钩子
 		if impl.beforeServerStop != nil {
 			gf.AddShutdownHandler(func() {
 				if infra.DEBUG {
+					impl.createGraphNode("invoke beforeServerStop hook", false).Color = infra.GraphNodeColorBlue
 					log.Debugf("[glacier] invoke beforeServerStop hook")
 				}
 				_ = impl.beforeServerStop(resolver)
 			})
 		}
 
-		delayTasks := make([]DelayTask, 0)
-		impl.lock.Lock()
-		delayTasks = append(delayTasks, impl.delayTasks...)
-		impl.delayTaskClosed = true
-		impl.delayTasks = nil
-		impl.lock.Unlock()
+		impl.updateServerStatus(Started)
 
-		var wg sync.WaitGroup
-		wg.Add(len(delayTasks))
-		if infra.DEBUG && len(delayTasks) > 0 {
-			log.Debug("[glacier] add delay tasks, total ", len(delayTasks))
-		}
-		for i, t := range delayTasks {
-			go func(i int, t DelayTask) {
-				defer wg.Done()
+		// 执行 onServerReady Hooks
+		var childGraphNodes []*infra.GraphNode
+		if len(impl.onServerReadyHooks) > 0 {
+			var wg sync.WaitGroup
+			wg.Add(len(impl.onServerReadyHooks))
 
-				resolver.MustResolve(t.Func)
-				if infra.DEBUG {
-					log.Debugf("[glacier] delay task %d stopped", i)
-				}
-			}(i, t)
-		}
-
-		gf.AddShutdownHandler(func() {
-			wg.Wait()
+			var parentGraphNode *infra.GraphNode
 			if infra.DEBUG {
-				log.Debugf("[glacier] all delay tasks stopped")
+				parentGraphNode = impl.createGraphNode("invoke onServerReady hooks", true)
+				parentGraphNode.Color = infra.GraphNodeColorBlue
 			}
-		})
 
-		impl.status = Started
+			for _, hook := range impl.onServerReadyHooks {
+				if infra.DEBUG {
+					childGraphNodes = append(childGraphNodes, impl.createGraphNode("invoke onServerReady hook: "+hook.name, true, parentGraphNode))
+					log.Debugf("[glacier] invoke onServerReady hook [%s]", hook.name)
+				}
+
+				go func(hook namedFunc) {
+					defer wg.Done()
+					if err := resolver.ResolveWithError(hook.fn); err != nil {
+						log.Errorf("[glacier] onServerReady hook [%s] failed: %v", hook.name, err)
+					}
+				}(hook)
+			}
+
+			gf.AddShutdownHandler(wg.Wait)
+		}
+
 		if infra.DEBUG {
+			impl.createGraphNode("launched", false, childGraphNodes...)
 			log.Debugf("[glacier] application launched successfully, took %s", time.Since(startupTs))
 		}
 
 		return gf.Start()
 	}
+}
+
+func (impl *framework) updateServerStatus(status Status) {
+	if infra.DEBUG {
+		impl.createGraphNode(fmt.Sprintf("update framework status to %s", status.String()), false)
+	}
+
+	impl.lock.Lock()
+	defer impl.lock.Unlock()
+
+	impl.status = status
+}
+func (impl *framework) createGraphNode(name string, async bool, parent ...*infra.GraphNode) *infra.GraphNode {
+	if parent == nil {
+		parent = []*infra.GraphNode{impl.graphNodes[len(impl.graphNodes)-1]}
+	}
+
+	node := infra.GraphNode{Name: name, ParentNode: parent, Async: async}
+	impl.graphNodes = append(impl.graphNodes, &node)
+	return &node
 }

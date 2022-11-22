@@ -46,11 +46,6 @@ func (p *provider) Daemon(ctx context.Context, app infra.Resolver) {
 	app.MustResolve(func(gf infra.Graceful, cr Scheduler, logger infra.Logger) {
 		gf.AddShutdownHandler(cr.Stop)
 		cr.Start()
-
-		if infra.DEBUG {
-			logger.Debugf("[glacier] scheduler has been started")
-		}
-
 		<-ctx.Done()
 	})
 }

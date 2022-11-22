@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/mylxsw/glacier/log"
+	"github.com/mylxsw/glacier/starter/app"
 	"github.com/mylxsw/glacier/web"
 
 	"github.com/mylxsw/glacier/event"
@@ -14,7 +15,6 @@ import (
 	"github.com/mylxsw/glacier/example/job"
 	"github.com/mylxsw/glacier/example/service"
 	"github.com/mylxsw/glacier/infra"
-	"github.com/mylxsw/glacier/starter/application"
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
 )
@@ -44,13 +44,14 @@ func main() {
 	//})
 
 	infra.DEBUG = true
+	infra.PrintGraph = true
 
-	application.MustStart("1.0", 3, run)
+	app.MustStart("1.0", 3, run)
 }
 
 // run 后台持续运行的任务，除非手动触发退出，否则一直运行
-func run(app *application.Application) error {
-	app.WithDescription("Glacier 框架演示项目").
+func run(ins *app.App) error {
+	ins.WithDescription("Glacier 框架演示项目").
 		WithName("glacier-example").
 		WithUsage("这是一个示例项目").
 		WithAuthor("管宜尧", "mylxsw@aicode.cc").
@@ -61,29 +62,32 @@ func run(app *application.Application) error {
 
 	//app.WithLogger(log.StdLogger(log.DEBUG))
 
-	app.WithYAMLFlag("conf").WithShutdownTimeoutFlagSupport(3 * time.Second)
+	ins.WithYAMLFlag("conf").WithShutdownTimeoutFlagSupport(3 * time.Second)
 
-	app.AddFlags(application.StringFlag("listen", ":19945", "http listen addr"))
-	app.AddBoolFlag("load-job", "")
-	app.AddFlags(altsrc.NewBoolFlag(cli.BoolFlag{Name: "load-demoservice"}))
+	ins.AddFlags(app.StringFlag("listen", ":19945", "http listen addr"))
+	ins.AddBoolFlag("load-job", "")
+	ins.AddFlags(altsrc.NewBoolFlag(cli.BoolFlag{Name: "load-demoservice"}))
 
-	app.Provider(job.ServiceProvider{})
-	app.Service(&service.DemoService{}, &service.Demo2Service{})
+	ins.Provider(job.ServiceProvider{})
+	ins.Service(&service.DemoService{}, &service.Demo2Service{})
 
-	// app.Provider(api.ServiceProvider{})
-	app.Provider(web.DefaultProvider(func(resolver infra.Resolver, router web.Router, mw web.RequestMiddleware) {
+	ins.Init(func(c infra.FlagContext) error {
+		log.Debug("init")
+		return nil
+	})
+
+	ins.BeforeServerStop(func(cc infra.Resolver) error {
+		return nil
+	})
+
+	// ins.Provider(api.ServiceProvider{})
+	ins.Provider(web.DefaultProvider(func(resolver infra.Resolver, router web.Router, mw web.RequestMiddleware) {
 		router.Get("/", func(ctx web.Context) web.Response {
 			return ctx.JSON(web.M{"hello": ctx.InputWithDefault("name", "world")})
 		})
 	}))
 
-	app.AfterInitialized(func(resolver infra.Resolver) error {
-		return resolver.Resolve(func() {
-			log.Debug("[example] server initialized ...")
-		})
-	})
-
-	//app.Provider(web.Provider(
+	//ins.Provider(web.Provider(
 	//	listener.FlagContext("listen"),
 	//	// 设置该选项之后，路由匹配时将会忽略最末尾的 /
 	//	// 路由 /aaa/bbb  匹配 /aaa/bbb, /aaa/bbb/
@@ -99,7 +103,7 @@ func run(app *application.Application) error {
 	//	}),
 	//))
 
-	app.Provider(event.Provider(
+	ins.Provider(event.Provider(
 		func(cc infra.Resolver, listener event.Listener) {
 			listener.Listen(func(event CronEvent) {
 				log.Debug("[example] a new cron task executed")
@@ -111,7 +115,7 @@ func run(app *application.Application) error {
 		}),
 	))
 
-	app.PreBind(func(binder infra.Binder) {
+	ins.PreBind(func(binder infra.Binder) {
 		binder.MustSingleton(func(c infra.FlagContext) *config.Config {
 			return &config.Config{
 				DB:   "xxxxxx",
@@ -120,7 +124,7 @@ func run(app *application.Application) error {
 		})
 	})
 
-	app.Async(func(conf *config.Config, publisher event.Publisher, gf infra.Graceful) {
+	ins.Async(func(conf *config.Config, publisher event.Publisher, gf infra.Graceful) {
 		log.Debugf("[example] config: %s", conf.Serialize())
 
 		for i := 0; i < 10; i++ {

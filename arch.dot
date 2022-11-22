@@ -1,0 +1,59 @@
+digraph G {
+    node [shape = "box" style = "filled,rounded" fillcolor = "gold"]
+    "invoke init hook" [fillcolor = "darkturquoise"]
+    "start" -> "invoke init hook";
+    "invoke init hook" -> "create container";
+    "create container" -> "add singletons to container";
+    "add singletons to container" -> "add prototypes to container";
+    "add prototypes to container" -> "update framework status to Initialized";
+    "invoke preBind hook" [fillcolor = "darkturquoise"]
+    "update framework status to Initialized" -> "invoke preBind hook";
+    "invoke preBind hook" -> "register providers";
+    "register providers" -> "register provider .:*scheduler.provider";
+    "register providers" -> "register provider .:*web.provider";
+    "register providers" -> "register provider .:*event.provider";
+    "register providers" -> "register provider github.com/mylxsw/glacier/example/job:job.ServiceProvider";
+    "register provider .:*scheduler.provider" -> "register providers done";
+    "register provider .:*web.provider" -> "register providers done";
+    "register provider .:*event.provider" -> "register providers done";
+    "register provider github.com/mylxsw/glacier/example/job:job.ServiceProvider" -> "register providers done";
+    "register providers done" -> "register services";
+    "register services" -> "register service .:*service.Demo2Service";
+    "register service .:*service.Demo2Service" -> "register services done";
+    "register services done" -> "start async runners";
+    "start async runners" -> "start async runner 0";
+    "start async runners" -> "start async runner 1";
+    "start async runners" -> "start async runner 2";
+    "start async runner 0" -> "all async runners started";
+    "start async runner 1" -> "all async runners started";
+    "start async runner 2" -> "all async runners started";
+    "all async runners started" -> "init services";
+    "init services" -> "booting providers";
+    "booting providers" -> "booting provider: .:*scheduler.provider";
+    "booting providers" -> "booting provider: .:*web.provider";
+    "booting providers" -> "booting provider: .:*event.provider";
+    "booting providers" -> "booting provider: github.com/mylxsw/glacier/example/job:job.ServiceProvider";
+    "booting provider: .:*scheduler.provider" -> "all providers booted";
+    "booting provider: .:*web.provider" -> "all providers booted";
+    "booting provider: .:*event.provider" -> "all providers booted";
+    "booting provider: github.com/mylxsw/glacier/example/job:job.ServiceProvider" -> "all providers booted";
+    "all providers booted" -> "start daemon providers";
+    "start daemon providers" -> "start daemon provider: .:*scheduler.provider";
+    "start daemon providers" -> "start daemon provider: .:*web.provider";
+    "start daemon providers" -> "start daemon provider: .:*event.provider";
+    "start daemon provider: .:*scheduler.provider" -> "all daemon providers started";
+    "start daemon provider: .:*web.provider" -> "all daemon providers started";
+    "start daemon provider: .:*event.provider" -> "all daemon providers started";
+    "all daemon providers started" -> "start services";
+    "start services" -> "start service .:*service.Demo2Service";
+    "start service .:*service.Demo2Service" -> "update framework status to Started";
+    "invoke onServerReady hooks" [fillcolor = "darkturquoise"]
+    "update framework status to Started" -> "invoke onServerReady hooks";
+    "invoke onServerReady hooks" -> "invoke onServerReady hook: .:func(infra.Resolver) error";
+    "invoke onServerReady hook: .:func(infra.Resolver) error" -> "launched";
+    "invoke beforeServerStop hook" [fillcolor = "darkturquoise"]
+    "launched" -> "invoke beforeServerStop hook";
+    "invoke beforeServerStop hook" -> "all async runners stopped";
+    "all async runners stopped" -> "cancel framework context";
+    "cancel framework context" -> "shutdown";
+}

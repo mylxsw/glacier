@@ -1,9 +1,10 @@
-package application
+package app
 
 import (
+	"time"
+
 	"github.com/urfave/cli"
 	"github.com/urfave/cli/altsrc"
-	"time"
 )
 
 func BoolFlag(name string, usage string) cli.Flag {

@@ -2,16 +2,30 @@ package glacier
 
 import (
 	"fmt"
+	"reflect"
+	"sort"
+
 	"github.com/mylxsw/glacier/log"
 	"github.com/mylxsw/go-utils/array"
 	"github.com/mylxsw/go-utils/ternary"
-	"reflect"
-	"sort"
 
 	"github.com/mylxsw/glacier/infra"
 )
 
 var errorKind = reflect.TypeOf((*error)(nil)).Elem()
+
+func resolveNameable(item interface{}) string {
+	var name string
+	if p, ok := item.(infra.Nameable); ok {
+		name = p.Name()
+	}
+
+	if name == "" {
+		pf := reflect.TypeOf(item)
+		name = fmt.Sprintf("%s:%s", ternary.If(pf.PkgPath() == "", ".", pf.PkgPath()), pf.String())
+	}
+	return name
+}
 
 type providerEntry struct {
 	provider infra.Provider
@@ -19,16 +33,7 @@ type providerEntry struct {
 }
 
 func newProviderEntry(provider infra.Provider) *providerEntry {
-	var name string
-	if p, ok := provider.(infra.Nameable); ok {
-		name = p.Name()
-	}
-
-	if name == "" {
-		pf := reflect.TypeOf(provider)
-		name = fmt.Sprintf("%s:%s", ternary.If(pf.PkgPath() == "", ".", pf.PkgPath()), pf.String())
-	}
-	return &providerEntry{provider: provider, name: name}
+	return &providerEntry{provider: provider, name: resolveNameable(provider)}
 }
 
 func (p providerEntry) Name() string {
@@ -41,17 +46,7 @@ type serviceEntry struct {
 }
 
 func newServiceEntry(srv infra.Service) *serviceEntry {
-	var name string
-	if srvn, ok := srv.(infra.Nameable); ok {
-		name = srvn.Name()
-	}
-
-	if name == "" {
-		pf := reflect.TypeOf(srv)
-		name = fmt.Sprintf("%s:%s", ternary.If(pf.PkgPath() == "", ".", pf.PkgPath()), pf.String())
-	}
-
-	return &serviceEntry{service: srv, name: name}
+	return &serviceEntry{service: srv, name: resolveNameable(srv)}
 }
 
 func (s serviceEntry) Name() string {
@@ -245,7 +240,7 @@ func (impl *framework) servicesFilter() []*serviceEntry {
 func (impl *framework) shouldLoadModule(pValue reflect.Value) bool {
 	shouldLoadMethod := pValue.MethodByName("ShouldLoad")
 	if shouldLoadMethod.IsValid() && !shouldLoadMethod.IsZero() {
-		res, err := impl.container.Call(shouldLoadMethod)
+		res, err := impl.cc.Call(shouldLoadMethod)
 		if err != nil {
 			panic(fmt.Errorf("[glacier] call %s.ShouldLoad method failed: %v", pValue.Kind().String(), err))
 		}

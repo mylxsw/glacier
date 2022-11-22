@@ -21,30 +21,30 @@ go get github.com/mylxsw/glacier
 为了简化应用的创建过程，我们一般可以通过 starter 模板来创建应用
 
 ```go
-import "github.com/mylxsw/glacier/starter/application"
+import "github.com/mylxsw/glacier/starter/app"
 ...
 
 // 方法一：快捷启动应用
-application.MustStart("1.0", func(app *application.Application) error {
+app.MustStart("1.0", 3, func(app *app.App) error {
 	// 这里完成应用的初始化
 	// ...
 	return nil
 })
 
 // 方法二： 分步骤启动应用
-app := application.Create("1.0")
+ins := app.Create("1.0", 3)
 // 应用初始化
 // ...
-application.MustRun(app)
+app.MustRun(ins)
 ```
 
 示例:
 
 ```go
-application.MustStart("1.0", func(app *application.Application) error {
-	app.AddStringFlag("listen", ":8080", "http listen address")
+app.MustStart("1.0", 3, func(ins *app.App) error {
+	ins.AddStringFlag("listen", ":8080", "http listen address")
 	
-	app.Provider(web.Provider(
+	ins.Provider(web.Provider(
 		listener.FlagContext("listen"),
 		web.SetRouteHandlerOption(func(cc infra.Resolver, router web.Router, mw web.RequestMiddleware) {
 			router.Get("/", func(ctx web.Context) web.Response {
@@ -55,6 +55,10 @@ application.MustStart("1.0", func(app *application.Application) error {
 	return nil
 })
 ```
+
+## 执行流程
+
+![执行流程](./arch.svg)
 
 ## 核心概念
 
@@ -247,15 +251,17 @@ func (Provider) Register(app infra.Binder) {}
 - `Stop()` 触发 Service 的停止运行
 - `Reload()` 触发 Service 的重新加载
 
+> 最简单的 Service 只需要实现 `Start() error` 方法即可。
+
 
 在我们的应用创建时，使用 `app.Service` 方法注册 Service
 
 ```
-app := application.Create("1.0")
+ins := app.Create("1.0")
 ...
-app.Service(service.Service{})
+ins.Service(service.Service{})
 ...
-application.MustRun(app)
+app.MustRun(ins)
 ```
 
 #### ModuleLoadPolicy
@@ -435,7 +441,7 @@ Glacier 框架提供了一个简单的事件管理模块，可以用于发布和
 通过 `event.Provider(handler func(resolver infra.Resolver, listener Listener), options ...Option) infra.Provider ` 来初始化事件管理器。
 
 ```go
-app.Provider(event.Provider(
+ins.Provider(event.Provider(
   func(cc infra.Resolver, listener event.Listener) {
     listener.Listen(func(event CronEvent) {
       log.Debug("a new cron task executed")
@@ -453,7 +459,7 @@ app.Provider(event.Provider(
 发布事件时，使用 Glacier 框架的依赖注入能力，获取 `event.Publisher` 接口实现
 
 ```go
-app.Async(func(publisher event.Publisher) {
+ins.Async(func(publisher event.Publisher) {
   for i := 0; i < 10; i++ {
     publisher.Publish(CronEvent{GoroutineID: uint64(i)})
   }
@@ -542,8 +548,8 @@ TODO
 Glacier 支持平滑退出，当我们按下键盘的 `Ctrl+C` 时， Glacier 将会接收到关闭的信号，然后触发应用的关闭行为。默认情况下，我们的应用会立即退出，我们可以通过 starter 模板创建的应用上启用平滑支持选项 `WithShutdownTimeoutFlagSupport(timeout time.Duration)` 来设置默认的平滑退出时间
 
 ```go
-app := application.Create("1.0")
-app.WithShutdownTimeoutFlagSupport(5 * time.Second)
+ins := app.Create("1.0")
+ins.WithShutdownTimeoutFlagSupport(5 * time.Second)
 ...
 ```
 
