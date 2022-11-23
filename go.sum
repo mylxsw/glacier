@@ -28,6 +28,8 @@ github.com/mylxsw/container v1.0.0 h1:GIfdVWPcQPxxTW1N9mNrrY+b9KEGlvZXxL13UPX2iX
 github.com/mylxsw/container v1.0.0/go.mod h1:UDbF8EtqT7jB0yDc6g9u4P8ORvw4RbFot1QputpgR5U=
 github.com/mylxsw/go-utils v1.0.0 h1:ZiDRGrKvtMbMw3Fm/sS8siBLZ2rQ/7YdBL12z2bSsPI=
 github.com/mylxsw/go-utils v1.0.0/go.mod h1:GIywna5jA7dodjmre1qXJYLpKg1x6N/foN6BSqc9jgs=
+github.com/mylxsw/go-utils v1.0.1 h1:jKW/lcT+A0GA+Ct3O4MG+P9kE+3jWibobY8OfuuDvFE=
+github.com/mylxsw/go-utils v1.0.1/go.mod h1:F5pQ/vTAgccZxQA7jsIBXM6m2INAbqPKfzbNwQgqhzY=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
