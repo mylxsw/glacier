@@ -7,13 +7,13 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
-	"github.com/mylxsw/container"
+	"github.com/mylxsw/go-ioc"
 )
 
 // routerImpl 定制的路由
 type routerImpl struct {
 	router          *mux.Router
-	container       container.Container
+	container       ioc.Container
 	routes          []RouteRule
 	decorators      []HandlerDecorator
 	prefix          string
@@ -101,8 +101,8 @@ func (rr *routeRuleImpl) Name(name string) RouteRule {
 // Headers adds a matcher for request header values.
 // It accepts a sequence of key/value pairs to be matched. For example:
 //
-//     r.Headers("Content-Type", "application/json",
-//               "X-Requested-With", "XMLHttpRequest")
+//	r.Headers("Content-Type", "application/json",
+//	          "X-Requested-With", "XMLHttpRequest")
 //
 // The above route will only match if both request header values match.
 // If the value is an empty string, it will match any value if the key is set.
@@ -115,7 +115,7 @@ func (rr *routeRuleImpl) Headers(pairs ...string) RouteRule {
 // It accepts a sequence of key/value pairs. Values may define variables.
 // For example:
 //
-//     r.Queries("foo", "bar", "id", "{id:[0-9]+}")
+//	r.Queries("foo", "bar", "id", "{id:[0-9]+}")
 //
 // The above route will only match if the URL contains the defined queries
 // values, e.g.: ?foo=bar&id=42.
@@ -149,9 +149,9 @@ func (rr *routeRuleImpl) Schemes(schemes ...string) RouteRule {
 //
 // For example:
 //
-//     r.Host("www.example.com")
-//     r.Host("{subdomain}.domain.com")
-//     r.Host("{subdomain:[a-z]+}.domain.com")
+//	r.Host("www.example.com")
+//	r.Host("{subdomain}.domain.com")
+//	r.Host("{subdomain:[a-z]+}.domain.com")
 //
 // Variable names must be unique in a given route. They can be retrieved
 // calling mux.Vars(request).
@@ -162,12 +162,12 @@ func (rr *routeRuleImpl) Host(tpl string) RouteRule {
 
 // NewRouter 创建一个路由器
 func NewRouter(conf *Config, decorators ...HandlerDecorator) Router {
-	return NewRouterWithContainer(container.New(), conf, decorators...)
+	return NewRouterWithContainer(ioc.New(), conf, decorators...)
 }
 
 // NewRouterWithContainer 创建一个路由器，带有依赖注入容器支持
-func NewRouterWithContainer(c container.Container, conf *Config, decorators ...HandlerDecorator) Router {
-	cc := container.Extend(c)
+func NewRouterWithContainer(c ioc.Container, conf *Config, decorators ...HandlerDecorator) Router {
+	cc := ioc.Extend(c)
 	cc.MustSingleton(func() *schema.Decoder {
 		decoder := schema.NewDecoder()
 		decoder.IgnoreUnknownKeys(true)
@@ -184,7 +184,7 @@ func NewRouterWithContainer(c container.Container, conf *Config, decorators ...H
 }
 
 // create 创建定制路由器
-func create(c container.Container, ignoreLastSlash bool, router *mux.Router, decorators ...HandlerDecorator) *routerImpl {
+func create(c ioc.Container, ignoreLastSlash bool, router *mux.Router, decorators ...HandlerDecorator) *routerImpl {
 	return &routerImpl{
 		router:          router,
 		routes:          make([]RouteRule, 0),

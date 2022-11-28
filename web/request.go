@@ -16,7 +16,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/gorilla/sessions"
-	"github.com/mylxsw/container"
+	"github.com/mylxsw/go-ioc"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
@@ -26,7 +26,7 @@ type HttpRequest struct {
 	r       *http.Request
 	body    []byte
 	session *sessions.Session
-	cc      container.Container
+	cc      ioc.Container
 	router  *routerImpl
 	conf    Config
 }

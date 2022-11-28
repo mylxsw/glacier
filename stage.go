@@ -9,8 +9,8 @@ import (
 
 	"github.com/mylxsw/glacier/graceful"
 	"github.com/mylxsw/glacier/log"
+	"github.com/mylxsw/go-ioc"
 
-	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
 )
 
@@ -57,7 +57,7 @@ func (impl *framework) diBindStage(ctx context.Context, flagCtx infra.FlagContex
 		impl.pushGraphvizNode("create container", false)
 	}
 
-	impl.cc = container.NewWithContext(ctx)
+	impl.cc = ioc.NewWithContext(ctx)
 
 	impl.cc.MustBindValue(infra.VersionKey, impl.version)
 	impl.cc.MustBindValue(infra.StartupTimeKey, impl.startTime)
@@ -128,7 +128,7 @@ func (impl *framework) Start(flagCtx infra.FlagContext) error {
 	impl.initStage(flagCtx)
 	impl.diBindStage(ctx, flagCtx)
 
-	return impl.cc.ResolveWithError(func(resolver infra.Resolver, gf infra.Graceful, conf *Config) error {
+	return impl.cc.Resolve(func(resolver infra.Resolver, gf infra.Graceful, conf *Config) error {
 		gf.AddShutdownHandler(cancel)
 
 		// 设置服务关闭钩子
@@ -241,7 +241,7 @@ func (impl *framework) readyStage(resolver infra.Resolver, gf infra.Graceful) {
 
 			go func(hook namedFunc) {
 				defer wg.Done()
-				if err := resolver.ResolveWithError(hook.fn); err != nil {
+				if err := resolver.Resolve(hook.fn); err != nil {
 					log.Errorf("[glacier] onServerReady hook [%s] failed: %v", hook.name, err)
 				}
 			}(hook)

@@ -14,7 +14,7 @@ type asyncJob struct {
 }
 
 func (aj asyncJob) Call(resolver infra.Resolver) error {
-	return resolver.ResolveWithError(aj.fn)
+	return resolver.Resolve(aj.fn)
 }
 
 // Async 添加一个异步执行函数

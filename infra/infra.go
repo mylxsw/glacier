@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/mylxsw/container"
+	"github.com/mylxsw/go-ioc"
 )
 
 const (
@@ -159,22 +159,22 @@ type Glacier interface {
 
 	Singleton(ins ...interface{}) Glacier
 	Prototype(ins ...interface{}) Glacier
-	ResolveWithError(resolver interface{}) error
+	Resolve(resolver interface{}) error
 	MustResolve(resolver interface{})
 	Container() Container
 	Resolver() Resolver
 	Binder() Binder
 }
 
-type Container container.Container
-type Binder container.Binder
-type Resolver container.Resolver
+type Container ioc.Container
+type Binder ioc.Binder
+type Resolver ioc.Resolver
 
 type Hook interface {
 	// OnServerReady call a function a server ready
 	OnServerReady(ffs ...interface{})
 }
 
-func WithCondition(init interface{}, onCondition interface{}) container.Conditional {
-	return container.WithCondition(init, onCondition)
+func WithCondition(init interface{}, onCondition interface{}) ioc.Conditional {
+	return ioc.WithCondition(init, onCondition)
 }

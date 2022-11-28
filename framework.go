@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
+	"github.com/mylxsw/go-ioc"
 )
 
 // framework is the Glacier framework
@@ -15,7 +15,7 @@ type framework struct {
 	version   string
 	startTime time.Time
 
-	cc     container.Container
+	cc     ioc.Container
 	logger infra.Logger
 
 	lock sync.RWMutex
@@ -139,9 +139,9 @@ func (impl *framework) Prototype(ins ...interface{}) infra.Glacier {
 	return impl
 }
 
-// ResolveWithError is a proxy to container's ResolveWithError function
-func (impl *framework) ResolveWithError(resolver interface{}) error {
-	return impl.cc.ResolveWithError(resolver)
+// Resolve is a proxy to container's Resolve function
+func (impl *framework) Resolve(resolver interface{}) error {
+	return impl.cc.Resolve(resolver)
 }
 
 // MustResolve is a proxy to container's MustResolve function

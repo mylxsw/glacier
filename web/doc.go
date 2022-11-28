@@ -7,7 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"github.com/mylxsw/container"
+	"github.com/mylxsw/go-ioc"
 )
 
 type Context interface {
@@ -71,7 +71,7 @@ type Context interface {
 	Session() *sessions.Session
 	Request() Request
 	Response() ResponseCreator
-	Container() container.Container
+	Container() ioc.Container
 	View(tplPath string, data interface{}) *HTMLResponse
 	Validate(validator Validator, jsonResponse bool)
 

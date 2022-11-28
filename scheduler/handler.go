@@ -18,7 +18,7 @@ func newHandler(handler interface{}) JobHandler {
 }
 
 func (h jobHandlerImpl) Handle(resolver infra.Resolver) error {
-	return resolver.ResolveWithError(h.handler)
+	return resolver.Resolve(h.handler)
 }
 
 // WithoutOverlap 可以避免当前任务执行时间过长时，同一任务同时存在多个运行实例的问题
@@ -47,7 +47,7 @@ func (handler *OverlapJobHandler) Handle(resolver infra.Resolver) error {
 	select {
 	case handler.executing <- struct{}{}:
 		defer func() { <-handler.executing }()
-		return resolver.ResolveWithError(handler.handler)
+		return resolver.Resolve(handler.handler)
 	default:
 		if handler.skipCallback != nil {
 			handler.skipCallback()

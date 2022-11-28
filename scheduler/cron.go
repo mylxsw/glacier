@@ -170,7 +170,7 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 				}
 			}
 		}()
-		if err := c.resolver.ResolveWithError(hh.Handle); err != nil {
+		if err := c.resolver.Resolve(hh.Handle); err != nil {
 			log.Errorf("[glacier] cron job [%s] failed, Err: %v, Stack: \n%s", name, err, debug.Stack())
 		}
 	}

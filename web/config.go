@@ -11,15 +11,15 @@ import (
 
 type RouteHandler func(resolver infra.Resolver, router Router, mw RequestMiddleware)
 type MuxRouteHandler func(resolver infra.Resolver, router *mux.Router)
-type ListenerHandler func(server *http.Server, listener net.Listener)
+type ServerConfigHandler func(server *http.Server, listener net.Listener)
 type InitHandler func(resolver infra.Resolver, webServer Server, conf *Config) error
 
 type Config struct {
-	routeHandler     RouteHandler
-	listenerHandler  ListenerHandler
-	muxRouteHandler  MuxRouteHandler
-	initHandler      InitHandler
-	exceptionHandler ExceptionHandler
+	routeHandler        RouteHandler
+	serverConfigHandler ServerConfigHandler
+	muxRouteHandler     MuxRouteHandler
+	initHandler         InitHandler
+	exceptionHandler    ExceptionHandler
 
 	MultipartFormMaxMemory int64  // Multipart-form 解析占用最大内存
 	ViewTemplatePathPrefix string // 视图模板目录
@@ -27,9 +27,10 @@ type Config struct {
 	TempFilePattern        string // 临时文件规则
 	IgnoreLastSlash        bool   // 是否忽略 URL 末尾的 /
 
-	HttpWriteTimeout time.Duration
-	HttpReadTimeout  time.Duration
-	HttpIdleTimeout  time.Duration
+	HttpWriteTimeout      time.Duration
+	HttpIdleTimeout       time.Duration
+	HttpReadTimeout       time.Duration
+	HttpReadHeaderTimeout time.Duration
 }
 
 // DefaultConfig create a default config
@@ -40,8 +41,5 @@ func DefaultConfig() *Config {
 		TempDir:                "/tmp",
 		TempFilePattern:        "glacier-files-",
 		IgnoreLastSlash:        false,
-		HttpWriteTimeout:       time.Second * 15,
-		HttpReadTimeout:        time.Second * 15,
-		HttpIdleTimeout:        time.Second * 60,
 	}
 }

@@ -9,7 +9,6 @@ import (
 	"github.com/mylxsw/glacier/log"
 
 	"github.com/gorilla/mux"
-	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
 )
 
@@ -22,7 +21,7 @@ type Server interface {
 
 // serverImpl is the web app
 type serverImpl struct {
-	cc     container.Container
+	cc     infra.Container
 	conf   *Config
 	status ServerStatus
 }
@@ -35,7 +34,7 @@ const (
 )
 
 // NewServer create a new serverImpl
-func NewServer(cc container.Container, options ...Option) Server {
+func NewServer(cc infra.Container, options ...Option) Server {
 	server := &serverImpl{
 		cc:     cc,
 		conf:   DefaultConfig(),
@@ -65,16 +64,17 @@ func (app *serverImpl) Start(listener net.Listener) error {
 	}
 
 	app.status = serverStatusStarted
-	return app.cc.ResolveWithError(func(gf infra.Graceful) error {
+	return app.cc.Resolve(func(gf infra.Graceful) error {
 		srv := &http.Server{
-			Handler:      app.router(app.cc),
-			WriteTimeout: app.conf.HttpWriteTimeout,
-			ReadTimeout:  app.conf.HttpReadTimeout,
-			IdleTimeout:  app.conf.HttpIdleTimeout,
+			Handler:           app.router(app.cc),
+			WriteTimeout:      app.conf.HttpWriteTimeout,
+			ReadTimeout:       app.conf.HttpReadTimeout,
+			IdleTimeout:       app.conf.HttpIdleTimeout,
+			ReadHeaderTimeout: app.conf.HttpReadHeaderTimeout,
 		}
 
-		if app.conf.listenerHandler != nil {
-			app.conf.listenerHandler(srv, listener)
+		if app.conf.serverConfigHandler != nil {
+			app.conf.serverConfigHandler(srv, listener)
 		}
 
 		gf.AddShutdownHandler(func() {
@@ -112,7 +112,7 @@ func (app *serverImpl) Start(listener net.Listener) error {
 	})
 }
 
-func (app *serverImpl) router(cc container.Container) http.Handler {
+func (app *serverImpl) router(cc infra.Container) http.Handler {
 	router := NewRouterWithContainer(cc, app.conf)
 	mw := NewRequestMiddleware()
 

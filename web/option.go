@@ -40,10 +40,10 @@ func SetInitHandlerOption(h InitHandler) Option {
 	}
 }
 
-// SetListenerHandlerOption 服务初始化阶段，web 服务对象已经创建，此时不能再更新 web 配置了
-func SetListenerHandlerOption(h ListenerHandler) Option {
+// SetServerConfigOption 服务初始化阶段，web 服务对象已经创建，此时不能再更新 web 配置了
+func SetServerConfigOption(h ServerConfigHandler) Option {
 	return func(cc infra.Resolver, conf *Config) {
-		conf.listenerHandler = h
+		conf.serverConfigHandler = h
 	}
 }
 

@@ -3,9 +3,9 @@ package web
 import (
 	"context"
 
-	"github.com/mylxsw/container"
 	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/glacier/listener"
+	"github.com/mylxsw/go-ioc"
 )
 
 type provider struct {
@@ -33,7 +33,7 @@ func Provider(builder infra.ListenerBuilder, options ...Option) infra.DaemonProv
 }
 
 func (p *provider) Register(app infra.Binder) {
-	app.MustSingletonOverride(func(cc container.Container) Server {
+	app.MustSingletonOverride(func(cc ioc.Container) Server {
 		return NewServer(cc, p.options...)
 	})
 	app.MustSingletonOverride(func() infra.ListenerBuilder {

@@ -57,8 +57,8 @@ func (app *App) Prototype(ins ...interface{}) *App {
 	return app
 }
 
-func (app *App) ResolveWithError(resolver interface{}) error {
-	return app.gcr.ResolveWithError(resolver)
+func (app *App) Resolve(resolver interface{}) error {
+	return app.gcr.Resolve(resolver)
 }
 
 func (app *App) MustResolve(resolver interface{}) {

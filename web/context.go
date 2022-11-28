@@ -11,7 +11,7 @@ import (
 
 	"github.com/gorilla/sessions"
 	"github.com/gorilla/websocket"
-	"github.com/mylxsw/container"
+	"github.com/mylxsw/go-ioc"
 	"github.com/pkg/errors"
 )
 
@@ -19,13 +19,13 @@ import (
 type WebContext struct {
 	response *HttpResponse
 	request  *HttpRequest
-	cc       container.Container
+	cc       ioc.Container
 	conf     Config
 }
 
 type webHandler struct {
 	handle    WebHandler
-	container container.Container
+	container ioc.Container
 	router    *routerImpl
 	conf      *Config
 }
@@ -81,8 +81,8 @@ func (ctx *WebContext) Response() ResponseCreator {
 	return ctx.response
 }
 
-// Container return underlying container.Container
-func (ctx *WebContext) Container() container.Container {
+// Container return underlying ioc.Container
+func (ctx *WebContext) Container() ioc.Container {
 	return ctx.cc
 }
 
