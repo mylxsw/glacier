@@ -179,7 +179,7 @@ func (gf *gracefulImpl) shutdown() {
 	select {
 	case <-ok:
 		if infra.DEBUG {
-			log.Debug("[glacier] all shutdown handlers executed, took %s", time.Since(startTs))
+			log.Debugf("[glacier] all shutdown handlers executed, took %s", time.Since(startTs))
 		}
 	case <-time.After(gf.handlerTimeout):
 		log.Errorf("[glacier] executing shutdown handlers timed out, took %s", time.Since(startTs))
@@ -241,7 +241,7 @@ func (gf *gracefulImpl) reload() {
 	select {
 	case <-ok:
 		if infra.DEBUG {
-			log.Debug("[glacier] all reload handlers executed, took %s", time.Since(startTs))
+			log.Debugf("[glacier] all reload handlers executed, took %s", time.Since(startTs))
 		}
 	case <-time.After(gf.handlerTimeout):
 		log.Errorf("[glacier] executing reload handlers timed out, took %s", time.Since(startTs))
