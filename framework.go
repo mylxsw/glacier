@@ -66,6 +66,10 @@ func New(version string, asyncJobRunnerCount int) infra.Glacier {
 }
 
 func (impl *framework) pushGraphvizNode(name string, async bool, parent ...*infra.GraphvizNode) *infra.GraphvizNode {
+	if infra.DEBUG {
+		return nil
+	}
+
 	impl.nodeLock.Lock()
 	defer impl.nodeLock.Unlock()
 

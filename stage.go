@@ -144,10 +144,12 @@ func (impl *framework) Start(flagCtx infra.FlagContext) error {
 
 		impl.updateGlacierStatus(Initialized)
 
-		impl.pushGraphvizNode("diBindStage", false).Type = infra.GraphvizNodeTypeClusterStart
-		defer func() {
-			impl.pushGraphvizNode("diBindStage", false).Type = infra.GraphvizNodeTypeClusterEnd
-		}()
+		if infra.DEBUG {
+			impl.pushGraphvizNode("diBindStage", false).Type = infra.GraphvizNodeTypeClusterStart
+			defer func() {
+				impl.pushGraphvizNode("diBindStage", false).Type = infra.GraphvizNodeTypeClusterEnd
+			}()
+		}
 
 		var wg sync.WaitGroup
 		var bootStage = func() error {
@@ -207,9 +209,11 @@ func (impl *framework) Start(flagCtx infra.FlagContext) error {
 		impl.readyStage(resolver, gf)
 
 		defer impl.shutdownHandler(conf, &wg)
-		gf.AddPreShutdownHandler(func() {
-			impl.pushGraphvizNode("shutdownStage", false).Type = infra.GraphvizNodeTypeClusterStart
-		})
+		if infra.DEBUG {
+			gf.AddPreShutdownHandler(func() {
+				impl.pushGraphvizNode("shutdownStage", false).Type = infra.GraphvizNodeTypeClusterStart
+			})
+		}
 		return gf.Start()
 	})
 }
