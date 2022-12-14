@@ -31,7 +31,7 @@ func (impl *framework) Provider(providers ...infra.Provider) {
 		validateShouldLoadMethod(reflect.TypeOf(p))
 	}
 
-	impl.providers = append(impl.providers, array.Map(providers, func(p infra.Provider) *providerEntry {
+	impl.providers = append(impl.providers, array.Map(providers, func(p infra.Provider, _ int) *providerEntry {
 		return newProviderEntry(p)
 	})...)
 }
@@ -97,7 +97,7 @@ func (impl *framework) bootProviders() error {
 }
 
 func (impl *framework) startDaemonProviders(ctx context.Context, wg *sync.WaitGroup) error {
-	daemonServiceProviderCount := len(array.Filter(impl.providers, func(p *providerEntry) bool {
+	daemonServiceProviderCount := len(array.Filter(impl.providers, func(p *providerEntry, _ int) bool {
 		_, ok := p.provider.(infra.DaemonProvider)
 		return ok
 	}))

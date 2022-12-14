@@ -31,7 +31,7 @@ func (impl *framework) Service(services ...infra.Service) {
 		validateShouldLoadMethod(reflect.TypeOf(p))
 	}
 
-	impl.services = append(impl.services, array.Map(services, func(srv infra.Service) *serviceEntry {
+	impl.services = append(impl.services, array.Map(services, func(srv infra.Service, _ int) *serviceEntry {
 		return newServiceEntry(srv)
 	})...)
 }
