@@ -15,9 +15,9 @@ func DefaultExceptionHandler(ctx Context, err interface{}) Response {
 
 // ErrorToResponse convert an error to Response
 func ErrorToResponse(ctx Context, err interface{}) (Response, error) {
-	switch err.(type) {
+	switch e := err.(type) {
 	case Error:
-		errCode := err.(Error).StatusCode()
+		errCode := e.StatusCode()
 		if errCode <= 0 {
 			errCode = http.StatusInternalServerError
 		}
@@ -25,14 +25,14 @@ func ErrorToResponse(ctx Context, err interface{}) (Response, error) {
 		if jsonAble, ok := err.(JSONAble); ok {
 			return ctx.JSONWithCode(jsonAble.ToJSON(), errCode), nil
 		} else {
-			return ctx.Error(err.(Error).Error(), errCode), nil
+			return ctx.Error(e.Error(), errCode), nil
 		}
 	case JSONAble:
-		return ctx.JSONWithCode(err.(JSONAble).ToJSON(), http.StatusInternalServerError), nil
+		return ctx.JSONWithCode(e.ToJSON(), http.StatusInternalServerError), nil
 	case string:
-		return ctx.JSONError(err.(string), http.StatusInternalServerError), nil
+		return ctx.JSONError(e, http.StatusInternalServerError), nil
 	case error:
-		return ctx.Error(err.(error).Error(), http.StatusInternalServerError), nil
+		return ctx.Error(e.Error(), http.StatusInternalServerError), nil
 	}
 
 	return nil, errors.New("not support this error type")

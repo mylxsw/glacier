@@ -26,10 +26,12 @@ func runOnce(ins *app.App) error {
 	//		filter(f)
 	//	}
 	//})
+	ins.WithYAMLFlag("conf")
+	ins.AddFlags(app.StringFlag("abc", "", "demo option"))
 
-	ins.Singleton(func() *config.Config {
+	ins.Singleton(func(f infra.FlagContext) *config.Config {
 		log.Debugf("[example] create config ...")
-		return &config.Config{DB: "demo", Test: "test str"}
+		return &config.Config{DB: "demo", Test: f.String("abc")}
 	})
 
 	ins.Async(func(gf infra.Graceful, conf *config.Config) {

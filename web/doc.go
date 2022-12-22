@@ -74,6 +74,7 @@ type Context interface {
 	Container() ioc.Container
 	View(tplPath string, data interface{}) *HTMLResponse
 	Validate(validator Validator, jsonResponse bool)
+	RemoteAddr() string
 
 	RouteURL(name string, pairs ...string) (*url.URL, error)
 	RouteByName(name string) RouteAware
@@ -130,6 +131,7 @@ type Request interface {
 	CurrentRoute() RouteAware
 
 	Validate(validator Validator, jsonResponse bool)
+	RemoteAddr() string
 }
 
 // Response is the response interface
@@ -157,7 +159,7 @@ type ResponseCreator interface {
 }
 
 type Router interface {
-	Group(prefix string, f func(rou Router), decors ...HandlerDecorator)
+	Group(prefix string, f func(router Router), decors ...HandlerDecorator)
 	Perform(exceptionHandler ExceptionHandler, cb func(*mux.Router)) http.Handler
 	GetRoutes() []RouteRule
 	Any(path string, handler interface{}, middlewares ...HandlerDecorator) RouteRule

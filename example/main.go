@@ -20,8 +20,7 @@ import (
 	"github.com/mylxsw/glacier/example/job"
 	"github.com/mylxsw/glacier/example/service"
 	"github.com/mylxsw/glacier/infra"
-	"github.com/urfave/cli"
-	"github.com/urfave/cli/altsrc"
+	"github.com/urfave/cli/v2"
 )
 
 type CronEvent struct {
@@ -73,7 +72,7 @@ func run(ins *app.App) error {
 
 	ins.AddFlags(app.StringFlag("listen", ":19945", "http listen addr"))
 	ins.AddBoolFlag("load-job", "")
-	ins.AddFlags(altsrc.NewBoolFlag(cli.BoolFlag{Name: "load-demoservice"}))
+	ins.AddBoolFlag("load-demoservice", "")
 
 	ins.Provider(job.ServiceProvider{})
 	ins.Service(&service.DemoService{}, &service.Demo2Service{})

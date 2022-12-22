@@ -476,3 +476,7 @@ func (ctx *WebContext) RouteByName(name string) RouteAware {
 func (ctx *WebContext) CurrentRoute() RouteAware {
 	return ctx.request.CurrentRoute()
 }
+
+func (ctx *WebContext) RemoteAddr() string {
+	return ctx.request.RemoteAddr()
+}

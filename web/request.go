@@ -405,3 +405,8 @@ func (req *HttpRequest) RouteByName(name string) RouteAware {
 func (req *HttpRequest) CurrentRoute() RouteAware {
 	return mux.CurrentRoute(req.r)
 }
+
+// RemoteAddr return remote address
+func (req *HttpRequest) RemoteAddr() string {
+	return req.r.RemoteAddr
+}

@@ -7,8 +7,8 @@ import (
 
 	"github.com/mylxsw/glacier"
 	"github.com/mylxsw/glacier/infra"
-	"github.com/urfave/cli"
-	"github.com/urfave/cli/altsrc"
+	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2/altsrc"
 )
 
 type App struct {
@@ -41,11 +41,11 @@ func (app *App) WithUsageText(usageText string) *App {
 }
 
 func (app *App) WithAuthor(name, email string) *App {
-	app.cli.Authors = append(app.cli.Authors, cli.Author{Name: name, Email: email})
+	app.cli.Authors = append(app.cli.Authors, &cli.Author{Name: name, Email: email})
 	return app
 }
 
-func (app *App) WithAuthors(authors ...cli.Author) *App {
+func (app *App) WithAuthors(authors ...*cli.Author) *App {
 	app.cli.Authors = append(app.cli.Authors, authors...)
 	return app
 }
@@ -56,7 +56,7 @@ func (app *App) WithCLIOptions(fn func(cliAPP *cli.App)) *App {
 }
 
 func (app *App) WithShutdownTimeoutFlag(timeout time.Duration) *App {
-	return app.AddFlags(altsrc.NewDurationFlag(cli.DurationFlag{
+	return app.AddFlags(altsrc.NewDurationFlag(&cli.DurationFlag{
 		Name:  glacier.ShutdownTimeoutOption,
 		Usage: "set a shutdown timeout for each module",
 		Value: timeout,
@@ -64,7 +64,7 @@ func (app *App) WithShutdownTimeoutFlag(timeout time.Duration) *App {
 }
 
 func (app *App) WithYAMLFlag(flagName string) *App {
-	app.cli.Flags = append(app.cli.Flags, cli.StringFlag{
+	app.cli.Flags = append(app.cli.Flags, &cli.StringFlag{
 		Name:  flagName,
 		Value: "",
 		Usage: "configuration file path",
