@@ -43,39 +43,36 @@ type Scheduler interface {
 	// Stop cron job manager
 	Stop()
 
-	// DistributeLockManager is a setter method for distribute lock manager
-	DistributeLockManager(lockManager DistributeLockManager)
+	LockManagerBuilder(builder LockManagerBuilder)
 }
 
-// DistributeLockManager is a distributed lock manager interface
-type DistributeLockManager interface {
-	// TryLock try to get lock
-	// this method will be called every 60s
-	// you should set a ttl for lock since unlock method may be not be called in some case
+type LockManager interface {
 	TryLock() error
-	// TryUnLock try to release the lock
-	TryUnLock() error
-	// HasLock return whether manager has lock
-	HasLock() bool
+	Release() error
 }
+
+var ErrLockFailed = errors.New("lock failed")
+
+type LockManagerBuilder func(name string) LockManager
 
 type schedulerImpl struct {
 	lock     sync.RWMutex
 	resolver infra.Resolver
 	cr       *cron.Cron
 
-	distributeLockManager DistributeLockManager
+	lockManagerBuilder LockManagerBuilder
 
 	jobs map[string]*Job
 }
 
 // Job is a job object
 type Job struct {
-	ID      cron.EntryID
-	Name    string
-	Plan    string
-	handler func()
-	Paused  bool
+	ID          cron.EntryID
+	Name        string
+	Plan        string
+	handler     func()
+	Paused      bool
+	lockManager LockManager
 }
 
 // Next get execute plan for job
@@ -104,8 +101,8 @@ func NewManager(resolver infra.Resolver) Scheduler {
 	return &m
 }
 
-func (c *schedulerImpl) DistributeLockManager(lockManager DistributeLockManager) {
-	c.distributeLockManager = lockManager
+func (c *schedulerImpl) LockManagerBuilder(builder LockManagerBuilder) {
+	c.lockManagerBuilder = builder
 }
 
 func (c *schedulerImpl) MustAddAndRunOnServerReady(name string, plan string, handler interface{}) {
@@ -148,12 +145,25 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 		hh = newHandler(handler)
 	}
 
+	var lockManager LockManager
+	if c.lockManagerBuilder != nil {
+		lockManager = c.lockManagerBuilder(name)
+	}
+
 	jobHandler := func() {
-		if c.distributeLockManager != nil && !c.distributeLockManager.HasLock() {
-			if infra.DEBUG {
-				log.Debugf("[glacier] cron job [%s] can not start because it doesn't get the lock", name)
+		if lockManager != nil {
+			if err := lockManager.TryLock(); err != nil {
+				if errors.Is(err, ErrLockFailed) {
+					if infra.DEBUG {
+						log.Debugf("[glacier] cron job [%s] can not start because it doesn't get the lock", name)
+					}
+
+					return
+				}
+
+				log.Errorf("[glacier] cron job [%s] can not start because it can not get the lock: %v", name, err)
+				return
 			}
-			return
 		}
 
 		if infra.DEBUG {
@@ -181,11 +191,12 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 	}
 
 	c.jobs[name] = &Job{
-		ID:      id,
-		Name:    name,
-		Plan:    plan,
-		handler: jobHandler,
-		Paused:  false,
+		ID:          id,
+		Name:        name,
+		Plan:        plan,
+		handler:     jobHandler,
+		Paused:      false,
+		lockManager: lockManager,
 	}
 
 	if infra.DEBUG {
@@ -202,6 +213,12 @@ func (c *schedulerImpl) Remove(name string) error {
 	reg, exist := c.jobs[name]
 	if !exist {
 		return errors.Errorf("[glacier] job with name [%s] not found", name)
+	}
+
+	if reg.lockManager != nil {
+		if err := reg.lockManager.Release(); err != nil {
+			log.Errorf("[glacier] cron job [%s] can not release lock: %v", name, err)
+		}
 	}
 
 	delete(c.jobs, name)
@@ -279,31 +296,19 @@ func (c *schedulerImpl) Info(name string) (Job, error) {
 }
 
 func (c *schedulerImpl) Start() {
-	if c.distributeLockManager != nil {
-		getDistributeLock := func() {
-			if err := c.distributeLockManager.TryLock(); err != nil {
-				if infra.WARN {
-					log.Warningf("[glacier] try to get distribute lock failed: %v", err)
-				}
-			}
-		}
-
-		getDistributeLock()
-		if _, err := c.cr.AddFunc("@every 60s", getDistributeLock); err != nil {
-			log.Errorf("[glacier] initialize scheduler failed: can not create distribute lock task: %v", err)
-		}
-	}
-
 	c.cr.Start()
 }
 
 func (c *schedulerImpl) Stop() {
-	c.cr.Stop()
-	if c.distributeLockManager != nil {
-		if err := c.distributeLockManager.TryUnLock(); err != nil {
-			if infra.WARN {
-				log.Warningf("[glacier] try to release distribute lock failed: %v", err)
+	if c.lockManagerBuilder != nil {
+		for _, job := range c.jobs {
+			if job.lockManager != nil {
+				if err := job.lockManager.Release(); err != nil {
+					log.Errorf("[glacier] cron job [%s] can not release lock: %v", job.Name, err)
+				}
 			}
 		}
 	}
+
+	c.cr.Stop()
 }

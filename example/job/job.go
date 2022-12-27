@@ -17,8 +17,8 @@ func (j ServiceProvider) Aggregates() []infra.Provider {
 					log.Errorf("[example] test-timeout-job skipped")
 				}))
 			},
-			scheduler.SetDistributeLockManagerOption(func(cc infra.Resolver) scheduler.DistributeLockManager {
-				return NewDistributeLockManager()
+			scheduler.SetLockManagerOption(func(_ infra.Resolver) scheduler.LockManagerBuilder {
+				return NewDistributeLockManager
 			}),
 		),
 	}
@@ -44,22 +44,19 @@ func (j ServiceProvider) Boot(app infra.Resolver) {
 }
 
 type DistributeLockManager struct {
+	name string
 }
 
-func NewDistributeLockManager() *DistributeLockManager {
-	return &DistributeLockManager{}
+func NewDistributeLockManager(name string) scheduler.LockManager {
+	return &DistributeLockManager{name: name}
 }
 
 func (manager *DistributeLockManager) TryLock() error {
-	log.Debug("[example] try lock ...")
+	log.Debugf("[example] try lock for %s ...", manager.name)
 	return nil
 }
 
-func (manager *DistributeLockManager) TryUnLock() error {
-	log.Debug("[example] try unlock ...")
+func (manager *DistributeLockManager) Release() error {
+	log.Debugf("[example] try release lock for %s ...", manager.name)
 	return nil
-}
-
-func (manager *DistributeLockManager) HasLock() bool {
-	return true
 }

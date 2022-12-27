@@ -62,11 +62,11 @@ func (l cronLogger) Error(err error, msg string, keysAndValues ...interface{}) {
 }
 
 // Option 定时任务配置型
-type Option func(cc infra.Resolver, cr Scheduler)
+type Option func(resolver infra.Resolver, cr Scheduler)
 
-// SetDistributeLockManagerOption 设置分布式锁管理器实现
-func SetDistributeLockManagerOption(lockManager func(cc infra.Resolver) DistributeLockManager) Option {
-	return func(cc infra.Resolver, cr Scheduler) {
-		cr.DistributeLockManager(lockManager(cc))
+// SetLockManagerOption 设置分布式锁管理器实现
+func SetLockManagerOption(lockManager func(resolver infra.Resolver) LockManagerBuilder) Option {
+	return func(resolver infra.Resolver, cr Scheduler) {
+		cr.LockManagerBuilder(lockManager(resolver))
 	}
 }
