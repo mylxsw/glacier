@@ -1,6 +1,8 @@
 package job
 
 import (
+	"context"
+
 	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/glacier/log"
 	"github.com/mylxsw/glacier/scheduler"
@@ -51,12 +53,12 @@ func NewDistributeLockManager(name string) scheduler.LockManager {
 	return &DistributeLockManager{name: name}
 }
 
-func (manager *DistributeLockManager) TryLock() error {
+func (manager *DistributeLockManager) TryLock(ctx context.Context) error {
 	log.Debugf("[example] try lock for %s ...", manager.name)
 	return nil
 }
 
-func (manager *DistributeLockManager) Release() error {
+func (manager *DistributeLockManager) Release(ctx context.Context) error {
 	log.Debugf("[example] try release lock for %s ...", manager.name)
 	return nil
 }

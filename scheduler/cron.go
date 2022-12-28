@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"fmt"
 	"runtime/debug"
 	"sync"
@@ -47,8 +48,8 @@ type Scheduler interface {
 }
 
 type LockManager interface {
-	TryLock() error
-	Release() error
+	TryLock(ctx context.Context) error
+	Release(ctx context.Context) error
 }
 
 var ErrLockFailed = errors.New("lock failed")
@@ -152,7 +153,7 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 
 	jobHandler := func() {
 		if lockManager != nil {
-			if err := lockManager.TryLock(); err != nil {
+			if err := lockManager.TryLock(context.TODO()); err != nil {
 				if errors.Is(err, ErrLockFailed) {
 					if infra.DEBUG {
 						log.Debugf("[glacier] cron job [%s] can not start because it doesn't get the lock", name)
@@ -216,7 +217,7 @@ func (c *schedulerImpl) Remove(name string) error {
 	}
 
 	if reg.lockManager != nil {
-		if err := reg.lockManager.Release(); err != nil {
+		if err := reg.lockManager.Release(context.TODO()); err != nil {
 			log.Errorf("[glacier] cron job [%s] can not release lock: %v", name, err)
 		}
 	}
@@ -303,7 +304,7 @@ func (c *schedulerImpl) Stop() {
 	if c.lockManagerBuilder != nil {
 		for _, job := range c.jobs {
 			if job.lockManager != nil {
-				if err := job.lockManager.Release(); err != nil {
+				if err := job.lockManager.Release(context.TODO()); err != nil {
 					log.Errorf("[glacier] cron job [%s] can not release lock: %v", job.Name, err)
 				}
 			}
