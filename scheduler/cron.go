@@ -113,13 +113,9 @@ func (c *schedulerImpl) MustAddAndRunOnServerReady(name string, plan string, han
 }
 
 func (c *schedulerImpl) AddAndRunOnServerReady(name string, plan string, handler interface{}) error {
-	if err := c.Add(name, plan, handler); err != nil {
+	handler, err := c.add(name, plan, handler)
+	if err != nil {
 		return err
-	}
-
-	hh, ok := handler.(JobHandler)
-	if ok {
-		handler = hh.Handle
 	}
 
 	return c.resolver.Resolve(func(hook infra.Hook) {
@@ -134,16 +130,16 @@ func (c *schedulerImpl) MustAdd(name string, plan string, handler interface{}) {
 }
 
 func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error {
+	_, err := c.add(name, plan, handler)
+	return err
+}
+
+func (c *schedulerImpl) add(name string, plan string, handler interface{}) (func(), error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
 	if reg, existed := c.jobs[name]; existed {
-		return fmt.Errorf("job with name [%s] already existed: %d | %s", name, reg.ID, reg.Plan)
-	}
-
-	hh, ok := handler.(JobHandler)
-	if !ok {
-		hh = newHandler(handler)
+		return nil, fmt.Errorf("job with name [%s] already existed: %d | %s", name, reg.ID, reg.Plan)
 	}
 
 	var lockManager LockManager
@@ -151,7 +147,36 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 		lockManager = c.lockManagerBuilder(name)
 	}
 
-	jobHandler := func() {
+	jobHandler := c.wrapJobHandler(name, handler, lockManager)
+	id, err := c.cr.AddFunc(plan, jobHandler)
+
+	if err != nil {
+		return nil, errors.Wrap(err, "[glacier] add cron job failed")
+	}
+
+	c.jobs[name] = &Job{
+		ID:          id,
+		Name:        name,
+		Plan:        plan,
+		handler:     jobHandler,
+		Paused:      false,
+		lockManager: lockManager,
+	}
+
+	if infra.DEBUG {
+		log.Debugf("[glacier] add job [%s] to scheduler(%s)", name, plan)
+	}
+
+	return jobHandler, nil
+}
+
+func (c *schedulerImpl) wrapJobHandler(name string, handler interface{}, lockManager LockManager) func() {
+	hh, ok := handler.(JobHandler)
+	if !ok {
+		hh = newHandler(handler)
+	}
+
+	return func() {
 		if lockManager != nil {
 			if err := lockManager.TryLock(context.TODO()); err != nil {
 				if errors.Is(err, ErrLockFailed) {
@@ -185,26 +210,6 @@ func (c *schedulerImpl) Add(name string, plan string, handler interface{}) error
 			log.Errorf("[glacier] cron job [%s] failed, Err: %v, Stack: \n%s", name, err, debug.Stack())
 		}
 	}
-	id, err := c.cr.AddFunc(plan, jobHandler)
-
-	if err != nil {
-		return errors.Wrap(err, "[glacier] add cron job failed")
-	}
-
-	c.jobs[name] = &Job{
-		ID:          id,
-		Name:        name,
-		Plan:        plan,
-		handler:     jobHandler,
-		Paused:      false,
-		lockManager: lockManager,
-	}
-
-	if infra.DEBUG {
-		log.Debugf("[glacier] add job [%s] to scheduler(%s)", name, plan)
-	}
-
-	return nil
 }
 
 func (c *schedulerImpl) Remove(name string) error {
