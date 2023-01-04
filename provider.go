@@ -119,14 +119,14 @@ func (impl *framework) startDaemonProviders(ctx context.Context, wg *sync.WaitGr
 				log.Debugf("[glacier] daemon provider %s starting ...", p.Name())
 			}
 
-			go func(pp infra.DaemonProvider) {
+			go func(pp infra.DaemonProvider, p *providerEntry) {
 				defer wg.Done()
 				pp.Daemon(ctx, impl.cc)
 
 				if infra.DEBUG {
 					log.Debugf("[glacier] daemon provider %s has been stopped", p.Name())
 				}
-			}(pp)
+			}(pp, p)
 		}
 	}
 

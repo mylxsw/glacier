@@ -57,10 +57,8 @@ func New(version string, asyncJobRunnerCount int) infra.Glacier {
 	impl.status = Unknown
 	impl.flagContextInit = func(flagCtx infra.FlagContext) infra.FlagContext { return flagCtx }
 
-	if infra.DEBUG {
-		impl.nodes = make(infra.GraphvizNodes, 0)
-		impl.nodes = append(impl.nodes, &infra.GraphvizNode{Name: "start"})
-	}
+	impl.nodes = make(infra.GraphvizNodes, 0)
+	impl.nodes = append(impl.nodes, &infra.GraphvizNode{Name: "start"})
 
 	return impl
 }
