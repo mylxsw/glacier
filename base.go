@@ -52,6 +52,9 @@ func resolveNameable(item interface{}) string {
 	return name
 }
 
+// validateShouldLoadMethod 验证 ShouldLoad 方法是否 OK
+// - ShouldLoad(...) bool
+// - ShouldLoad(...) (bool, error)
 func validateShouldLoadMethod(pType reflect.Type) {
 	if method, ok := pType.MethodByName("ShouldLoad"); ok {
 		returnValueCount := method.Type.NumOut()
