@@ -2,6 +2,33 @@
 
 Glacier 是一款支持依赖注入的模块化的应用开发框架，它以 [go-ioc](https://github.com/mylxsw/go-ioc) 依赖注入容器核心，为 Go 应用开发解决了依赖传递和模块化的问题。
 
+- [特性](#特性)
+- [使用](#使用)
+- [执行流程](#执行流程)
+- [核心概念](#核心概念)
+	- [依赖注入](#依赖注入)
+		- [Binder](#binder)
+		- [Resolver](#resolver)
+	- [Provider](#provider)
+		- [ProviderBoot](#providerboot)
+		- [DaemonProvider](#daemonprovider)
+		- [ProviderAggregate](#provideraggregate)
+		- [Service](#service)
+		- [ModuleLoadPolicy](#moduleloadpolicy)
+		- [Priority](#priority)
+	- [Web 框架](#web-框架)
+		- [Usage](#usage)
+		- [控制器](#控制器)
+	- [事件管理](#事件管理)
+		- [本地内存作为事件存储后端](#本地内存作为事件存储后端)
+		- [Redis 作为事件存储后端](#redis-作为事件存储后端)
+	- [定时任务](#定时任务)
+	- [日志](#日志)
+	- [Eloquent ORM](#eloquent-orm)
+	- [平滑退出](#平滑退出)
+- [第三方框架集成](#第三方框架集成)
+- [示例项目](#示例项目)
+
 ## 特性
 
 - **依赖注入**：通过依赖注入的方式来管理对象的依赖，支持单例、原型对象创建
@@ -53,6 +80,8 @@ app.MustStart("1.0", 3, func(ins *app.App) error {
 	return nil
 })
 ```
+
+> 代码示例可以参考当前项目的 [example](https://github.com/mylxsw/glacier/tree/main/example) 目录。
 
 ## 执行流程
 
@@ -382,7 +411,7 @@ func (Provider) Priority() int {
 }
 ```
 
-### Web Framework
+### Web 框架
 
 Glacier 是一个应用框架，为了方便 Web 开发，也内置了一个灵活的 Web 应用开发框架。
 
@@ -584,7 +613,7 @@ func routes(resolver infra.Resolver, router web.Router, mw web.RequestMiddleware
 ```
 
 
-### Event
+### 事件管理
 
 Glacier 框架提供了一个简单的事件管理模块，可以用于发布和监听应用运行中的事件，进行响应的业务处理。
 
@@ -632,11 +661,57 @@ event.SetStoreOption(func(cc infra.Resolver) event.Store {
 
 使用内存作为事件存储后端时，当应用异常退出的时候，可能会存在事件的丢失，你可以使用这个基于 Redis 的事件存储后端 [redis-event-store](https://github.com/mylxsw/redis-event-store) 来获得事件的持久化支持。
 
-### Crontab
+### 定时任务
 
-TODO
+Glacier 提供了内置的定时任务支持，使用 `scheduler.Provider` 来实现。
 
-### Log
+```go
+type Provider struct{}
+func (Provider) Register(binder infra.Binder) {...}
+
+func (Provider) Aggregates() []infra.Provider {
+	return []infra.Provider{
+		// 加载 scheduler 定时任务模块
+		scheduler.Provider(
+			func(resolver infra.Resolver, creator scheduler.JobCreator) {
+				// 添加一个名为 test-job 的任务，每隔 10s 执行一次
+				_ = cr.Add("test-job", "@every 10s", TestJob)
+				// 添加一个名称为 test-timeout-job 的任务，每隔 5s 执行一次
+				// 通过 AddAndRunOnServerReady 添加的任务会在服务启动时先执行一次
+				_ = creator.AddAndRunOnServerReady(
+					"test-timeout-job", 
+					"@every 5s",
+					// 使用 scheduler.WithoutOverlap 包装的函数，当前一次调度还没有执行完毕，本次调度的时间已到，本次调度将会被取消
+					scheduler.WithoutOverlap(TestTimeoutJob).SkipCallback(func() { 
+						... // 当前一个任务还没有执行完毕时，当前任务会被跳过，跳过时会触发该函数的执行
+					}),
+				)
+			},
+		),
+	}
+}
+```
+
+`scheduler.Provider` 支持分布式锁，通过 `SetLockManagerOption` 选项可以指定分布式锁的实现，以满足任务在一组服务器中只会被触发一次的逻辑。
+
+```go
+scheduler.Provider(
+	func(resolver infra.Resolver, creator scheduler.JobCreator) {...},
+	// 设置分布式锁
+	scheduler.SetLockManagerOption(func(resolver infra.Resolver) scheduler.LockManagerBuilder {
+		// get redis instance
+		redisClient := resolver.MustGet(&redis.Client{}).(*redis.Client)
+		return func(name string) scheduler.LockManager {
+			// create redis lock
+			return redisLock.New(redisClient, name, 10*time.Minute)
+		}
+	}),
+)
+```
+
+> 注意：Glacier 框架没有内置分布式锁的实现，在 [mylxsw/distribute-locks](https://github.com/mylxsw/distribute-locks) 实现了一个简单的基于 Redis 的分布式锁实现，可以参考使用。
+
+### 日志
 
 在 Glacier 中，默认使用 [asteria](https://github.com/mylxsw/asteria) 作为日志框架，asteria 是一款功能强大、灵活的结构化日志框架，支持多种日志输出格式以及输出方式，支持为日志信息添加上下文信息。
 
@@ -710,6 +785,7 @@ resolver.MustResolve(func(gf graceful.Graceful) {
 
 ## 示例项目
 
+- [Example](https://github.com/mylxsw/glacier/tree/main/example) 使用示例
 - [WebDAV Server](https://github.com/mylxsw/webdav-server) 一款支持 LDAP 作为用户数据库的 WebDAV 服务器
 - [Adanos Alert](https://github.com/mylxsw/adanos-alert) 一个功能强大的开源告警平台，通过事件聚合机制，为监控系统提供钉钉、邮件、HTTP、JIRA、语音电话等告警方式的支持
 - [Healthcheck](https://github.com/mylxsw/healthcheck) 为应用服务提供健康检查告警支持
