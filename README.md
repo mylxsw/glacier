@@ -16,16 +16,16 @@ Glacier 是一款支持依赖注入的模块化的应用开发框架，它以 [g
 		- [Service](#service)
 		- [ModuleLoadPolicy](#moduleloadpolicy)
 		- [Priority](#priority)
-	- [Web 框架](#web-框架)
-		- [Usage](#usage)
-		- [控制器](#控制器)
-	- [事件管理](#事件管理)
-		- [本地内存作为事件存储后端](#本地内存作为事件存储后端)
-		- [Redis 作为事件存储后端](#redis-作为事件存储后端)
-	- [定时任务](#定时任务)
-	- [日志](#日志)
-	- [Eloquent ORM](#eloquent-orm)
-	- [平滑退出](#平滑退出)
+- [Web 框架](#web-框架)
+	- [Usage](#usage)
+	- [控制器](#控制器)
+- [事件管理](#事件管理)
+	- [本地内存作为事件存储后端](#本地内存作为事件存储后端)
+	- [Redis 作为事件存储后端](#redis-作为事件存储后端)
+- [定时任务](#定时任务)
+- [日志](#日志)
+- [Eloquent ORM](#eloquent-orm)
+- [平滑退出](#平滑退出)
 - [第三方框架集成](#第三方框架集成)
 - [示例项目](#示例项目)
 
@@ -411,11 +411,11 @@ func (Provider) Priority() int {
 }
 ```
 
-### Web 框架
+## Web 框架
 
 Glacier 是一个应用框架，为了方便 Web 开发，也内置了一个灵活的 Web 应用开发框架。
 
-#### Usage
+### Usage
 
 Glaicer Web 在 Glacier 框架中是一个内置的 **DaemonProvider**，与其它的模块并无不同。我们通过 `web.Provider(builder infra.ListenerBuilder, options ...Option) infra.DaemonProvider` 方法创建 Web 模块。
 
@@ -530,7 +530,7 @@ func (l confListenerBuilder) Build(resolver infra.Resolver) (net.Listener, error
 }
 ```
 
-#### 控制器
+### 控制器
 
 控制器必须实现 `web.Controller` 接口，该接口只有一个方法
 
@@ -613,7 +613,7 @@ func routes(resolver infra.Resolver, router web.Router, mw web.RequestMiddleware
 ```
 
 
-### 事件管理
+## 事件管理
 
 Glacier 框架提供了一个简单的事件管理模块，可以用于发布和监听应用运行中的事件，进行响应的业务处理。
 
@@ -645,7 +645,7 @@ ins.Async(func(publisher event.Publisher) {
 })
 ```
 
-#### 本地内存作为事件存储后端
+### 本地内存作为事件存储后端
 
 Glacier 内置了基于内存的事件存储后端，说有事件的监听器都是同步执行的。
 
@@ -657,11 +657,11 @@ event.SetStoreOption(func(cc infra.Resolver) event.Store {
 })
 ```
 
-#### Redis 作为事件存储后端
+### Redis 作为事件存储后端
 
 使用内存作为事件存储后端时，当应用异常退出的时候，可能会存在事件的丢失，你可以使用这个基于 Redis 的事件存储后端 [redis-event-store](https://github.com/mylxsw/redis-event-store) 来获得事件的持久化支持。
 
-### 定时任务
+## 定时任务
 
 Glacier 提供了内置的定时任务支持，使用 `scheduler.Provider` 来实现。
 
@@ -711,7 +711,7 @@ scheduler.Provider(
 
 > 注意：Glacier 框架没有内置分布式锁的实现，在 [mylxsw/distribute-locks](https://github.com/mylxsw/distribute-locks) 实现了一个简单的基于 Redis 的分布式锁实现，可以参考使用。
 
-### 日志
+## 日志
 
 在 Glacier 中，默认使用 [asteria](https://github.com/mylxsw/asteria) 作为日志框架，asteria 是一款功能强大、灵活的结构化日志框架，支持多种日志输出格式以及输出方式，支持为日志信息添加上下文信息。
 
@@ -756,13 +756,13 @@ type Logger interface {
 }
 ```
 
-### Eloquent ORM
+## Eloquent ORM
 
 Eloquent ORM 是为 Go 开发的一款数据库 ORM 框架，它的设计灵感来源于著名的 PHP 开发框架 Laravel，支持 MySQL 等数据库。
 
 项目地址为 [mylxsw/eloquent](https://github.com/mylxsw/eloquent)，可以配合 Glacier 框架使用。
 
-### 平滑退出
+## 平滑退出
 
 Glacier 支持平滑退出，当我们按下键盘的 `Ctrl+C` 时（接收到 SIGINT， SIGTERM, Interrupt 等信号）， Glacier 将会接收到关闭的信号，然后触发应用的关闭行为。默认情况下，我们的应用会立即退出，我们可以通过 starter 模板创建的应用上启用平滑支持选项 `WithShutdownTimeoutFlagSupport(timeout time.Duration)` 来设置默认的平滑退出时间
 
