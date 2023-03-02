@@ -35,6 +35,8 @@ Glacier 是一款支持依赖注入的模块化的应用开发框架，它以 [g
 - **模块化**：通过 Provider 特性，轻松实现应用的模块化
 - **内置 Web 开发支持**：Glacier 内置了对 Web 应用开发的支持，提供了功能丰富的 API 简化 web 开发
 
+API 文档看这里：https://pkg.go.dev/github.com/mylxsw/glacier 。
+
 ## 使用
 
 创建一个新的项目，使用下面的命令安装 Glacier 开发框架
