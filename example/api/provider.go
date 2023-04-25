@@ -1,8 +1,9 @@
 package api
 
 import (
-	"github.com/mylxsw/glacier/log"
 	"runtime/debug"
+
+	"github.com/mylxsw/glacier/log"
 
 	"github.com/gorilla/mux"
 	"github.com/mylxsw/glacier/example/api/controller"
@@ -34,7 +35,11 @@ func (s ServiceProvider) Aggregates() []infra.Provider {
 }
 
 func (s ServiceProvider) router(cc infra.Resolver, router web.Router, mw web.RequestMiddleware) {
-	router.WithMiddleware(mw.AccessLog(log.Default())).
+	auth := mw.AuthHandler(func(ctx web.Context, typ, credential string) error {
+		ctx.Provide(func() *controller.User { return &controller.User{ID: 1, Name: "mylxsw"} })
+		return nil
+	})
+	router.WithMiddleware(mw.AccessLog(log.Default()), auth).
 		Controllers(
 			"/api",
 			controller.NewWelcomeController(cc),

@@ -3,14 +3,14 @@ package web
 import (
 	"bytes"
 	"html/template"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
 )
 
 func View(tplPath string, data interface{}) (string, error) {
-	tplContent, err := ioutil.ReadFile(tplPath)
+	tplContent, err := os.ReadFile(tplPath)
 	if err != nil {
 		return "", errors.Wrap(err, "can not open template file")
 	}

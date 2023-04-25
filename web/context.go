@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -21,6 +21,8 @@ type WebContext struct {
 	request  *HttpRequest
 	cc       ioc.Container
 	conf     Config
+
+	providers []interface{}
 }
 
 type webHandler struct {
@@ -51,9 +53,9 @@ func newWebHandler(router *routerImpl, handler WebHandler, decors ...HandlerDeco
 
 // ServeHTTP 实现http.HandlerFunc接口
 func (h webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	body, _ := ioutil.ReadAll(r.Body)
+	body, _ := io.ReadAll(r.Body)
 	_ = r.Body.Close()
-	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+	r.Body = io.NopCloser(bytes.NewBuffer(body))
 
 	ctx := &WebContext{
 		response: &HttpResponse{
@@ -192,22 +194,30 @@ type WebSocket struct {
 	Error error
 }
 
+func (ctx *WebContext) Provide(ins any) {
+	ctx.providers = append(ctx.providers, ins)
+}
+
 // Resolve resolve implements dependency injection for http handler
 func (ctx *WebContext) Resolve(callback interface{}) Response {
-	ctxFunc := func() *WebContext { return ctx }
-	ctxFuncInterface := func() Context { return ctx }
-	requestFunc := func() *HttpRequest { return ctx.request }
-	requestFuncInterface := func() Request { return ctx.request }
-	wsFunc := func() *WebSocket {
-		ws, err := Upgrader.Upgrade(ctx.response.ResponseWriter(), ctx.request.Raw(), nil)
-		return &WebSocket{
-			WS:    ws,
-			Error: err,
-		}
-	}
-	responseFunc := func() *HttpResponse { return ctx.response }
-	responseWriterFunc := func() http.ResponseWriter { return ctx.response.ResponseWriter() }
-	results, err := ctx.cc.CallWithProvider(callback, ctx.cc.Provider(ctxFunc, ctxFuncInterface, requestFunc, requestFuncInterface, wsFunc, responseFunc, responseWriterFunc))
+	ctx.providers = append(
+		ctx.providers,
+		func() *WebContext { return ctx },
+		func() Context { return ctx },
+		func() *HttpRequest { return ctx.request },
+		func() Request { return ctx.request },
+		func() *WebSocket {
+			ws, err := Upgrader.Upgrade(ctx.response.ResponseWriter(), ctx.request.Raw(), nil)
+			return &WebSocket{
+				WS:    ws,
+				Error: err,
+			}
+		},
+		func() *HttpResponse { return ctx.response },
+		func() http.ResponseWriter { return ctx.response.ResponseWriter() },
+	)
+
+	results, err := ctx.cc.CallWithProvider(callback, ctx.cc.Provider(ctx.providers...))
 	if err != nil {
 		return ctx.NewErrorResponse(
 			fmt.Sprintf("resolve dependency error: %s", err.Error()),

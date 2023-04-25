@@ -6,6 +6,7 @@ import (
 
 	"github.com/mylxsw/glacier/infra"
 	"github.com/mylxsw/glacier/web"
+	"github.com/mylxsw/go-utils/ternary"
 )
 
 type WelcomeController struct {
@@ -20,6 +21,7 @@ func (w *WelcomeController) Register(router web.Router) {
 	router.Group("/welcome", func(router web.Router) {
 		router.Get("/", w.Hello).Name("welcome:hello")
 		router.Get("/hello/{name}/", w.Hello2).Name("welcome:hello2")
+		router.Get("/hello2/", w.Hello2).Name("welcome:hello2.1")
 		router.Get("/panic/", w.Hello3).Name("welcome:panic")
 	})
 }
@@ -35,8 +37,8 @@ func (w *WelcomeController) Hello(ctx web.Context) web.M {
 	}
 }
 
-func (w *WelcomeController) Hello2(req web.Request) string {
-	return fmt.Sprintf("Hello, %s", req.PathVar("name"))
+func (w *WelcomeController) Hello2(req web.Request, user *User) string {
+	return fmt.Sprintf("Hello, %s", ternary.IfLazy(req.PathVar("name") == "", func() string { return user.Name }, func() string { return req.PathVar("name") }))
 }
 
 func (w *WelcomeController) Hello3(req web.Request) {

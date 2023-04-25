@@ -2,20 +2,17 @@ package main
 
 import (
 	"bytes"
-	"net"
 	"runtime"
 	"strconv"
 	"time"
 
-	"github.com/gorilla/mux"
 	"github.com/mylxsw/glacier/log"
 	"github.com/mylxsw/glacier/starter/app"
-	"github.com/mylxsw/glacier/web"
 
-	"net/http"
 	_ "net/http/pprof"
 
 	"github.com/mylxsw/glacier/event"
+	"github.com/mylxsw/glacier/example/api"
 	"github.com/mylxsw/glacier/example/config"
 	"github.com/mylxsw/glacier/example/job"
 	"github.com/mylxsw/glacier/example/service"
@@ -86,20 +83,20 @@ func run(ins *app.App) error {
 		return nil
 	})
 
-	// ins.Provider(api.ServiceProvider{})
-	ins.Provider(web.DefaultProvider(
-		func(resolver infra.Resolver, router web.Router, mw web.RequestMiddleware) {
-			router.Get("/", func(ctx web.Context) web.Response {
-				return ctx.JSON(web.M{"hello": ctx.InputWithDefault("name", "world")})
-			})
-		},
-		web.SetMuxRouteHandlerOption(func(resolver infra.Resolver, router *mux.Router) {
-			router.PathPrefix("/debug/pprof/").Handler(http.DefaultServeMux)
-		}),
-		web.SetServerConfigOption(func(server *http.Server, listener net.Listener) {
-			//server.ReadTimeout = 10 * time.Second
-		}),
-	))
+	ins.Provider(api.ServiceProvider{})
+	// ins.Provider(web.DefaultProvider(
+	// 	func(resolver infra.Resolver, router web.Router, mw web.RequestMiddleware) {
+	// 		router.Get("/", func(ctx web.Context) web.Response {
+	// 			return ctx.JSON(web.M{"hello": ctx.InputWithDefault("name", "world")})
+	// 		})
+	// 	},
+	// 	web.SetMuxRouteHandlerOption(func(resolver infra.Resolver, router *mux.Router) {
+	// 		router.PathPrefix("/debug/pprof/").Handler(http.DefaultServeMux)
+	// 	}),
+	// 	web.SetServerConfigOption(func(server *http.Server, listener net.Listener) {
+	// 		//server.ReadTimeout = 10 * time.Second
+	// 	}),
+	// ))
 
 	//ins.Provider(web.Provider(
 	//	listener.FlagContext("listen"),

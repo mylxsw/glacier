@@ -11,6 +11,7 @@ import (
 )
 
 type Context interface {
+	Provide(ins any)
 	JSON(res interface{}) *JSONResponse
 	NewJSONResponse(res interface{}) *JSONResponse
 	YAML(res interface{}) *YAMLResponse

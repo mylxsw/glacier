@@ -8,6 +8,11 @@ import (
 	"github.com/mylxsw/glacier/web"
 )
 
+type User struct {
+	Name string `json:"name"`
+	ID   int    `json:"id"`
+}
+
 type DemoController struct {
 }
 
