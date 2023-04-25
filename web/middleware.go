@@ -2,10 +2,11 @@ package web
 
 import (
 	"fmt"
-	"github.com/mylxsw/glacier/infra"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/mylxsw/glacier/infra"
 
 	"github.com/gorilla/sessions"
 	"github.com/pkg/errors"
@@ -127,6 +128,29 @@ func (rm RequestMiddleware) AuthHandler(cb func(ctx Context, typ string, credent
 
 			if err := cb(ctx, segs[0], segs[1]); err != nil {
 				return ctx.JSONError(fmt.Sprintf("auth failed: %s", err), http.StatusUnauthorized)
+			}
+
+			return handler(ctx)
+		}
+	}
+}
+
+func (rm RequestMiddleware) AuthHandlerSkippable(cb func(ctx Context, typ string, credential string) error, skip func(ctx Context) bool) HandlerDecorator {
+	return func(handler WebHandler) WebHandler {
+		return func(ctx Context) (resp Response) {
+			if !skip(ctx) {
+				segs := strings.SplitN(ctx.Header("Authorization"), " ", 2)
+				if len(segs) != 2 {
+					return ctx.JSONError("auth failed: invalid auth header", http.StatusUnauthorized)
+				}
+
+				if !inStringArray(segs[0], []string{"Basic", "Bearer", "Digest", "HOBA", "Mutual", "AWS4-HMAC-SHA256"}) {
+					return ctx.JSONError("auth failed: invalid auth type", http.StatusUnauthorized)
+				}
+
+				if err := cb(ctx, segs[0], segs[1]); err != nil {
+					return ctx.JSONError(fmt.Sprintf("auth failed: %s", err), http.StatusUnauthorized)
+				}
 			}
 
 			return handler(ctx)
