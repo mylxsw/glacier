@@ -205,7 +205,9 @@ func (ctx *WebContext) Resolve(callback interface{}) Response {
 			Error: err,
 		}
 	}
-	results, err := ctx.cc.CallWithProvider(callback, ctx.cc.Provider(ctxFunc, ctxFuncInterface, requestFunc, requestFuncInterface, wsFunc))
+	responseFunc := func() *HttpResponse { return ctx.response }
+	responseWriterFunc := func() http.ResponseWriter { return ctx.response.ResponseWriter() }
+	results, err := ctx.cc.CallWithProvider(callback, ctx.cc.Provider(ctxFunc, ctxFuncInterface, requestFunc, requestFuncInterface, wsFunc, responseFunc, responseWriterFunc))
 	if err != nil {
 		return ctx.NewErrorResponse(
 			fmt.Sprintf("resolve dependency error: %s", err.Error()),
