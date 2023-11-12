@@ -11,6 +11,7 @@ import (
 type provider struct {
 	options         []Option
 	listenerBuilder infra.ListenerBuilder
+	repeatable      bool
 }
 
 func (p *provider) Priority() int {
@@ -25,6 +26,14 @@ func DefaultProviderWithListenerBuilder(listenerBuilder infra.ListenerBuilder, r
 	return Provider(listenerBuilder, append(options, SetRouteHandlerOption(routeHandler))...)
 }
 
+func RepeatableProvider(builder infra.ListenerBuilder, options ...Option) infra.DaemonProvider {
+	return &provider{
+		options:         options,
+		listenerBuilder: builder,
+		repeatable:      true,
+	}
+}
+
 func Provider(builder infra.ListenerBuilder, options ...Option) infra.DaemonProvider {
 	return &provider{
 		options:         options,
@@ -33,6 +42,10 @@ func Provider(builder infra.ListenerBuilder, options ...Option) infra.DaemonProv
 }
 
 func (p *provider) Register(app infra.Binder) {
+	if p.repeatable {
+		return
+	}
+
 	app.MustSingletonOverride(func(cc ioc.Container) Server {
 		return NewServer(cc, p.options...)
 	})
@@ -49,14 +62,32 @@ func (p *provider) Boot(app infra.Resolver) {
 }
 
 func (p *provider) Daemon(ctx context.Context, app infra.Resolver) {
-	app.MustResolve(func(server Server, listenerBuilder infra.ListenerBuilder) {
-		l, err := listenerBuilder.Build(app)
-		if err != nil {
-			panic(err)
-		}
+	if p.repeatable {
+		app.MustResolve(func(app ioc.Container) {
+			listenerBuilder := p.listenerBuilder
+			if listenerBuilder == nil {
+				listenerBuilder = listener.Default("127.0.0.1:8080")
+			}
 
-		if err := server.Start(l); err != nil {
-			panic(err)
-		}
-	})
+			l, err := listenerBuilder.Build(app)
+			if err != nil {
+				panic(err)
+			}
+
+			if err := NewServer(app, p.options...).Start(l); err != nil {
+				panic(err)
+			}
+		})
+	} else {
+		app.MustResolve(func(server Server, listenerBuilder infra.ListenerBuilder) {
+			l, err := listenerBuilder.Build(app)
+			if err != nil {
+				panic(err)
+			}
+
+			if err := server.Start(l); err != nil {
+				panic(err)
+			}
+		})
+	}
 }
