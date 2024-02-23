@@ -617,7 +617,7 @@ func routes(resolver infra.Resolver, router web.Router, mw web.RequestMiddleware
 
 ## 事件管理
 
-Glacier 框架提供了一个简单的事件管理模块，可以用于发布和监听应用运行中的事件，进行响应的业务处理。
+Glacier 框架提供了一个简单的事件管理模块，可以用于发布和监听应用运行中的事件，进行相应的业务处理。
 
 通过 `event.Provider(handler func(resolver infra.Resolver, listener Listener), options ...Option) infra.Provider ` 来初始化事件管理器。
 
