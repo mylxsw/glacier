@@ -2,7 +2,9 @@ package infra
 
 import (
 	"context"
+	"errors"
 	"net"
+	"reflect"
 	"time"
 
 	"github.com/mylxsw/go-ioc"
@@ -177,4 +179,14 @@ type Hook interface {
 
 func WithCondition(init interface{}, onCondition interface{}) ioc.Conditional {
 	return ioc.WithCondition(init, onCondition)
+}
+
+// Autowire Automatically inject dependencies into obj and return obj for convenient chaining.
+func Autowire[T any](resolver Resolver, obj T) T {
+	if reflect.ValueOf(obj).Kind() != reflect.Ptr {
+		panic(errors.New("obj must be a pointer"))
+	}
+
+	resolver.MustAutoWire(obj)
+	return obj
 }
