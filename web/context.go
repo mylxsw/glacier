@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"path/filepath"
+	"time"
 
 	"github.com/gorilla/sessions"
 	"github.com/gorilla/websocket"
@@ -17,12 +18,29 @@ import (
 
 // WebContext 作为一个web请求的上下文信息
 type WebContext struct {
+	ctx      context.Context
 	response *HttpResponse
 	request  *HttpRequest
 	cc       ioc.Container
 	conf     Config
 
 	providers []interface{}
+}
+
+func (ctx *WebContext) Deadline() (deadline time.Time, ok bool) {
+	return ctx.ctx.Deadline()
+}
+
+func (ctx *WebContext) Done() <-chan struct{} {
+	return ctx.ctx.Done()
+}
+
+func (ctx *WebContext) Err() error {
+	return ctx.ctx.Err()
+}
+
+func (ctx *WebContext) Value(key any) any {
+	return ctx.ctx.Value(key)
 }
 
 type webHandler struct {
@@ -57,7 +75,10 @@ func (h webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_ = r.Body.Close()
 	r.Body = io.NopCloser(bytes.NewBuffer(body))
 
-	ctx := &WebContext{
+	ctx, cancel := context.WithCancel(h.container.MustGet(new(context.Context)).(context.Context))
+	defer cancel()
+
+	webCtx := &WebContext{
 		response: &HttpResponse{
 			w:       w,
 			headers: make(map[string]string),
@@ -65,9 +86,10 @@ func (h webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		request: &HttpRequest{r: r, body: body, cc: h.container, conf: *h.conf, router: h.router},
 		cc:      h.container,
 		conf:    *h.conf,
+		ctx:     ctx,
 	}
 
-	resp := h.handle(ctx)
+	resp := h.handle(webCtx)
 	if resp != nil {
 		_ = resp.CreateResponse()
 	}

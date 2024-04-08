@@ -11,6 +11,7 @@ import (
 )
 
 type Context interface {
+	context.Context
 	Provide(ins any)
 	JSON(res interface{}) *JSONResponse
 	NewJSONResponse(res interface{}) *JSONResponse

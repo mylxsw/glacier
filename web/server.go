@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"github.com/pkg/errors"
 	"net"
 	"net/http"
 	"time"
@@ -103,7 +104,7 @@ func (app *serverImpl) Start(listener net.Listener) error {
 				log.Debugf("[glacier] http server stopped: %s", err)
 			}
 
-			if err != http.ErrServerClosed {
+			if !errors.Is(err, http.ErrServerClosed) {
 				gf.Shutdown()
 			}
 		}

@@ -1,11 +1,10 @@
 package controller
 
 import (
-	"net/http"
-	"strings"
-
 	"github.com/gorilla/mux"
 	"github.com/mylxsw/glacier/web"
+	"net/http"
+	"strings"
 )
 
 type User struct {
