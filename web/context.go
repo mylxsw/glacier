@@ -1,10 +1,8 @@
 package web
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -71,10 +69,6 @@ func newWebHandler(router *routerImpl, handler WebHandler, decors ...HandlerDeco
 
 // ServeHTTP 实现http.HandlerFunc接口
 func (h webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	body, _ := io.ReadAll(r.Body)
-	_ = r.Body.Close()
-	r.Body = io.NopCloser(bytes.NewBuffer(body))
-
 	ctx, cancel := context.WithCancel(h.container.MustGet(new(context.Context)).(context.Context))
 	defer cancel()
 
@@ -83,7 +77,7 @@ func (h webHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			w:       w,
 			headers: make(map[string]string),
 		},
-		request: &HttpRequest{r: r, body: body, cc: h.container, conf: *h.conf, router: h.router},
+		request: &HttpRequest{r: r, cc: h.container, conf: *h.conf, router: h.router},
 		cc:      h.container,
 		conf:    *h.conf,
 		ctx:     ctx,

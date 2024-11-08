@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/mylxsw/glacier/log"
 	"github.com/mylxsw/glacier/web"
 	"net/http"
 	"strings"
@@ -36,6 +37,8 @@ func (d *DemoController) RawRes(ctx web.Context) web.Response {
 }
 
 func (d *DemoController) Create(ctx web.Context) web.Response {
+	log.Debug("request body is ", string(ctx.Body()))
+
 	name := ctx.InputWithDefault("name", "Tom")
 	if len(name) < 2 {
 		return ctx.JSONError("invalid name", http.StatusUnprocessableEntity)
@@ -43,5 +46,6 @@ func (d *DemoController) Create(ctx web.Context) web.Response {
 
 	return ctx.JSON(web.M{
 		"name": strings.ToUpper(name),
+		"body": string(ctx.Body()),
 	})
 }

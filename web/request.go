@@ -1,15 +1,18 @@
 package web
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/mylxsw/glacier/log"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/buger/jsonparser"
 	gorillaCtx "github.com/gorilla/context"
@@ -24,11 +27,28 @@ import (
 // HttpRequest 请求对象封装
 type HttpRequest struct {
 	r       *http.Request
-	body    []byte
 	session *sessions.Session
 	cc      ioc.Container
 	router  *routerImpl
 	conf    Config
+
+	// Used to read body data and ensure that body data is read only once
+	once sync.Once
+	body []byte
+}
+
+// loadBody load request body
+// This method is used to ensure that the body data is read only once
+func (req *HttpRequest) loadBody() []byte {
+	req.once.Do(func() {
+		req.body, _ = io.ReadAll(req.r.Body)
+		_ = req.r.Body.Close()
+		req.r.Body = io.NopCloser(bytes.NewBuffer(req.body))
+
+		log.Error("reload request body: %s", req.body)
+	})
+
+	return req.body
 }
 
 // Context returns the request's context
@@ -91,13 +111,13 @@ func (req *HttpRequest) Decode(v interface{}) error {
 // Unmarshal request body as json object
 // result must be reference to a variable
 func (req *HttpRequest) Unmarshal(v interface{}) error {
-	return json.Unmarshal(req.body, v)
+	return json.Unmarshal(req.loadBody(), v)
 }
 
 // UnmarshalYAML unmarshal request body as yaml object
 // result must be reference to a variable
 func (req *HttpRequest) UnmarshalYAML(v interface{}) error {
-	return yaml.Unmarshal(req.body, v)
+	return yaml.Unmarshal(req.loadBody(), v)
 }
 
 // Set 设置一个变量，存储到当前请求
@@ -147,7 +167,7 @@ func (req *HttpRequest) Input(key string) string {
 }
 
 func (req *HttpRequest) JSONGet(keys ...string) string {
-	value, dataType, _, err := jsonparser.Get(req.body, keys...)
+	value, dataType, _, err := jsonparser.Get(req.loadBody(), keys...)
 	if err != nil {
 		return ""
 	}
@@ -372,7 +392,7 @@ func (req *HttpRequest) Method() string {
 
 // Body return request body
 func (req *HttpRequest) Body() []byte {
-	return req.body
+	return req.loadBody()
 }
 
 // Validator is an interface for validator
