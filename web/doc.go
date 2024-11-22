@@ -106,6 +106,7 @@ type Request interface {
 	AJAX() bool
 	IsJSON() bool
 	ContentType() string
+	ContentEncoding() string
 	AllHeaders() http.Header
 	Headers(key string) []string
 	Header(key string) string

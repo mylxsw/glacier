@@ -5,6 +5,7 @@ import (
 	"github.com/mylxsw/glacier/log"
 	"github.com/mylxsw/glacier/web"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -26,6 +27,29 @@ func (d *DemoController) Register(router web.Router) {
 			rou.Name("demo:create")
 		})
 		router.Get("/raw", d.RawRes)
+		router.Post("/upload", d.Upload)
+	})
+}
+
+func (d *DemoController) Upload(ctx web.Context) web.Response {
+	up, err := ctx.File("file")
+	if err != nil {
+		return ctx.JSONError(err.Error(), http.StatusBadRequest)
+	}
+
+	if err := up.Store("/tmp/" + up.Name()); err != nil {
+		return ctx.JSONError(err.Error(), http.StatusInternalServerError)
+	}
+
+	data, err := os.ReadFile("/tmp/" + up.Name())
+	if err != nil {
+		return ctx.JSONError(err.Error(), http.StatusInternalServerError)
+	}
+
+	return ctx.JSON(web.M{
+		"filename": up.Name(),
+		"size":     up.Size(),
+		"content":  string(data),
 	})
 }
 

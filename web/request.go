@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -44,6 +45,17 @@ func (req *HttpRequest) loadBody() []byte {
 		req.body, _ = io.ReadAll(req.r.Body)
 		_ = req.r.Body.Close()
 		req.r.Body = io.NopCloser(bytes.NewBuffer(req.body))
+
+		if req.ContentEncoding() == "gzip" {
+			gzipReader, err := gzip.NewReader(bytes.NewBuffer(req.body))
+			if err != nil {
+				log.Errorf("gzip reader create failed: %v", err)
+				return
+			}
+			
+			req.body, _ = io.ReadAll(gzipReader)
+			_ = gzipReader.Close()
+		}
 
 		log.Error("reload request body: %s", req.body)
 	})
@@ -323,6 +335,11 @@ func (req *HttpRequest) ContentType() string {
 	}
 
 	return strings.ToLower(strings.Split(t, ";")[0])
+}
+
+// ContentEncoding return content encoding for request
+func (req *HttpRequest) ContentEncoding() string {
+	return req.r.Header.Get("Content-Encoding")
 }
 
 // AllHeaders return all http request headers
