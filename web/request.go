@@ -52,12 +52,10 @@ func (req *HttpRequest) loadBody() []byte {
 				log.Errorf("gzip reader create failed: %v", err)
 				return
 			}
-			
+
 			req.body, _ = io.ReadAll(gzipReader)
 			_ = gzipReader.Close()
 		}
-
-		log.Error("reload request body: %s", req.body)
 	})
 
 	return req.body
